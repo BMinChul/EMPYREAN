@@ -309,40 +309,33 @@ export class MainScene extends Phaser.Scene {
   }
 
   // --- Dynamic Multiplier Calculation ---
-  // Based on Gemini Analysis: 
-  // Center: Time ↑ -> Multiplier ↑ (Hard to stay still)
-  // Edge: Time ↑ -> Multiplier ↓ (Easier to reach over time)
-  private calculateDynamicMultiplier(rowPrice: number, colIndex: number): number {
-      const distance = Math.abs(rowPrice - this.currentPrice);
-      
-      // Standardize distance relative to typical volatility
-      // $10 diff is considered "Far"
-      const distFactor = Math.min(distance / 10.0, 1.0); 
+  // Inverse Gaussian PDF Model (Inverse Probability)
+  // Formula: Multiplier = BaseScale * sqrt(t) * exp( x^2 / (2 * sigma^2 * t) ) * (1 - HouseEdge)
+  private calculateDynamicMultiplier(targetPrice: number, colIndex: number): number {
+      // 1. Time (t): (colIndex - 5) + 1.0
+      // Ensures betting zone starts from 1s to avoid division by zero.
+      // colIndex 5 -> t=1, colIndex 9 -> t=5
+      const t = Math.max(1.0, (colIndex - 5) + 1.0);
 
-      // Time Factor (0 to 5) for right side columns
-      // colIndex passed here is relative to screen (0-9), we care about betting zone (5-9)
-      const timeSteps = Math.max(0, colIndex - 5); 
+      // 2. Distance (x): Absolute difference between Target and Current
+      const x = Math.abs(targetPrice - this.currentPrice);
 
-      // Base Multiplier based on Difficulty (Distance)
-      // Close: ~2.0x, Far: ~8.0x
-      let baseMult = 2.0 + (distFactor * 6.0); 
+      // 3. Constants (Optimized for 'Euphoria' feel)
+      const sigma = 0.7;     // Volatility: Lower = steeper rise for outer bets
+      const baseScale = 0.85; // Global scale adjustment
+      const houseEdge = 0.05; // 5% fee
 
-      // Apply Time/Volatility Logic
-      if (distFactor < 0.2) {
-          // CENTER ZONE: Increase over time
-          // "Probability of staying perfectly still decreases over time"
-          baseMult = baseMult * (1 + (timeSteps * 0.15));
-      } else if (distFactor > 0.6) {
-          // EDGE ZONE: Decrease over time
-          // "Probability of reaching far edge increases with more time"
-          baseMult = baseMult * (1 - (timeSteps * 0.08));
-      } else {
-          // MIDDLE ZONE: Slight increase or stable
-          baseMult = baseMult * (1 + (timeSteps * 0.05));
-      }
+      // 4. Calculate
+      // Multiplier = BaseScale * sqrt(t) * exp( x^2 / (2 * sigma^2 * t) ) * (1 - HouseEdge)
+      const numerator = x * x;
+      const denominator = 2 * sigma * sigma * t;
+      const exponentialTerm = Math.exp(numerator / denominator);
 
-      // Clamp values
-      return parseFloat(Math.max(1.05, Math.min(99.99, baseMult)).toFixed(2));
+      const multiplier = baseScale * Math.sqrt(t) * exponentialTerm * (1 - houseEdge);
+
+      // 5. Constraints
+      // Min 1.05x, Max 99.99x
+      return parseFloat(Math.max(1.05, Math.min(99.99, multiplier)).toFixed(2));
   }
 
   // --- Helper: Calculate Text Fade (Visibility) ---
@@ -462,8 +455,9 @@ export class MainScene extends Phaser.Scene {
                 const y = -(p - this.initialPrice!) * this.pixelPerDollar;
                 const cellCenterY = y - (this.gridPriceInterval * this.pixelPerDollar) / 2;
                 
-                // --- NEW DYNAMIC LOGIC ---
-                // Calculate based on row price and column index
+                // --- CORRECTED LOGIC ---
+                // Sync Rule: Use 'const cellCenterPrice = p + (this.gridPriceInterval / 2)'
+                // This ensures the multiplier shown matches the bet logic perfectly
                 const cellCenterPrice = p + (this.gridPriceInterval / 2);
                 const dynamicMulti = this.calculateDynamicMultiplier(cellCenterPrice, colIndexOnScreen);
                 

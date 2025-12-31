@@ -1,21 +1,15 @@
 # Status
 
 ## Active Work
-- **Visual & Gameplay Refinements ("Euphoria" Polish)**:
-    - **Chart Visuals**: Implemented dual-layer rendering (100px Dark Purple bottom + 60px Bright Purple top) for a high-contrast, stroke-like appearance.
-    - **Price Box**: Text is now perfectly centered.
-    - **Win/Loss Logic**: 
-        - **Win**: Instant trigger upon touching the box area.
-        - **Loss**: Only triggers when the graph head completely clears the right edge of the box.
-    - **Proximity Glow**: 
-        - Range reduced to 100px.
-        - Size scaled down significantly to appear as a subtle backlight just behind the box.
+- **Completed**: Implemented Inverse Gaussian PDF Model for multiplier calculation.
+    - Formula: `Multiplier = BaseScale * sqrt(t) * exp( x^2 / (2 * sigma^2 * t) ) * (1 - HouseEdge)`
+    - Constants: Sigma=0.7, BaseScale=0.85, HouseEdge=0.05.
+    - UI: Ensured grid multipliers perfectly match betting box multipliers.
 
 ## Recent Activity
-- **Code Fixes**: Fixed discrepancy between grid multipliers and betting multipliers by using cell center price for calculation in `MainScene.ts`.
-- **Code Fixes**: Resolved syntax error in `MainScene.ts` caused by incomplete method definition.
-- **Refactoring**: Centralized visibility logic and collision handling.
-- **Polish**: Updated gradients and UI element sizing based on user feedback.
+- **Visual Refinements**: Implemented dual-layer chart rendering and "Euphoira" style polish.
+- **Code Fixes**: Resolved syntax errors and grid multiplier logic.
+- **Math Model Update**: Switched from Brownian Motion Inverse Diffusion to Inverse Gaussian PDF for better risk/reward balance.
 
 ## Next Steps
 - [ ] Add "Cash Out" button for active bets.
