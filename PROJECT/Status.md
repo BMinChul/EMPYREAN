@@ -1,17 +1,20 @@
 # Status
 
 ## Active Work
-- **Resolved Visual & Gameplay Issues**:
-    - **Stable Graph**: Switched from Spline to Line Segments to stop past data from "wiggling".
-    - **Win Logic**: Fixed collision to trigger immediately at the *left edge* of the box.
-    - **Betting Restrictions**: Added strict logic to disable betting in the "fade-in" zone (left 55% of screen).
-    - **Box Styling**: 
-        - Removed 70% white border.
-        - Applied rounded corners directly to the Pale Yellow solid fill.
-        - Added dynamic "proximity glow" (Yellow) that only appears when the graph approaches.
+- **Visual & Gameplay Refinements ("Euphoria" Polish)**:
+    - **Chart Visuals**: Implemented dual-layer rendering (100px Dark Purple bottom + 60px Bright Purple top) for a high-contrast, stroke-like appearance.
+    - **Price Box**: Text is now perfectly centered.
+    - **Win/Loss Logic**: 
+        - **Win**: Instant trigger upon touching the box area.
+        - **Loss**: Only triggers when the graph head completely clears the right edge of the box.
+    - **Proximity Glow**: 
+        - Range reduced to 100px.
+        - Size scaled down significantly to appear as a subtle backlight just behind the box.
 
 ## Recent Activity
-- Modified `MainScene.ts` to implement line-based chart rendering, strict betting zones, and updated box aesthetics.
+- **Code Fixes**: Resolved syntax error in `MainScene.ts` caused by incomplete method definition.
+- **Refactoring**: Centralized visibility logic and collision handling.
+- **Polish**: Updated gradients and UI element sizing based on user feedback.
 
 ## Next Steps
 - [ ] Add "Cash Out" button for active bets.
