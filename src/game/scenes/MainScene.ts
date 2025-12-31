@@ -11,7 +11,8 @@ interface PricePoint {
 interface BettingBox {
   container: Phaser.GameObjects.Container;
   rect: Phaser.GameObjects.Rectangle;
-  text: Phaser.GameObjects.Text;
+  textAmount: Phaser.GameObjects.Text;
+  textMulti: Phaser.GameObjects.Text;
   betAmount: number;
   multiplier: number;
   hit: boolean;
@@ -24,11 +25,17 @@ export class MainScene extends Phaser.Scene {
   private priceHistory: PricePoint[] = [];
   private chartGraphics: Phaser.GameObjects.Graphics;
   private gridGraphics: Phaser.GameObjects.Graphics;
+  private axisGraphics: Phaser.GameObjects.Graphics;
   private bettingBoxes: BettingBox[] = [];
+  private gridLabels: Phaser.GameObjects.Text[] = [];
+  private axisLabels: Phaser.GameObjects.Text[] = [];
+  private headPriceLabel: Phaser.GameObjects.Container;
+  private headPriceText: Phaser.GameObjects.Text;
   
   // --- Configuration ---
-  private speedX: number = 150; // Horizontal speed (pixels/sec)
-  private pixelPerDollar: number = 300; // Vertical sensitivity
+  private speedX: number = 200; // Horizontal speed
+  private pixelPerDollar: number = 200; // Zoom level (Pixels per $1 price change)
+  private gridPriceInterval: number = 0.5; // Draw a line every $0.50 change
   
   // --- State ---
   private initialPrice: number | null = null;
@@ -47,7 +54,6 @@ export class MainScene extends Phaser.Scene {
   // --- Visuals ---
   private headEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
   private goldEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
-  private pulseRingTexture: string = 'pulse_ring';
   
   private lastPointTime: number = 0;
 
@@ -63,31 +69,30 @@ export class MainScene extends Phaser.Scene {
 
   create() {
     // 1. Setup World
-    this.cameras.main.setBackgroundColor('#050510');
+    this.cameras.main.setBackgroundColor('#1a0b2e'); // Deep magenta/purple
     
     // Start vertically centered
-    this.startY = this.scale.height / 2;
-    this.headY = this.startY;
-    this.targetHeadY = this.startY;
-    
-    // Start at far LEFT (0)
+    this.startY = 0; // World Center is 0,0 for easier math
+    this.headY = 0;
+    this.targetHeadY = 0;
     this.headX = 0;
 
     // 2. Camera FX (Bloom)
     if (this.cameras.main.postFX) {
         // Color, Intensity, Blur, Strength
-        this.cameras.main.postFX.addBloom(0xffffff, 1.0, 1.0, 0.9, 1.2);
+        this.cameras.main.postFX.addBloom(0xffffff, 0.8, 0.8, 1.1, 1.2);
     }
 
-    // 3. Graphics Layers
+    // 3. Graphics Layers (Order Matters)
     this.gridGraphics = this.add.graphics();
     this.chartGraphics = this.add.graphics();
+    this.axisGraphics = this.add.graphics();
+    this.axisGraphics.setScrollFactor(0); // Axis UI stays fixed on screen overlay? No, needs to scroll Y but stick X. We'll handle manually.
 
     // 4. Generate Textures
     this.createTextures();
 
     // 5. Particles
-    // Blue/White Engine Trail (Subtle)
     this.headEmitter = this.add.particles(0, 0, 'flare', {
       speed: 20,
       scale: { start: 0.3, end: 0 },
@@ -98,7 +103,6 @@ export class MainScene extends Phaser.Scene {
       frequency: 40
     });
 
-    // Gold Win Explosion (High Energy)
     this.goldEmitter = this.add.particles(0, 0, 'flare', {
       speed: { min: 200, max: 500 },
       scale: { start: 0.8, end: 0 },
@@ -111,11 +115,14 @@ export class MainScene extends Phaser.Scene {
       gravityY: 200
     });
 
-    // 6. Data Service
+    // 6. Head Label (Floating Tag)
+    this.createHeadLabel();
+
+    // 7. Data Service
     this.okxService = new OKXService((price) => this.handleNewPrice(price));
     this.okxService.connect();
 
-    // 7. Input (Betting)
+    // 8. Input (Betting)
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       this.placeBet(pointer);
     });
@@ -124,7 +131,7 @@ export class MainScene extends Phaser.Scene {
     const centerX = this.scale.width / 2;
     const centerY = this.scale.height / 2;
     this.add.text(centerX, centerY, 'CONNECTING TO OKX...', { 
-      fontFamily: 'Orbitron', fontSize: '24px', color: '#6c5ce7', fontStyle: 'bold'
+      fontFamily: 'Orbitron', fontSize: '24px', color: '#ffd700', fontStyle: 'bold'
     })
     .setOrigin(0.5)
     .setScrollFactor(0)
@@ -155,6 +162,21 @@ export class MainScene extends Phaser.Scene {
     graphics.generateTexture('pulse_ring', 84, 84);
   }
 
+  private createHeadLabel() {
+    this.headPriceLabel = this.add.container(0, 0);
+    
+    const bg = this.add.rectangle(45, 0, 80, 24, 0xffffff, 1);
+    this.headPriceText = this.add.text(45, 0, '$0000.0', {
+        fontFamily: 'Orbitron',
+        fontSize: '12px',
+        color: '#000000',
+        fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    this.headPriceLabel.add([bg, this.headPriceText]);
+    this.headPriceLabel.setDepth(100); // Always on top
+  }
+
   private cleanup() {
     if (this.okxService) {
       this.okxService.disconnect();
@@ -167,41 +189,42 @@ export class MainScene extends Phaser.Scene {
 
     const dt = delta / 1000;
 
-    // --- 1. Horizontal Movement (Time) ---
+    // --- 1. Horizontal Movement ---
     this.headX += this.speedX * dt;
 
     // --- 2. Vertical Movement (Price + Volatility) ---
-    // Add "Jitter" to simulate market noise/heartbeat
     this.jitterTimer += dt;
-    if (this.jitterTimer > 0.1) { // Change jitter target every 100ms
-        this.jitterOffset = (Math.random() - 0.5) * 15; // +/- 7.5px jitter
+    if (this.jitterTimer > 0.08) { 
+        this.jitterOffset = (Math.random() - 0.5) * 20; 
         this.jitterTimer = 0;
     }
 
-    // Smooth Lerp towards (Target + Jitter)
-    // Faster lerp (0.15) for high reactivity
+    // Smooth Lerp
     const finalTargetY = this.targetHeadY + this.jitterOffset;
     this.headY = Phaser.Math.Linear(this.headY, finalTargetY, 0.15);
 
-    // --- 3. Half-Screen Logic ---
-    const halfScreen = this.scale.width / 2;
+    // --- 3. Camera Sync (The "Euphoria" Lock) ---
+    // Rule: Head is ALWAYS at center screen width (after initial run-up)
+    // Rule: Head is ALWAYS at center screen height (Vertical Lock)
+    const halfWidth = this.scale.width / 2;
+    const halfHeight = this.scale.height / 2;
     
-    if (this.headX > halfScreen) {
-        // Phase 2: Head is pinned at center, world scrolls left
-        // Camera ScrollX = HeadX - HalfScreen
-        this.cameras.main.scrollX = this.headX - halfScreen;
+    // Horizontal Lock
+    if (this.headX > halfWidth) {
+        this.cameras.main.scrollX = this.headX - halfWidth;
     } else {
-        // Phase 1: Head moves from Left to Center
         this.cameras.main.scrollX = 0;
     }
 
-    // --- 4. History Recording ---
-    // Record frequently for smooth cubic bezier curves
+    // Vertical Lock: Camera Y = Head Y - Half Screen Height
+    // This keeps the head perfectly centered vertically
+    this.cameras.main.scrollY = this.headY - halfHeight;
+
+    // --- 4. History ---
     if (time - this.lastPointTime > 30) {
       this.priceHistory.push({ worldX: this.headX, worldY: this.headY });
       this.lastPointTime = time;
       
-      // Memory Management: Remove points far behind camera
       const leftBound = this.cameras.main.scrollX - 200;
       if (this.priceHistory.length > 0 && this.priceHistory[0].worldX < leftBound) {
          this.priceHistory.shift();
@@ -209,11 +232,16 @@ export class MainScene extends Phaser.Scene {
     }
 
     // --- 5. Draw ---
-    this.drawGrid();
+    this.drawGridAndAxis();
     this.drawChart();
     
     // --- 6. Updates ---
     this.headEmitter.setPosition(this.headX, this.headY);
+    
+    // Update Head Label
+    this.headPriceLabel.setPosition(this.headX, this.headY);
+    this.headPriceText.setText(`$${this.currentPrice.toFixed(1)}`);
+    
     this.checkCollisions();
   }
 
@@ -228,10 +256,13 @@ export class MainScene extends Phaser.Scene {
     this.currentPrice = price;
     useGameStore.getState().setCurrentPrice(price);
 
-    // Delta calculation
-    const delta = price - this.initialPrice;
-    // Y goes DOWN as Price goes UP
-    this.targetHeadY = this.startY - (delta * this.pixelPerDollar);
+    // Calculate Target Y
+    // Y = (InitialPrice - CurrentPrice) * Scale
+    // If price goes UP, Y goes UP (negative) visually on canvas? 
+    // Usually Y=0 is top. 
+    // Let's say Y goes DOWN (negative) as Price goes UP (positive).
+    const priceDelta = price - this.initialPrice;
+    this.targetHeadY = -(priceDelta * this.pixelPerDollar);
   }
 
   private drawChart() {
@@ -239,42 +270,32 @@ export class MainScene extends Phaser.Scene {
     
     if (this.priceHistory.length < 2) return;
 
-    // Only draw what's visible
     const scrollX = this.cameras.main.scrollX;
     const width = this.scale.width;
-    const buffer = 150; // Draw slightly outside
+    const buffer = 150;
 
-    // Extract points for Spline
     const points: Phaser.Math.Vector2[] = [];
     
     for (const p of this.priceHistory) {
-        // Very basic culling
         if (p.worldX > scrollX - buffer && p.worldX < scrollX + width + buffer) {
             points.push(new Phaser.Math.Vector2(p.worldX, p.worldY));
         }
     }
-    // Always add current head for connectivity
     points.push(new Phaser.Math.Vector2(this.headX, this.headY));
 
     if (points.length < 2) return;
 
     const curve = new Phaser.Curves.Spline(points);
 
-    // 1. Outer Glow (Soft Bloom)
-    this.chartGraphics.lineStyle(16, 0xffffff, 0.05);
+    // Glows
+    this.chartGraphics.lineStyle(16, 0xffffff, 0.08);
     curve.draw(this.chartGraphics, 64);
     
-    // 2. Inner Glow
-    this.chartGraphics.lineStyle(6, 0xffffff, 0.2);
-    curve.draw(this.chartGraphics, 64);
-
-    // 3. Core Neon Line
-    this.chartGraphics.lineStyle(3, 0xffffff, 1);
+    this.chartGraphics.lineStyle(4, 0xffffff, 1);
     curve.draw(this.chartGraphics, 64);
     
-    // 4. Head Diamond
+    // Head Diamond
     this.chartGraphics.fillStyle(0xffffff, 1);
-    // Draw rotated square (diamond)
     this.chartGraphics.fillPoints([
         { x: this.headX, y: this.headY - 6 },
         { x: this.headX + 6, y: this.headY },
@@ -283,45 +304,112 @@ export class MainScene extends Phaser.Scene {
     ], true);
   }
 
-  private drawGrid() {
+  private drawGridAndAxis() {
     this.gridGraphics.clear();
+    this.axisGraphics.clear();
     
+    // Clear old labels
+    this.gridLabels.forEach(l => l.setVisible(false));
+    this.axisLabels.forEach(l => l.setVisible(false));
+    
+    let labelIdx = 0;
+    let axisLabelIdx = 0;
+
     const scrollX = this.cameras.main.scrollX;
     const scrollY = this.cameras.main.scrollY;
     const width = this.scale.width;
     const height = this.scale.height;
+
+    // --- 1. Calculate Visible Price Range ---
+    // HeadY corresponds to CurrentPrice.
+    // Screen Top (scrollY) -> corresponds to High Price
+    // Screen Bottom (scrollY + height) -> corresponds to Low Price
+    // Y = -(Price - Init) * Scale
+    // Price = Init - (Y / Scale)
     
-    // Visual Style: Dark Purple Grid
-    this.gridGraphics.lineStyle(1, 0x6c5ce7, 0.15); // Low opacity purple
-
-    const gridSize = 80;
-
-    // Calculate grid offsets based on camera
-    const startX = Math.floor(scrollX / gridSize) * gridSize;
-    const endX = startX + width + gridSize;
+    const maxVisibleY = scrollY + height;
+    const minVisibleY = scrollY;
     
-    const startY = Math.floor(scrollY / gridSize) * gridSize;
-    const endY = startY + height + gridSize;
-
-    // Draw Vertical Lines
-    for (let x = startX; x <= endX; x += gridSize) {
-      this.gridGraphics.moveTo(x, scrollY);
-      this.gridGraphics.lineTo(x, scrollY + height);
+    // We want grid lines at nice intervals (e.g. $0.50)
+    // Find the first "nice" price within view
+    const minPrice = this.initialPrice! - (maxVisibleY / this.pixelPerDollar);
+    const maxPrice = this.initialPrice! - (minVisibleY / this.pixelPerDollar);
+    
+    const startPrice = Math.floor(minPrice / this.gridPriceInterval) * this.gridPriceInterval;
+    
+    // Draw Horizontal Lines (Price Levels)
+    this.gridGraphics.lineStyle(1, 0xaa00ff, 0.1); // Faint Purple
+    
+    for (let p = startPrice; p <= maxPrice; p += this.gridPriceInterval) {
+        // Convert Price back to Y
+        const y = -(p - this.initialPrice!) * this.pixelPerDollar;
+        
+        // Draw Line
+        this.gridGraphics.moveTo(scrollX, y);
+        this.gridGraphics.lineTo(scrollX + width, y);
+        
+        // Axis Label (Far Right)
+        const labelText = p.toFixed(2); // "2975.50"
+        let label = this.axisLabels[axisLabelIdx];
+        if (!label) {
+            label = this.add.text(0, 0, labelText, {
+                fontFamily: 'Orbitron', fontSize: '10px', color: '#ff00ff'
+            }).setScrollFactor(0).setOrigin(1, 0.5); // Fixed to screen
+            this.axisLabels.push(label);
+        }
+        
+        // Position fixed to screen right, but Y relative to camera
+        // Since label is scrollFactor(0), we must manually calculate screenY
+        const screenY = y - scrollY;
+        label.setPosition(width - 10, screenY);
+        label.setText(labelText);
+        label.setVisible(true);
+        axisLabelIdx++;
     }
 
-    // Draw Horizontal Lines
-    for (let y = startY; y <= endY; y += gridSize) {
-      this.gridGraphics.moveTo(scrollX, y);
-      this.gridGraphics.lineTo(scrollX + width, y);
+    // Draw Vertical Lines (Time)
+    // Space them out by 100px
+    const gridSpacingX = 100;
+    const startGridX = Math.floor(scrollX / gridSpacingX) * gridSpacingX;
+    
+    for (let x = startGridX; x < scrollX + width; x += gridSpacingX) {
+        this.gridGraphics.moveTo(x, scrollY);
+        this.gridGraphics.lineTo(x, scrollY + height);
+        
+        // --- Multipliers in Grid Cells (Right Side Only) ---
+        // Only show multipliers in the "Future" zone (Right of Head)
+        if (x > this.headX) {
+            // Check vertical cells
+             for (let p = startPrice; p <= maxPrice; p += this.gridPriceInterval) {
+                 const y = -(p - this.initialPrice!) * this.pixelPerDollar;
+                 
+                 // Calculate Multiplier for this cell
+                 const distX = x - this.headX;
+                 const distY = Math.abs(y - this.headY);
+                 
+                 // Simple Formula
+                 let multi = 1.0 + (distX/500) + (distY/300);
+                 if (multi > 10) multi = 10;
+                 
+                 let gl = this.gridLabels[labelIdx];
+                 if (!gl) {
+                     gl = this.add.text(0, 0, '', {
+                         fontFamily: 'monospace', fontSize: '10px', color: '#aa00ff', alpha: 0.5
+                     }).setOrigin(0.5);
+                     this.gridLabels.push(gl);
+                 }
+                 gl.setPosition(x + gridSpacingX/2, y - (this.gridPriceInterval * this.pixelPerDollar)/2);
+                 gl.setText(`${multi.toFixed(2)}x`);
+                 gl.setVisible(true);
+                 labelIdx++;
+             }
+        }
     }
     
     this.gridGraphics.strokePath();
     
-    // Central Divider (The "Present" Line)
-    // It's always at screenWidth / 2 relative to camera
-    // So WorldX = scrollX + screenWidth/2
-    const centerX = scrollX + (this.scale.width / 2);
-    
+    // Draw Center Divider Line (Visual Reference)
+    const centerX = scrollX + (width / 2);
     this.gridGraphics.lineStyle(2, 0xffffff, 0.1);
     this.gridGraphics.beginPath();
     this.gridGraphics.moveTo(centerX, scrollY);
@@ -332,77 +420,76 @@ export class MainScene extends Phaser.Scene {
   private placeBet(pointer: Phaser.Input.Pointer) {
     if (!this.initialPrice) return;
 
-    // Rule: Must click on RIGHT SIDE of screen (The "Future")
-    const halfScreen = this.scale.width / 2;
-    if (pointer.x < halfScreen) {
-        // Ignore clicks on the history side
-        return;
-    }
+    // Valid Zone: Right of center line
+    const centerX = this.cameras.main.scrollX + (this.scale.width / 2);
+    if (pointer.worldX < centerX) return;
 
-    // Get World Coordinates
+    // Get World Coords (already correct in pointer)
     const worldX = pointer.worldX;
     const worldY = pointer.worldY;
 
     // Balance Check
     const store = useGameStore.getState();
-    const betAmount = store.betAmount;
-    if (store.balance < betAmount) {
+    if (store.balance < store.betAmount) {
         this.sound.play('sfx_error');
         return;
     }
-
-    // Deduct Balance
-    store.updateBalance(-betAmount);
+    store.updateBalance(-store.betAmount);
     this.sound.play('sfx_place', { volume: 0.5 });
 
+    // Snap to Grid (Optional, makes it look cleaner)
+    // No, free placement is usually more fun in these arcades.
+
     // Calculate Multiplier
-    // Based on distance from HEAD (Risk) and distance from CENTER Y (Volatility Risk)
     const distX = worldX - this.headX;
     const distY = Math.abs(worldY - this.headY);
-    
-    // Base 1.1x + X_Risk + Y_Risk
-    let multiplier = 1.1 + (distX / 600) + (distY / 250);
-    multiplier = Math.max(1.1, Math.min(100.0, multiplier)); // Clamp
+    let multiplier = 1.1 + (distX / 500) + (distY / 300);
+    multiplier = Math.max(1.1, Math.min(100.0, multiplier));
 
-    // Create Visual Box
+    // Create "Yellow Box" UI
     const boxW = 80;
-    const boxH = 40;
-    
+    const boxH = 50;
     const container = this.add.container(worldX, worldY);
     
-    // Neon Yellow styling
-    const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0.7);
+    // 1. Box Background (Black with Yellow Border)
+    const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0.8);
     rect.setStrokeStyle(2, 0xffd700);
     
-    const text = this.add.text(0, 0, `${multiplier.toFixed(2)}x`, {
-        fontFamily: 'Orbitron', fontSize: '14px', color: '#ffd700', fontStyle: 'bold'
+    // 2. Bet Amount Text (Large, Black on Yellow? Or Yellow on Black?)
+    // Image 2 usually shows Yellow background or Yellow Border.
+    // Let's do Yellow Border, Yellow Text.
+    const textAmount = this.add.text(0, -8, `$${store.betAmount}`, {
+        fontFamily: 'Orbitron', fontSize: '18px', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    container.add([rect, text]);
-    container.setSize(boxW, boxH);
+    // 3. Multiplier Text (Small, below)
+    const textMulti = this.add.text(0, 12, `${multiplier.toFixed(2)}x`, {
+        fontFamily: 'Orbitron', fontSize: '12px', color: '#ffd700'
+    }).setOrigin(0.5);
+
+    container.add([rect, textAmount, textMulti]);
     
-    // Animation: Pop in
+    // Pop In
     container.setScale(0);
     this.tweens.add({
         targets: container,
         scale: 1,
-        duration: 400,
+        duration: 300,
         ease: 'Back.out'
     });
 
     this.bettingBoxes.push({
-        container, rect, text,
-        betAmount, multiplier, hit: false,
+        container, rect, textAmount, textMulti,
+        betAmount: store.betAmount,
+        multiplier,
+        hit: false,
         boxWidth: boxW, boxHeight: boxH
     });
   }
 
   private checkCollisions() {
-    // Only check collision if head has reached/passed the box
-    // Head Radius
-    const headRadius = 8;
-    const headCircle = new Phaser.Geom.Circle(this.headX, this.headY, headRadius);
-
+    const headRadius = 10; // Slightly larger for forgiveness
+    
     for (let i = this.bettingBoxes.length - 1; i >= 0; i--) {
         const box = this.bettingBoxes[i];
         if (box.hit) continue;
@@ -410,16 +497,19 @@ export class MainScene extends Phaser.Scene {
         const boxX = box.container.x;
         const boxY = box.container.y;
         
-        // 1. Check Intersection
-        const boxRect = new Phaser.Geom.Rectangle(boxX - box.boxWidth/2, boxY - box.boxHeight/2, box.boxWidth, box.boxHeight);
+        // Simple distance check first
+        const dx = this.headX - boxX;
         
-        if (Phaser.Geom.Intersects.CircleToRectangle(headCircle, boxRect)) {
-            this.handleWin(box, i);
-            continue;
+        // Hit Logic: Head must pass through the box
+        // Bounding Box Collision
+        if (this.headX > boxX - box.boxWidth/2 && this.headX < boxX + box.boxWidth/2) {
+            if (Math.abs(this.headY - boxY) < box.boxHeight/2) {
+                this.handleWin(box, i);
+                continue;
+            }
         }
 
-        // 2. Check "Miss" (Passed completely)
-        // If HeadX > BoxX + BoxWidth/2 + Buffer
+        // Miss Logic: Passed X completely
         if (this.headX > boxX + box.boxWidth/2 + 20) {
             this.handleLoss(box, i);
         }
@@ -428,55 +518,41 @@ export class MainScene extends Phaser.Scene {
 
   private handleWin(box: BettingBox, index: number) {
     box.hit = true;
-    this.sound.play('sfx_win', { volume: 0.8 });
+    this.sound.play('sfx_win');
 
-    // 1. Gold Explosion
+    // Win Effects
     this.goldEmitter.setPosition(box.container.x, box.container.y);
     this.goldEmitter.explode(40);
-
-    // 2. Pulse Ring
-    const ring = this.add.image(box.container.x, box.container.y, 'pulse_ring');
-    ring.setTint(0xffd700);
-    ring.setScale(0.5);
-    this.tweens.add({
-        targets: ring,
-        scale: 2.0,
-        alpha: 0,
-        duration: 600,
-        onComplete: () => ring.destroy()
-    });
-
-    // 3. Update State
-    const winAmount = box.betAmount * box.multiplier;
+    
+    // Store Update
+    const winVal = box.betAmount * box.multiplier;
     const store = useGameStore.getState();
-    store.updateBalance(winAmount);
-    store.setLastWinAmount(winAmount);
+    store.updateBalance(winVal);
+    store.setLastWinAmount(winVal);
 
-    // 4. Remove Box
+    // Remove Visual
     this.tweens.add({
         targets: box.container,
         scale: 1.5,
         alpha: 0,
-        duration: 150,
+        duration: 200,
         onComplete: () => box.container.destroy()
     });
-
     this.bettingBoxes.splice(index, 1);
   }
 
   private handleLoss(box: BettingBox, index: number) {
-    // Visual Feedback: Turn Red, Fall down
-    box.rect.setStrokeStyle(2, 0xff4d4d);
-    box.text.setColor('#ff4d4d');
-
+    // Loss Effects: Red, Drop
+    box.rect.setStrokeStyle(2, 0xff0000);
+    box.textMulti.setColor('#ff0000');
+    
     this.tweens.add({
         targets: box.container,
-        y: box.container.y + 50,
+        y: box.container.y + 100,
         alpha: 0,
-        duration: 400,
+        duration: 500,
         onComplete: () => box.container.destroy()
     });
-
     this.bettingBoxes.splice(index, 1);
   }
 }
