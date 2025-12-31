@@ -1,17 +1,15 @@
 # Status
 
 ## Active Work
-- **Core Logic Refinement**: 
-    - Implemented **Brownian Motion-based Inverse Diffusion Model** for dynamic betting multipliers.
-    - Formula: `Multiplier = BaseScale * sqrt(Time) * exp( Distance^2 / (2 * Volatility^2 * Time) )`.
-    - Result: More realistic risk/reward curve where distant bets offer higher initial payouts that decay over time.
-- **Bug Fixes**: 
-    - Resolved discrepancy between Grid Multipliers and Betting Box Multipliers.
-    - Standardized `cellCenterPrice` calculation across `drawGridAndAxis` and `placeBet` methods.
+- **Completed**: Implemented Inverse Gaussian PDF Model for multiplier calculation.
+    - Formula: `Multiplier = BaseScale * sqrt(t) * exp( x^2 / (2 * sigma^2 * t) ) * (1 - HouseEdge)`
+    - Constants: Sigma=0.7, BaseScale=0.85, HouseEdge=0.05.
+    - UI: Ensured grid multipliers perfectly match betting box multipliers.
 
 ## Recent Activity
 - **Visual Refinements**: Implemented dual-layer chart rendering and "Euphoira" style polish.
 - **Code Fixes**: Resolved syntax errors and grid multiplier logic.
+- **Math Model Update**: Switched from Brownian Motion Inverse Diffusion to Inverse Gaussian PDF for better risk/reward balance.
 
 ## Next Steps
 - [ ] Add "Cash Out" button for active bets.

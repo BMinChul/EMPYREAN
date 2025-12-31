@@ -309,37 +309,33 @@ export class MainScene extends Phaser.Scene {
   }
 
   // --- Dynamic Multiplier Calculation ---
-  // Brown Motion Based Inverse Diffusion Model
-  // Formula: Multiplier = BaseScale * sqrt(Time) * exp( Distance^2 / (2 * Volatility^2 * Time) )
+  // Inverse Gaussian PDF Model (Inverse Probability)
+  // Formula: Multiplier = BaseScale * sqrt(t) * exp( x^2 / (2 * sigma^2 * t) ) * (1 - HouseEdge)
   private calculateDynamicMultiplier(targetPrice: number, colIndex: number): number {
-      // 1. Time (t): 1-based index from betting zone start (Col 5 -> 1, Col 9 -> 5)
-      // colIndex passed is 0-9. Betting starts at 5.
-      // We clamp minimum time to 0.1 to avoid division by zero if logic changes
-      const time = Math.max(0.2, colIndex - 4);
+      // 1. Time (t): (colIndex - 5) + 1.0
+      // Ensures betting zone starts from 1s to avoid division by zero.
+      // colIndex 5 -> t=1, colIndex 9 -> t=5
+      const t = Math.max(1.0, (colIndex - 5) + 1.0);
 
       // 2. Distance (x): Absolute difference between Target and Current
-      const distance = Math.abs(targetPrice - this.currentPrice);
+      const x = Math.abs(targetPrice - this.currentPrice);
 
-      // 3. Constants
-      const baseScale = 1.0; 
-      // Volatility (sigma): Expected price move (std dev) per unit sqrt(time)
-      // ETH price ~2000-3000. In 10-100s, move is small ($0.5 - $5.0).
-      // Higher volatility = Lower multiplier for far bets (flattens curve)
-      const volatility = 4.0; 
+      // 3. Constants (Optimized for 'Euphoria' feel)
+      const sigma = 0.7;     // Volatility: Lower = steeper rise for outer bets
+      const baseScale = 0.85; // Global scale adjustment
+      const houseEdge = 0.05; // 5% fee
 
       // 4. Calculate
-      // Part A: Sqrt(Time) - Reward for waiting longer
-      const timeFactor = Math.sqrt(time);
+      // Multiplier = BaseScale * sqrt(t) * exp( x^2 / (2 * sigma^2 * t) ) * (1 - HouseEdge)
+      const numerator = x * x;
+      const denominator = 2 * sigma * sigma * t;
+      const exponentialTerm = Math.exp(numerator / denominator);
 
-      // Part B: Exponential Risk Reward
-      // High distance = High risk = High multiplier
-      // As time increases, distance becomes "easier" to reach, so multiplier drops
-      const riskFactor = Math.exp((distance * distance) / (2 * volatility * volatility * time));
+      const multiplier = baseScale * Math.sqrt(t) * exponentialTerm * (1 - houseEdge);
 
-      const multiplier = baseScale * timeFactor * riskFactor;
-
-      // Clamp values (Min 1.01x, Max 99.99x)
-      return parseFloat(Math.max(1.01, Math.min(99.99, multiplier)).toFixed(2));
+      // 5. Constraints
+      // Min 1.05x, Max 99.99x
+      return parseFloat(Math.max(1.05, Math.min(99.99, multiplier)).toFixed(2));
   }
 
   // --- Helper: Calculate Text Fade (Visibility) ---
@@ -460,7 +456,8 @@ export class MainScene extends Phaser.Scene {
                 const cellCenterY = y - (this.gridPriceInterval * this.pixelPerDollar) / 2;
                 
                 // --- CORRECTED LOGIC ---
-                // Ensure consistency with placeBet() logic
+                // Sync Rule: Use 'const cellCenterPrice = p + (this.gridPriceInterval / 2)'
+                // This ensures the multiplier shown matches the bet logic perfectly
                 const cellCenterPrice = p + (this.gridPriceInterval / 2);
                 const dynamicMulti = this.calculateDynamicMultiplier(cellCenterPrice, colIndexOnScreen);
                 
