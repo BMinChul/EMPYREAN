@@ -342,6 +342,22 @@ export class MainScene extends Phaser.Scene {
       return parseFloat(Math.max(1.05, Math.min(99.99, baseMult)).toFixed(2));
   }
 
+  // --- Helper: Calculate Text Fade (Visibility) ---
+  // Returns alpha 0.0 to 1.0 based on screen position (0.0 to 1.0)
+  // Used for both visual rendering and betting restrictions
+  private getTextFade(normalizedScreenX: number): number {
+      // Betting Zone starts at 50% (0.5)
+      // Fade transition: 0.5 (0%) -> 0.6 (80%) -> 0.625 (100%)
+      // Smoother gradient: (x - 0.5) * 6
+      // 0.50 -> 0.0
+      // 0.55 -> 0.3
+      // 0.57 -> 0.42 (Threshold for betting)
+      // 0.66 -> 1.0
+      
+      if (normalizedScreenX < 0.5) return 0;
+      return Phaser.Math.Clamp((normalizedScreenX - 0.5) * 6, 0, 1);
+  }
+
   private drawGridAndAxis() {
     this.gridGraphics.clear();
     
@@ -404,19 +420,9 @@ export class MainScene extends Phaser.Scene {
         const normalizedScreenX = screenX / width;
         const colIndexOnScreen = Math.floor(normalizedScreenX * 10); // 0-9
 
-        // Gradient Fade-in Logic
-        let alpha = 0.15;
-        let textFade = 0;
-
-        if (normalizedScreenX >= 0.5) {
-             const fadeProgress = (normalizedScreenX - 0.5) * 5; 
-             const entryAlpha = Phaser.Math.Clamp(fadeProgress, 0, 1);
-             alpha = 0.15 + (entryAlpha * 0.3);
-             textFade = Phaser.Math.Clamp((normalizedScreenX - 0.5) * 8, 0, 1);
-        } else {
-             alpha = 0.15;
-             textFade = 0;
-        }
+        // Gradient Fade-in Logic using Helper
+        const textFade = this.getTextFade(normalizedScreenX);
+        const alpha = 0.15 + (textFade * 0.3); // Base 0.15, max 0.45
 
         this.gridGraphics.lineStyle(1, 0xaa00ff, alpha);
         this.gridGraphics.moveTo(x, scrollY);
@@ -488,37 +494,46 @@ export class MainScene extends Phaser.Scene {
   }
 
   private drawCurrentPriceBox(scrollY: number, height: number, width: number) {
-     const boxY = Phaser.Math.Clamp(this.headY, scrollY + 20, scrollY + height - 20);
+     const boxY = Phaser.Math.Clamp(this.headY, scrollY + 40, scrollY + height - 40);
      const boxX = this.cameras.main.scrollX + width; 
 
-     this.gridGraphics.fillStyle(0x2a1b4e, 1); 
-     this.gridGraphics.lineStyle(1, 0xbd00ff, 1); 
+     // Background: Darker, matching grid theme, slightly transparent
+     this.gridGraphics.fillStyle(0x1a0b2e, 0.9); 
+     // Border: Matching grid/chart accent
+     this.gridGraphics.lineStyle(2, 0xE0B0FF, 1); 
      
-     const boxW = 80;
-     const boxH = 30;
-     this.gridGraphics.fillRoundedRect(boxX - boxW, boxY - boxH/2, boxW, boxH, 6);
-     this.gridGraphics.strokeRoundedRect(boxX - boxW, boxY - boxH/2, boxW, boxH, 6);
+     // Larger Size: 120x45
+     const boxW = 120;
+     const boxH = 45;
+     
+     // Draw Box
+     this.gridGraphics.fillRoundedRect(boxX - boxW, boxY - boxH/2, boxW, boxH, 8);
+     this.gridGraphics.strokeRoundedRect(boxX - boxW, boxY - boxH/2, boxW, boxH, 8);
      
      let priceLabel = this.children.getByName('currentPriceLabel') as Phaser.GameObjects.Text;
      if (!priceLabel) {
          priceLabel = this.add.text(0, 0, '', {
-             fontFamily: 'monospace', fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
+             fontFamily: 'monospace', fontSize: '18px', color: '#ffffff', fontStyle: 'bold'
          }).setOrigin(1, 0.5).setName('currentPriceLabel').setDepth(20);
      }
      
-     priceLabel.setPosition(boxX - 5, boxY);
+     priceLabel.setPosition(boxX - 10, boxY);
      priceLabel.setText(this.currentPrice.toFixed(2));
   }
 
   private placeBet(pointer: Phaser.Input.Pointer) {
     if (!this.initialPrice) return;
 
-    // 1. Restriction Check
+    // 1. Restriction Check based on Visibility (Text Fade)
     const screenX = pointer.x;
     const width = this.scale.width;
     const normalizedClickX = screenX / width;
 
-    if (normalizedClickX < 0.55) {
+    // Get Visibility Factor at this column
+    const visibility = this.getTextFade(normalizedClickX);
+    
+    // STRICT CONDITION: If text is less than 40% visible (0.4), Disallow Bet
+    if (visibility < 0.4) {
         this.sound.play('sfx_error', { volume: 0.2 });
         return;
     }
@@ -555,25 +570,128 @@ export class MainScene extends Phaser.Scene {
     const boxW = colWidth - 8; 
     const boxH = (this.gridPriceInterval * this.pixelPerDollar) - 8;
     
-    // Box Graphics: Pale Yellow Solid (#fffacd) - NO GLOW
+    // Box Graphics: Pale Yellow Solid (#fffacd) - NO INTERNAL GLOW
     const bg = this.add.graphics();
     bg.fillStyle(0xfffacd, 1); // Solid Pale Yellow
+    // White Stroke with 70% opacity (0.7)
+    bg.lineStyle(2, 0xffffff, 0.7); 
     bg.fillRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8); // Rounded Corners
+    bg.strokeRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8); // Stroke
     
     // External Spread Glow (Initially Invisible)
     // Uses 'box_glow_rect' texture created in createTextures
     const glow = this.add.image(0, 0, 'box_glow_rect');
-    glow.setTint(0xfffacd);
+    glow.setTint(0xfffacd); // Pale Yellow Glow
     glow.setAlpha(0); // Invisible by default
-    glow.setScale(boxW / 100, boxH / 100); // Approximate scale adjustment if needed, or just standard
-    // Actually, box_glow_rect is 160x160. Let's scale it to be slightly larger than box.
-    const glowScaleX = (boxW + 60) / 160;
-    const glowScaleY = (boxH + 60) / 160;
+    
+    // Scale glow slightly larger than box
+    const glowScaleX = (boxW + 80) / 160;
+    const glowScaleY = (boxH + 80) / 160;
     glow.setScale(glowScaleX, glowScaleY);
 
     const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0); 
     
-    // Text
+    // Text: Added '
+
+  private checkCollisions() {
+    for (let i = this.bettingBoxes.length - 1; i >= 0; i--) {
+        const box = this.bettingBoxes[i];
+        if (box.hit) continue;
+
+        const boxX = box.container.x;
+        const boxY = box.container.y;
+        
+        // --- Proximity Logic (Spread Glow) ---
+        // Only glow when head is near
+        const dist = Phaser.Math.Distance.Between(this.headX, this.headY, boxX, boxY);
+        const proximityRange = 250; 
+        
+        if (dist < proximityRange) {
+             // Calculate intensity: 0 (at 250px) to 1 (at 0px)
+             const intensity = 1 - (dist / proximityRange);
+             
+             // Smooth fade in using square ease for natural light falloff
+             const targetAlpha = intensity * intensity * 0.8; // Max alpha 0.8
+             
+             // Smoothly interpolate current alpha to target
+             // Note: Since this runs every update, simple lerp is fine
+             // box.glow is a Game Object, we can set alpha directly
+             box.glow.setAlpha(targetAlpha);
+        } else {
+             box.glow.setAlpha(0);
+        }
+
+        // --- Collision Logic ---
+        const boxLeftEdge = boxX - (box.boxWidth / 2);
+
+        if (this.headX >= boxLeftEdge) {
+             const diffY = Math.abs(this.headY - boxY);
+             if (diffY < (box.boxHeight/2)) {
+                 this.handleWin(box, i);
+             } else {
+                 this.handleLoss(box, i);
+             }
+        }
+    }
+  }
+
+  private handleWin(box: BettingBox, index: number) {
+    box.hit = true;
+    this.sound.play('sfx_win');
+
+    const winVal = box.betAmount * box.multiplier;
+    const winText = this.add.text(box.container.x, box.container.y - (box.boxHeight/2) - 20, `+$${winVal.toFixed(2)}`, {
+        fontFamily: 'Orbitron', fontSize: '20px', color: '#ffd700', fontStyle: 'bold'
+    }).setOrigin(0.5).setStroke('#000000', 4);
+
+    this.tweens.add({
+        targets: winText,
+        y: winText.y - 60,
+        alpha: 0,
+        duration: 2000,
+        ease: 'Power2',
+        onComplete: () => winText.destroy()
+    });
+
+    // Pulse effect
+    const pulse = this.add.sprite(box.container.x, box.container.y, 'flare');
+    pulse.setScale(2);
+    pulse.setTint(0xffd700);
+    this.tweens.add({
+        targets: pulse, scale: 8.0, alpha: 0, duration: 400,
+        onComplete: () => pulse.destroy()
+    });
+
+    this.goldEmitter.setPosition(box.container.x, box.container.y);
+    this.goldEmitter.explode(30);
+    
+    const store = useGameStore.getState();
+    store.updateBalance(winVal);
+    store.setLastWinAmount(winVal);
+
+    this.tweens.add({
+        targets: box.container, scale: 1.2, alpha: 0, duration: 300,
+        onComplete: () => box.container.destroy()
+    });
+    this.bettingBoxes.splice(index, 1);
+  }
+
+  private handleLoss(box: BettingBox, index: number) {
+    box.bg.clear();
+    box.bg.fillStyle(0x555555, 1);
+    box.bg.fillRoundedRect(-box.boxWidth/2, -box.boxHeight/2, box.boxWidth, box.boxHeight, 8);
+    
+    this.tweens.add({
+        targets: box.container,
+        y: box.container.y + 50,
+        alpha: 0,
+        duration: 500,
+        onComplete: () => box.container.destroy()
+    });
+    this.bettingBoxes.splice(index, 1);
+  }
+}
+ prefix
     const txtAmt = this.add.text(0, -8, `${store.betAmount}`, {
         fontFamily: 'monospace', fontSize: '14px', color: '#000000', fontStyle: 'bold'
     }).setOrigin(0.5);

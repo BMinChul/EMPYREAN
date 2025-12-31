@@ -1,17 +1,19 @@
 # Status
 
 ## Active Work
-- **Visual Polish ("Euphoria" Style)**:
-    - **Graph**: Thickened line to **40px** (`0xE0B0FF`) for high visibility.
-    - **Bloom**: Moved bloom from Global Camera to specific layers (Chart/Grid only).
-    - **Betting Box**: 
-        - Solid Pale Yellow (`#fffacd`) with NO internal glow.
-        - **Text**: Bold, Black, with `$` prefix (e.g., `$10`). crisp readability.
-        - **Proximity**: Implemented "Spread Glow" that only appears when the graph head is near (`< 250px`).
+- **Visual & Gameplay Refinements ("Euphoria" Polish)**:
+    - **Betting Restrictions**: Implemented strict visibility check. Betting is disabled if the grid column's text visibility is < 40%.
+    - **Betting Box UI**: 
+        - Solid Pale Yellow (`#fffacd`) with White 70% Stroke.
+        - **Text**: Bold Black with `$` prefix (e.g., `$10`).
+        - **Glow**: Internal glow removed. External "Spread Glow" added that reacts to proximity (<250px).
+    - **Current Price Box**: Enlarged to 120x45 with clean Deep Purple styling, matching the grid.
+    - **Gradients**: Smoothed out the fade-in transition for the betting zone (Columns 6-10).
 
 ## Recent Activity
-- Refactored `MainScene.ts` to implement specific visual requests.
-- Optimized rendering to prevent text washout.
+- Refactored `MainScene.ts` to centralize visibility logic (`getTextFade`).
+- Updated collision logic to handle smooth alpha transitions for proximity glow.
+- Polished UI elements for better readability and visual consistency.
 
 ## Next Steps
 - [ ] Add "Cash Out" button for active bets.
