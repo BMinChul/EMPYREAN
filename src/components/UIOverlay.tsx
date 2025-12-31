@@ -14,7 +14,7 @@ const UIOverlay: React.FC = () => {
       const t = setTimeout(() => {
         setShowWin(false);
         setLastWinAmount(0);
-      }, 3000); // Slightly longer for the "Big Win" feel
+      }, 3000);
       return () => clearTimeout(t);
     }
   }, [lastWinAmount, setLastWinAmount]);
@@ -27,41 +27,43 @@ const UIOverlay: React.FC = () => {
   const trend = currentPrice >= prevPrice ? 'up' : 'down';
   const trendColor = trend === 'up' ? '#00ff9d' : '#ff3b30';
 
-  // Specific "Euphoria" formatting: $0,000.00
+  // Formatting: $0,000.00
   const fmtPrice = (val: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return val.toLocaleString('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(val);
+    });
   };
 
+  // Formatting: $00.00
   const fmtBalance = (val: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return val.toLocaleString('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
-    }).format(val);
+      maximumFractionDigits: 2,
+    });
   };
 
   return (
     <div className="ui-overlay pointer-events-none">
       {/* --- Top Left: Main Ticker --- */}
       <div className="widget-panel top-left glass-panel">
-        <div className="panel-row">
-          <div className="icon-box neon-border">
-            <Target size={24} color="#fff" />
+        <div className="panel-row flex items-center gap-3">
+          <div className="icon-box neon-border flex items-center justify-center w-10 h-10 rounded bg-black/40 border border-white/10">
+            <Target size={20} color="#fff" />
           </div>
-          <div className="col">
-            <span className="label text-xs tracking-widest text-gray-400">ETH / USDT PERP</span>
-            <div className="value-row flex items-center gap-2">
-              <span className="value-lg text-2xl font-bold font-mono tracking-wider" style={{ color: trendColor, textShadow: `0 0 10px ${trendColor}` }}>
+          <div className="col flex flex-col">
+            <span className="label text-[10px] tracking-widest text-cyan-400 font-bold mb-1">ETH / USDT PERP</span>
+            <div className="value-row flex items-center gap-3">
+              <span className="value-lg text-2xl font-bold font-mono tracking-wider" style={{ color: trendColor, textShadow: `0 0 15px ${trendColor}66` }}>
                 {fmtPrice(currentPrice)}
               </span>
               {trend === 'up' ? 
-                <TrendingUp size={20} color={trendColor} /> : 
-                <TrendingDown size={20} color={trendColor} />
+                <TrendingUp size={18} color={trendColor} /> : 
+                <TrendingDown size={18} color={trendColor} />
               }
             </div>
           </div>
@@ -70,22 +72,26 @@ const UIOverlay: React.FC = () => {
 
       {/* --- Top Center: Win Notification --- */}
       <div className={`win-popup ${showWin ? 'active' : ''} glass-panel center-pop`}>
-        <div className="win-content flex flex-col items-center justify-center p-6 border-2 border-yellow-400 rounded-xl bg-black/80">
-          <Zap size={48} fill="#ffd700" stroke="#ffd700" className="mb-2 animate-bounce" />
-          <span className="win-title text-yellow-400 font-black text-3xl tracking-widest uppercase">YOU WON</span>
-          <span className="win-amount text-white font-mono text-4xl mt-2 drop-shadow-md">+{fmtBalance(lastWinAmount)}</span>
+        <div className="win-content flex flex-col items-center justify-center p-8 border-2 border-yellow-400 rounded-2xl bg-black/90 shadow-[0_0_50px_rgba(255,215,0,0.4)]">
+          <Zap size={48} fill="#ffd700" stroke="#ffd700" className="mb-3 animate-bounce" />
+          <span className="win-title text-yellow-400 font-black text-3xl tracking-[0.2em] uppercase drop-shadow-md">BIG WIN</span>
+          <span className="win-amount text-white font-mono text-5xl mt-2 font-bold drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">
+            +{fmtBalance(lastWinAmount)}
+          </span>
         </div>
       </div>
 
       {/* --- Bottom Left: Balance --- */}
       <div className="widget-panel bottom-left glass-panel">
-        <div className="panel-row">
-          <div className="icon-box wallet neon-border">
-            <Wallet size={24} color="#fff" />
+        <div className="panel-row flex items-center gap-3">
+          <div className="icon-box wallet neon-border flex items-center justify-center w-10 h-10 rounded bg-emerald-900/30 border border-emerald-500/30">
+            <Wallet size={20} color="#00ff9d" />
           </div>
-          <div className="col">
-            <span className="label text-xs tracking-widest text-gray-400">AVAILABLE BALANCE</span>
-            <span className="value-md text-xl font-bold text-white font-mono">{fmtBalance(balance)}</span>
+          <div className="col flex flex-col">
+            <span className="label text-[10px] tracking-widest text-emerald-400 font-bold mb-1">AVAILABLE BALANCE</span>
+            <span className="value-md text-xl font-bold text-white font-mono tracking-wide shadow-emerald-500/20 drop-shadow-sm">
+              {fmtBalance(balance)}
+            </span>
           </div>
         </div>
       </div>
@@ -93,19 +99,22 @@ const UIOverlay: React.FC = () => {
       {/* --- Bottom Right: Bet Controls --- */}
       <div className="widget-panel bottom-right glass-panel pointer-events-auto">
         <div className="flex flex-col items-end gap-2">
-          <span className="label-center text-xs tracking-widest text-gray-400 mb-1">QUICK BET</span>
+          <span className="label-center text-[10px] tracking-[0.2em] text-gray-400 mb-2 font-bold uppercase">Quick Bet Amount</span>
           <div className="bet-grid grid grid-cols-3 gap-2">
             {[1, 5, 10, 25, 50, 100].map(amt => (
               <button 
                 key={amt}
-                className={`bet-btn px-4 py-2 font-mono font-bold rounded border transition-all duration-200
+                className={`bet-btn px-6 py-3 font-mono font-bold rounded-lg border transition-all duration-200 relative overflow-hidden group
                   ${betAmount === amt 
-                    ? 'bg-yellow-400 text-black border-yellow-400 shadow-[0_0_15px_rgba(255,215,0,0.6)] scale-105' 
-                    : 'bg-black/40 text-gray-300 border-gray-600 hover:border-white hover:text-white'
+                    ? 'bg-yellow-400 text-black border-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.5)] scale-105 z-10' 
+                    : 'bg-white/5 text-gray-300 border-white/10 hover:border-white/50 hover:text-white hover:bg-white/10'
                   }`}
                 onClick={() => setBetAmount(amt)}
               >
-                ${amt}
+                <span className="relative z-10">${amt}</span>
+                {betAmount === amt && (
+                   <div className="absolute inset-0 bg-white/30 animate-pulse"></div>
+                )}
               </button>
             ))}
           </div>
