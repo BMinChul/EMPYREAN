@@ -309,40 +309,37 @@ export class MainScene extends Phaser.Scene {
   }
 
   // --- Dynamic Multiplier Calculation ---
-  // Based on Gemini Analysis: 
-  // Center: Time ↑ -> Multiplier ↑ (Hard to stay still)
-  // Edge: Time ↑ -> Multiplier ↓ (Easier to reach over time)
-  private calculateDynamicMultiplier(rowPrice: number, colIndex: number): number {
-      const distance = Math.abs(rowPrice - this.currentPrice);
-      
-      // Standardize distance relative to typical volatility
-      // $10 diff is considered "Far"
-      const distFactor = Math.min(distance / 10.0, 1.0); 
+  // Brown Motion Based Inverse Diffusion Model
+  // Formula: Multiplier = BaseScale * sqrt(Time) * exp( Distance^2 / (2 * Volatility^2 * Time) )
+  private calculateDynamicMultiplier(targetPrice: number, colIndex: number): number {
+      // 1. Time (t): 1-based index from betting zone start (Col 5 -> 1, Col 9 -> 5)
+      // colIndex passed is 0-9. Betting starts at 5.
+      // We clamp minimum time to 0.1 to avoid division by zero if logic changes
+      const time = Math.max(0.2, colIndex - 4);
 
-      // Time Factor (0 to 5) for right side columns
-      // colIndex passed here is relative to screen (0-9), we care about betting zone (5-9)
-      const timeSteps = Math.max(0, colIndex - 5); 
+      // 2. Distance (x): Absolute difference between Target and Current
+      const distance = Math.abs(targetPrice - this.currentPrice);
 
-      // Base Multiplier based on Difficulty (Distance)
-      // Close: ~2.0x, Far: ~8.0x
-      let baseMult = 2.0 + (distFactor * 6.0); 
+      // 3. Constants
+      const baseScale = 1.0; 
+      // Volatility (sigma): Expected price move (std dev) per unit sqrt(time)
+      // ETH price ~2000-3000. In 10-100s, move is small ($0.5 - $5.0).
+      // Higher volatility = Lower multiplier for far bets (flattens curve)
+      const volatility = 4.0; 
 
-      // Apply Time/Volatility Logic
-      if (distFactor < 0.2) {
-          // CENTER ZONE: Increase over time
-          // "Probability of staying perfectly still decreases over time"
-          baseMult = baseMult * (1 + (timeSteps * 0.15));
-      } else if (distFactor > 0.6) {
-          // EDGE ZONE: Decrease over time
-          // "Probability of reaching far edge increases with more time"
-          baseMult = baseMult * (1 - (timeSteps * 0.08));
-      } else {
-          // MIDDLE ZONE: Slight increase or stable
-          baseMult = baseMult * (1 + (timeSteps * 0.05));
-      }
+      // 4. Calculate
+      // Part A: Sqrt(Time) - Reward for waiting longer
+      const timeFactor = Math.sqrt(time);
 
-      // Clamp values
-      return parseFloat(Math.max(1.05, Math.min(99.99, baseMult)).toFixed(2));
+      // Part B: Exponential Risk Reward
+      // High distance = High risk = High multiplier
+      // As time increases, distance becomes "easier" to reach, so multiplier drops
+      const riskFactor = Math.exp((distance * distance) / (2 * volatility * volatility * time));
+
+      const multiplier = baseScale * timeFactor * riskFactor;
+
+      // Clamp values (Min 1.01x, Max 99.99x)
+      return parseFloat(Math.max(1.01, Math.min(99.99, multiplier)).toFixed(2));
   }
 
   // --- Helper: Calculate Text Fade (Visibility) ---
@@ -462,8 +459,8 @@ export class MainScene extends Phaser.Scene {
                 const y = -(p - this.initialPrice!) * this.pixelPerDollar;
                 const cellCenterY = y - (this.gridPriceInterval * this.pixelPerDollar) / 2;
                 
-                // --- NEW DYNAMIC LOGIC ---
-                // Calculate based on row price and column index
+                // --- CORRECTED LOGIC ---
+                // Ensure consistency with placeBet() logic
                 const cellCenterPrice = p + (this.gridPriceInterval / 2);
                 const dynamicMulti = this.calculateDynamicMultiplier(cellCenterPrice, colIndexOnScreen);
                 
