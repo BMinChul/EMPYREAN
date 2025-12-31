@@ -1,16 +1,17 @@
 # Status
 
 ## Active Work
-- **Completed Euphoria UI Updates**:
-    - **Betting Restrictions**: Logic updated to strictly allow betting only in the right 50% of the screen.
-    - **Visual Transition**: Implemented gradient fade-in for the betting zone grid lines.
-    - **Time Axis**: Added EST (HH:MM:SS) time labels at the bottom of the grid, with 10-second intervals per column.
-    - **Win Logic**: Collision detection now triggers immediately upon hitting the *left edge* of the betting box.
-    - **Box Styling**: Updated to solid Pale Yellow (`#fffacd`), Bold Black text, and removed internal glow for clarity.
+- **Resolved Visual & Gameplay Issues**:
+    - **Stable Graph**: Switched from Spline to Line Segments to stop past data from "wiggling".
+    - **Win Logic**: Fixed collision to trigger immediately at the *left edge* of the box.
+    - **Betting Restrictions**: Added strict logic to disable betting in the "fade-in" zone (left 55% of screen).
+    - **Box Styling**: 
+        - Removed 70% white border.
+        - Applied rounded corners directly to the Pale Yellow solid fill.
+        - Added dynamic "proximity glow" (Yellow) that only appears when the graph approaches.
 
 ## Recent Activity
-- Modified `MainScene.ts` to implement strict betting zones, time-based grid labels, and improved collision logic.
-- Adjusted screen time scale to 100 seconds (10 cols * 10s).
+- Modified `MainScene.ts` to implement line-based chart rendering, strict betting zones, and updated box aesthetics.
 
 ## Next Steps
 - [ ] Add "Cash Out" button for active bets.
