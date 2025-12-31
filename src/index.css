@@ -2,8 +2,193 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Orbitron:wght@500;700&display=swap');
+
 body {
-  background-color: #0f0518;
+  background-color: #050510; /* Darker deep space */
   margin: 0;
   overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  user-select: none;
+}
+
+.ui-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none; /* Let clicks pass to Phaser */
+  z-index: 10;
+}
+
+/* --- Glassmorphism Panels --- */
+.glass-panel {
+  background: rgba(18, 18, 28, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  pointer-events: auto; /* Re-enable clicks for buttons */
+}
+
+/* --- Widgets Positioning --- */
+.price-widget {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+}
+
+.balance-widget {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  min-width: 180px;
+}
+
+.bet-widget {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+}
+
+/* --- Typography & Icons --- */
+.icon-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wallet-icon { background: rgba(100, 255, 218, 0.15); }
+.coins-icon { background: rgba(255, 215, 0, 0.15); }
+
+.info-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #8892b0;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.price {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.value-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.arrow-icon {
+  color: #ff4d4d; /* Red for down/volatile */
+}
+
+.balance-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 20px;
+  color: #64ffda; /* Teal/Cyber green */
+  font-weight: 700;
+}
+
+/* --- Title --- */
+.game-title {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Inter', sans-serif;
+  font-weight: 300; /* Thin, modern */
+  font-size: 28px;
+  letter-spacing: -1px;
+  color: #ffffff;
+  opacity: 0.9;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+/* --- Win Notification --- */
+.win-notification {
+  position: absolute;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: rgba(255, 215, 0, 0.15); /* Gold tint */
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  padding: 12px 24px;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffd700;
+  font-weight: 700;
+  font-size: 16px;
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+
+.win-notification.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+}
+
+/* --- Bet Buttons --- */
+.bet-controls {
+  display: flex;
+  flex-direction: column;
+}
+
+.bet-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.bet-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.6);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.bet-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.bet-btn.active {
+  background: #6c5ce7; /* Purple accent */
+  border-color: #6c5ce7;
+  color: #fff;
+  box-shadow: 0 0 15px rgba(108, 92, 231, 0.4);
 }

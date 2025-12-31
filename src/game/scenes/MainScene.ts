@@ -14,9 +14,10 @@ interface BettingBox {
   container: Phaser.GameObjects.Container;
   rect: Phaser.GameObjects.Rectangle;
   text: Phaser.GameObjects.Text;
-  basePrice: number; // Price level this box represents (X-axis equivalent)
-  targetY: number; // World Y position (Time)
+  basePrice: number;
+  targetY: number;
   multiplier: number;
+  betAmount: number; // Store the bet amount for this specific box
   hit: boolean;
 }
 
@@ -28,16 +29,21 @@ export class MainScene extends Phaser.Scene {
   private bettingBoxes: BettingBox[] = [];
   
   private startTime: number = 0;
-  private pixelPerSecond: number = 60; // Vertical speed (climbing up)
-  private pixelPerDollar: number = 200; // Sensitivity for X-axis (1px = $0.005) - Needs tuning for ETH
+  private pixelPerSecond: number = 80; // Faster vertical climb for excitement
+  private pixelPerDollar: number = 250; // Sensitivity
   private initialPrice: number | null = null;
   private lastPrice: number = 0;
 
+  // Head Position
   private headY: number = 0;
+  private headX: number = 0;
+  private targetHeadX: number = 0;
+  
   private startY: number = 0;
   private centerX: number = 0;
 
   private headEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
+  private goldEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
 
   constructor() {
     super({ key: 'MainScene' });
@@ -50,16 +56,18 @@ export class MainScene extends Phaser.Scene {
   }
 
   create() {
-    // 1. Setup Camera & World
-    this.cameras.main.setBackgroundColor('#0f0518'); // Dark Purple/Black
-    this.startY = this.scale.height; // Start at bottom
+    // 1. Setup World
+    this.cameras.main.setBackgroundColor('#050510'); // Dark Deep Space
+    this.startY = this.scale.height;
     this.headY = this.startY;
     this.centerX = this.scale.width / 2;
+    this.headX = this.centerX;
+    this.targetHeadX = this.centerX;
 
-    // 2. Post FX: Bloom (Neon Glow)
+    // 2. Post FX: Strong Neon Bloom
     if (this.cameras.main.postFX) {
-        // High intensity bloom for neon look
-        this.cameras.main.postFX.addBloom(0xffffff, 1, 1, 1.2, 2.0);
+        // Intensity, Blur Strength, Threshold
+        this.cameras.main.postFX.addBloom(0xffffff, 1.5, 1.5, 0.9, 1.2);
     }
 
     // 3. Graphics Layers
@@ -67,25 +75,31 @@ export class MainScene extends Phaser.Scene {
     this.chartGraphics = this.add.graphics();
 
     // 4. Create Textures
-    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
-    graphics.fillStyle(0xffffff, 1);
-    graphics.fillCircle(8, 8, 8); // Larger particle for explosion
-    graphics.generateTexture('flare', 16, 16);
-    
-    graphics.clear();
-    graphics.fillStyle(0x00ffcc, 1); // Cyan/Greenish for head
-    graphics.fillCircle(4, 4, 4);
-    graphics.generateTexture('head_particle', 8, 8);
+    this.createTextures();
 
-    // 5. Head Particle System (Trail/Engine effect)
-    this.headEmitter = this.add.particles(0, 0, 'head_particle', {
-      speed: 20,
-      scale: { start: 1, end: 0 },
-      alpha: { start: 0.8, end: 0 },
+    // 5. Particle Systems
+    // Trail (White/Blue Engine)
+    this.headEmitter = this.add.particles(0, 0, 'flare', {
+      speed: 100,
+      scale: { start: 0.5, end: 0 },
+      alpha: { start: 0.6, end: 0 },
+      tint: 0xaaccff,
       blendMode: 'ADD',
-      lifespan: 500,
-      frequency: 50,
-      follow: null as any // Will update manually
+      lifespan: 400,
+      frequency: 20,
+      follow: null as any
+    });
+
+    // Win Explosion (Gold)
+    this.goldEmitter = this.add.particles(0, 0, 'flare', {
+      speed: { min: 100, max: 350 },
+      scale: { start: 0.8, end: 0 },
+      alpha: { start: 1, end: 0 },
+      tint: 0xffd700, // Gold
+      blendMode: 'ADD',
+      lifespan: 1000,
+      emitting: false,
+      quantity: 30
     });
 
     // 6. Data Service
@@ -100,19 +114,34 @@ export class MainScene extends Phaser.Scene {
     // 8. Initial Draw
     this.drawGrid(0);
     
-    // Status Text
-    this.add.text(this.centerX, this.scale.height / 2, 'Waiting for OKX Stream...', { 
-      fontSize: '24px', 
-      color: '#00ffcc',
+    // Waiting Text
+    this.add.text(this.centerX, this.scale.height / 2, 'CONNECTING TO OKX...', { 
+      fontFamily: 'Inter',
+      fontSize: '20px', 
+      color: '#6c5ce7',
       fontStyle: 'bold'
     })
     .setOrigin(0.5)
     .setScrollFactor(0)
     .setName('statusText');
 
-    // Cleanup
     this.events.on('shutdown', () => this.cleanup());
     this.events.on('destroy', () => this.cleanup());
+  }
+
+  private createTextures() {
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    
+    // Soft Flare
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillCircle(16, 16, 16);
+    graphics.generateTexture('flare', 32, 32);
+    
+    // Hexagon Pulse
+    graphics.clear();
+    graphics.lineStyle(4, 0xffd700, 1);
+    graphics.strokeCircle(32, 32, 30);
+    graphics.generateTexture('pulse_ring', 64, 64);
   }
 
   private cleanup() {
@@ -125,27 +154,32 @@ export class MainScene extends Phaser.Scene {
     if (!this.sys.isActive()) return;
     if (!this.initialPrice) return;
 
-    // --- Vertical Progression Logic ---
+    // --- Vertical Progression ---
     const currentTime = Date.now();
     const elapsedTime = (currentTime - this.startTime) / 1000;
     
-    // Head moves UP (Y decreases)
-    // Formula: StartY - (Time * Speed)
+    // Head moves UP constantly
     this.headY = this.startY - (elapsedTime * this.pixelPerSecond);
 
-    // Camera follows Head
-    // We want Head to be at ~25% from Top (Screen Height * 0.25)
-    // Camera ScrollY = HeadY - (ScreenHeight * 0.25)
-    const targetScrollY = this.headY - (this.scale.height * 0.25);
-    
-    // Smooth camera lerp (optional, but raw is tighter for rhythm)
-    this.cameras.main.scrollY = targetScrollY;
+    // --- Horizontal Smoothing (Liquid Feel) ---
+    // Lerp headX towards targetHeadX for smooth movement
+    const lerpFactor = 0.1; // Adjust for smoothness vs responsiveness
+    this.headX = Phaser.Math.Linear(this.headX, this.targetHeadX, lerpFactor);
 
-    // --- Updates ---
+    // --- Camera Tracking ---
+    // Keep head at 30% from top
+    const targetScrollY = this.headY - (this.scale.height * 0.3);
+    // Smooth camera catch-up
+    this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, targetScrollY, 0.1);
+
+    // --- Drawing ---
     this.drawGrid(this.cameras.main.scrollY);
     this.drawChart();
+    
+    // Update Emitter
+    this.headEmitter.setPosition(this.headX, this.headY);
+
     this.checkCollisions();
-    this.cleanupOffscreen();
   }
 
   private handleNewPrice(price: number) {
@@ -158,32 +192,34 @@ export class MainScene extends Phaser.Scene {
       this.startTime = now;
       this.children.getByName('statusText')?.destroy();
       
-      // Add start marker
-      this.add.text(this.centerX, this.startY + 20, 'START', { fontSize: '16px', color: '#aaaaaa' })
-        .setOrigin(0.5);
+      // Start Line
+      this.add.rectangle(this.centerX, this.startY, this.scale.width, 2, 0xffffff, 0.1);
     }
 
     this.lastPrice = price;
     useGameStore.getState().setCurrentPrice(price);
 
-    // --- Calculate Coordinates ---
-    // Y: Time-based (Upward/Negative)
+    // Calculate Target X
+    // CenterX is anchor.
+    const diff = price - this.initialPrice;
+    this.targetHeadX = this.centerX + (diff * this.pixelPerDollar);
+
+    // Add to history (Use targetX for history to ensure line goes to actual data points eventually)
+    // But for the *current* head, we lerp in update()
+    
+    // Correction: For history, we should record the price point exactly
+    // The visual line will be a spline through these exact points
     const elapsedTime = (now - this.startTime) / 1000;
     const worldY = this.startY - (elapsedTime * this.pixelPerSecond);
     
-    // X: Price-based (Left/Right)
-    // CenterX is anchor. Price diff * Sensitivity
-    const worldX = this.centerX + ((price - this.initialPrice) * this.pixelPerDollar);
-
     this.priceHistory.push({
       time: now,
       price: price,
-      worldX: worldX,
+      worldX: this.targetHeadX,
       worldY: worldY
     });
 
-    // Prune history (keep 500 points for performance)
-    if (this.priceHistory.length > 500) {
+    if (this.priceHistory.length > 300) {
       this.priceHistory.shift();
     }
   }
@@ -194,46 +230,42 @@ export class MainScene extends Phaser.Scene {
     if (this.priceHistory.length < 2) return;
 
     // 1. Prepare Points
+    // We add the current lerped head position as the LAST point for smoothness
     const points: Phaser.Math.Vector2[] = [];
     
-    // Viewport Culling
     const scrollY = this.cameras.main.scrollY;
     const height = this.scale.height;
-    const buffer = 200;
+    const buffer = 100;
 
-    // Only draw points within vertical view range
-    // Remember Y is decreasing as we go newer
-    // Visible Range: [scrollY, scrollY + height]
-    
+    // Filter points for visibility
     for (const p of this.priceHistory) {
       if (p.worldY > scrollY - buffer && p.worldY < scrollY + height + buffer) {
         points.push(new Phaser.Math.Vector2(p.worldX, p.worldY));
       }
     }
 
+    // Add current live head
+    points.push(new Phaser.Math.Vector2(this.headX, this.headY));
+
     if (points.length < 2) return;
 
-    // 2. Draw Neon Line (Spline)
+    // 2. Draw Spline (Liquid Line)
     const curve = new Phaser.Curves.Spline(points);
     
-    // Outer Glow (faked with thick semi-transparent line)
-    this.chartGraphics.lineStyle(6, 0x00ffff, 0.3);
+    // Glow Layer (Purple/Blue)
+    this.chartGraphics.lineStyle(12, 0x6c5ce7, 0.2); // Soft wide glow
     curve.draw(this.chartGraphics, 64);
     
-    // Core Bright Line
+    this.chartGraphics.lineStyle(6, 0x6c5ce7, 0.4); // Medium glow
+    curve.draw(this.chartGraphics, 64);
+
+    // Core White Line
     this.chartGraphics.lineStyle(3, 0xffffff, 1);
     curve.draw(this.chartGraphics, 64);
-    this.chartGraphics.strokePath();
-
-    // 3. Head Visuals
-    const last = points[points.length - 1];
     
-    // Update Emitter position
-    this.headEmitter.setPosition(last.x, last.y);
-    
-    // Draw Head Dot
+    // 3. Head Dot
     this.chartGraphics.fillStyle(0xffffff, 1);
-    this.chartGraphics.fillCircle(last.x, last.y, 4);
+    this.chartGraphics.fillCircle(this.headX, this.headY, 5);
   }
 
   private drawGrid(scrollY: number) {
@@ -243,19 +275,16 @@ export class MainScene extends Phaser.Scene {
     const height = this.scale.height;
     const gridSize = 100;
     
-    // Color: Deep Purple/Cyber
-    this.gridGraphics.lineStyle(1, 0x6600cc, 0.3); 
+    // Glowing Purple Grid
+    this.gridGraphics.lineStyle(1, 0x6c5ce7, 0.15); 
 
-    // Calculate Grid Offsets
     // Vertical Lines (Static X)
     for (let x = 0; x <= width; x += gridSize) {
-      // Just vertical lines across the visible world height
       this.gridGraphics.moveTo(x, scrollY);
       this.gridGraphics.lineTo(x, scrollY + height);
     }
 
     // Horizontal Lines (Scrolling Y)
-    // Snap to grid
     const startY = Math.floor(scrollY / gridSize) * gridSize;
     const endY = startY + height + gridSize;
 
@@ -270,124 +299,109 @@ export class MainScene extends Phaser.Scene {
   private placeBet(pointer: Phaser.Input.Pointer) {
     if (!this.initialPrice) return;
 
-    // Convert Screen to World
-    // pointer.worldX/Y includes camera scroll automatically
     const worldX = pointer.worldX;
     const worldY = pointer.worldY;
 
-    // 1. Validation: Must be ABOVE the head (Lower Y value)
-    // Allow small buffer
-    if (worldY >= this.headY) {
+    // Validation: Must be ABOVE the head (Future)
+    // Y decreases as we go up. So WorldY must be < HeadY (with buffer)
+    if (worldY >= this.headY - 50) {
       this.sound.play('sfx_error', { volume: 0.5 });
-      this.showToast("Too late! Line passed this height.", '#ff0000');
+      this.showFloatingText(worldX, worldY, "Too Close!", '#ff4d4d');
       return;
     }
 
     // Check Balance
     const store = useGameStore.getState();
-    if (store.balance < 1) {
+    const betAmount = store.betAmount; // Use selected amount
+    
+    if (store.balance < betAmount) {
       this.sound.play('sfx_error', { volume: 0.5 });
-      this.showToast("Insufficient Balance!", '#ff0000');
+      // React UI handles visual feedback usually, but we can add sound
       return;
     }
 
-    // Deduct $1
-    store.updateBalance(-1);
+    // Deduct Balance
+    store.updateBalance(-betAmount);
     this.sound.play('sfx_place', { volume: 0.6 });
 
-    // Calculate Base Price (X-axis inverse)
-    // worldX = centerX + (diff * ppd)
-    // diff = (worldX - centerX) / ppd
-    // price = initial + diff
-    const targetPriceDiff = (worldX - this.centerX) / this.pixelPerDollar;
-    const targetPrice = (this.initialPrice || 0) + targetPriceDiff;
+    // Calculate Multiplier
+    // Based on Vertical Distance (Time Risk) + Horizontal Deviation (Price Risk)
+    const yDist = Math.abs(this.headY - worldY);
+    const xDist = Math.abs(worldX - this.centerX);
     
-    // Calculate Multiplier based on Altitude (Distance from current head)
-    const distance = Math.abs(this.headY - worldY); // Pixels
-    const distanceMeters = distance / 100; // Arbitrary unit
+    // Formula: Base 1.0 + (Y * 0.005) + (X * 0.002)
+    // E.g. 500px up = +2.5x
+    let multiplier = 1.0 + (yDist / 300) + (xDist / 500);
+    multiplier = Math.max(1.1, Math.min(100, multiplier)); // Clamp
     
-    let multiplier = 1.0 + (distanceMeters * 0.5); 
-    // Bonus for volatility (distance from center X)
-    const volatilityBonus = Math.abs(worldX - this.centerX) / 200;
-    multiplier += volatilityBonus;
-    
-    multiplier = Math.round(multiplier * 10) / 10;
-    if (multiplier < 1.1) multiplier = 1.1;
-
-    // Create Visuals
-    const boxSize = 40;
+    // Visual Box
+    const boxSize = 50;
     const container = this.add.container(worldX, worldY);
     
     // Neon Yellow Box
-    const rect = this.add.rectangle(0, 0, boxSize, boxSize, 0xffff00, 0.1);
-    rect.setStrokeStyle(2, 0xffff00);
+    const rect = this.add.rectangle(0, 0, boxSize, boxSize, 0x000000, 0.5);
+    rect.setStrokeStyle(2, 0xffd700);
     
-    // Glow effect for box
-    if (this.cameras.main.postFX) {
-        // Simple trick: We can't apply FX to container easily in all versions, 
-        // but the global camera bloom will pick up the bright yellow stroke.
-    }
-
-    const text = this.add.text(0, 0, `x${multiplier}`, { 
-      fontSize: '14px', 
-      color: '#ffffff',
+    // Text: 2.50X
+    const multStr = multiplier.toFixed(2) + 'X';
+    const text = this.add.text(0, 0, multStr, { 
+      fontFamily: 'Orbitron',
+      fontSize: '12px', 
+      color: '#ffd700',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
     container.add([rect, text]);
-    
-    // Set Size for Tweens (Custom Engine Rule)
     container.setSize(boxSize, boxSize);
+
+    // Animate In
+    container.setScale(0);
+    this.tweens.add({
+      targets: container,
+      scale: 1,
+      duration: 400,
+      ease: 'Back.out'
+    });
 
     this.bettingBoxes.push({
       container,
       rect,
       text,
-      basePrice: targetPrice,
+      basePrice: 0, // Not used for hit logic anymore
       targetY: worldY,
       multiplier,
+      betAmount,
       hit: false
-    });
-    
-    // Animate pop in
-    container.setScale(0);
-    this.tweens.add({
-      targets: container,
-      scale: 1,
-      duration: 300,
-      ease: 'Back.out'
     });
   }
 
   private checkCollisions() {
     if (this.priceHistory.length < 2) return;
 
-    const p1 = this.priceHistory[this.priceHistory.length - 2];
-    const p2 = this.priceHistory[this.priceHistory.length - 1];
-    const boxSize = 40;
+    // Use current Head Position for collision
+    const headRect = new Phaser.Geom.Circle(this.headX, this.headY, 10);
+    const boxSize = 50;
 
     for (let i = this.bettingBoxes.length - 1; i >= 0; i--) {
       const box = this.bettingBoxes[i];
       if (box.hit) continue;
 
-      // Hit Logic: Line Segment intersects Box
-      const bounds = new Phaser.Geom.Rectangle(
+      // Box Bounds
+      const boxBounds = new Phaser.Geom.Rectangle(
         box.container.x - boxSize/2, 
         box.container.y - boxSize/2, 
         boxSize, 
         boxSize
       );
 
-      const line = new Phaser.Geom.Line(p1.worldX, p1.worldY, p2.worldX, p2.worldY);
-      
-      if (Phaser.Geom.Intersects.LineToRectangle(line, bounds)) {
+      // 1. WIN Condition: Head hits Box
+      if (Phaser.Geom.Intersects.CircleToRectangle(headRect, boxBounds)) {
         this.handleWin(box, i);
         continue;
       }
 
-      // Miss Logic: Line passed the box vertically
-      // Head Y is moving Up (Decreasing)
-      // If HeadY < (BoxY - Size), we passed it
+      // 2. LOSS Condition: Head passes Box vertically
+      // HeadY is decreasing. If HeadY < BoxY - Size, we passed it.
       if (this.headY < (box.container.y - boxSize)) {
         this.handleLoss(box, i);
       }
@@ -398,93 +412,72 @@ export class MainScene extends Phaser.Scene {
     box.hit = true;
     this.sound.play('sfx_win', { volume: 0.8 });
 
-    // Explosion
-    const particles = this.add.particles(box.container.x, box.container.y, 'flare', {
-      speed: { min: 50, max: 200 },
-      scale: { start: 1, end: 0 },
-      blendMode: 'ADD',
-      lifespan: 800,
-      emitting: false,
-      quantity: 20
-    });
-    particles.explode();
+    // Gold Explosion
+    this.goldEmitter.setPosition(box.container.x, box.container.y);
+    this.goldEmitter.explode(30);
 
-    // Visual Feedback
+    // Pulse Ring Effect
+    const ring = this.add.image(box.container.x, box.container.y, 'pulse_ring');
+    ring.setScale(0.5);
+    this.tweens.add({
+      targets: ring,
+      scale: 2,
+      alpha: 0,
+      duration: 600,
+      onComplete: () => ring.destroy()
+    });
+
+    // Calculate Reward
+    const reward = box.betAmount * box.multiplier;
+    const store = useGameStore.getState();
+    store.updateBalance(reward);
+    store.setLastWinAmount(reward); // Trigger React Notification
+
+    // Remove Box
     this.tweens.add({
       targets: box.container,
       scale: 1.5,
       alpha: 0,
-      duration: 300,
+      duration: 200,
       onComplete: () => box.container.destroy()
     });
-
-    // Reward
-    const store = useGameStore.getState();
-    const reward = 1 * box.multiplier;
-    store.updateBalance(reward);
     
-    this.showFloatingText(box.container.x, box.container.y - 40, `+$${reward.toFixed(2)}`, '#00ff00');
     this.bettingBoxes.splice(index, 1);
   }
 
   private handleLoss(box: BettingBox, index: number) {
-    // Fade out red
-    box.rect.setStrokeStyle(2, 0xff0000);
-    
+    // Fade out Red
+    box.rect.setStrokeStyle(2, 0xff4d4d); // Red
+    box.text.setColor('#ff4d4d');
+
     this.tweens.add({
       targets: box.container,
       alpha: 0,
-      scale: 0.5,
-      duration: 400,
+      scale: 0.8,
+      duration: 300,
       onComplete: () => box.container.destroy()
     });
-    
+
     this.bettingBoxes.splice(index, 1);
-  }
-
-  private showToast(message: string, color: string) {
-    const yPos = this.scale.height * 0.8; // Near bottom
-    const toast = this.add.text(this.centerX, yPos, message, {
-      fontSize: '20px',
-      color: '#ffffff',
-      backgroundColor: color,
-      padding: { x: 10, y: 5 }
-    })
-    .setOrigin(0.5)
-    .setScrollFactor(0) // Stick to screen
-    .setDepth(100);
-
-    this.tweens.add({
-      targets: toast,
-      y: yPos - 50,
-      alpha: 0,
-      duration: 2000,
-      ease: 'Power2',
-      onComplete: () => toast.destroy()
-    });
   }
 
   private showFloatingText(x: number, y: number, message: string, color: string) {
     const text = this.add.text(x, y, message, {
-      fontSize: '24px',
+      fontFamily: 'Inter',
+      fontSize: '16px',
       color: color,
       fontStyle: 'bold',
       stroke: '#000000',
-      strokeThickness: 3
+      strokeThickness: 2
     }).setOrigin(0.5);
 
     this.tweens.add({
       targets: text,
-      y: y - 80,
+      y: y - 50,
       alpha: 0,
-      duration: 1200,
-      ease: 'Back.out',
+      duration: 1000,
+      ease: 'Power2',
       onComplete: () => text.destroy()
     });
-  }
-
-  private cleanupOffscreen() {
-    // Cleanup very old history points to save memory
-    // (Handled in handleNewPrice mostly)
   }
 }
