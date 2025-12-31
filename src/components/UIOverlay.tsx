@@ -70,15 +70,13 @@ const UIOverlay: React.FC = () => {
         </div>
       </div>
 
-      {/* --- Top Center: Win Notification --- */}
-      <div className={`win-popup ${showWin ? 'active' : ''} glass-panel center-pop`}>
-        <div className="win-content flex flex-col items-center justify-center p-8 border-2 border-yellow-400 rounded-2xl bg-black/90 shadow-[0_0_50px_rgba(255,215,0,0.4)]">
-          <Zap size={48} fill="#ffd700" stroke="#ffd700" className="mb-3 animate-bounce" />
-          <span className="win-title text-yellow-400 font-black text-3xl tracking-[0.2em] uppercase drop-shadow-md">BIG WIN</span>
-          <span className="win-amount text-white font-mono text-5xl mt-2 font-bold drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">
-            +{fmtBalance(lastWinAmount)}
-          </span>
-        </div>
+      {/* --- Top Center: Win Notification Bar --- */}
+      <div className={`win-bar ${showWin ? 'active' : ''} glass-panel flex items-center justify-center gap-4`}>
+        <Zap size={20} fill="#ffd700" stroke="#ffd700" />
+        <span className="text-yellow-400 font-bold uppercase tracking-wider text-sm">YOU WON</span>
+        <span className="text-white font-mono font-bold text-lg">
+          {fmtBalance(lastWinAmount)}
+        </span>
       </div>
 
       {/* --- Bottom Left: Balance --- */}
