@@ -11,6 +11,7 @@
     - **Gradients**: Smoothed out the fade-in transition for the betting zone (Columns 6-10).
 
 ## Recent Activity
+- **Bug Fix**: Resolved syntax error in `MainScene.ts` caused by incomplete method definition and duplicated code blocks.
 - Refactored `MainScene.ts` to centralize visibility logic (`getTextFade`).
 - Updated collision logic to handle smooth alpha transitions for proximity glow.
 - Polished UI elements for better readability and visual consistency.

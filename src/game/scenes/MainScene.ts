@@ -591,108 +591,8 @@ export class MainScene extends Phaser.Scene {
 
     const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0); 
     
-    // Text: Added '
-
-  private checkCollisions() {
-    for (let i = this.bettingBoxes.length - 1; i >= 0; i--) {
-        const box = this.bettingBoxes[i];
-        if (box.hit) continue;
-
-        const boxX = box.container.x;
-        const boxY = box.container.y;
-        
-        // --- Proximity Logic (Spread Glow) ---
-        // Only glow when head is near
-        const dist = Phaser.Math.Distance.Between(this.headX, this.headY, boxX, boxY);
-        const proximityRange = 250; 
-        
-        if (dist < proximityRange) {
-             // Calculate intensity: 0 (at 250px) to 1 (at 0px)
-             const intensity = 1 - (dist / proximityRange);
-             
-             // Smooth fade in using square ease for natural light falloff
-             const targetAlpha = intensity * intensity * 0.8; // Max alpha 0.8
-             
-             // Smoothly interpolate current alpha to target
-             // Note: Since this runs every update, simple lerp is fine
-             // box.glow is a Game Object, we can set alpha directly
-             box.glow.setAlpha(targetAlpha);
-        } else {
-             box.glow.setAlpha(0);
-        }
-
-        // --- Collision Logic ---
-        const boxLeftEdge = boxX - (box.boxWidth / 2);
-
-        if (this.headX >= boxLeftEdge) {
-             const diffY = Math.abs(this.headY - boxY);
-             if (diffY < (box.boxHeight/2)) {
-                 this.handleWin(box, i);
-             } else {
-                 this.handleLoss(box, i);
-             }
-        }
-    }
-  }
-
-  private handleWin(box: BettingBox, index: number) {
-    box.hit = true;
-    this.sound.play('sfx_win');
-
-    const winVal = box.betAmount * box.multiplier;
-    const winText = this.add.text(box.container.x, box.container.y - (box.boxHeight/2) - 20, `+$${winVal.toFixed(2)}`, {
-        fontFamily: 'Orbitron', fontSize: '20px', color: '#ffd700', fontStyle: 'bold'
-    }).setOrigin(0.5).setStroke('#000000', 4);
-
-    this.tweens.add({
-        targets: winText,
-        y: winText.y - 60,
-        alpha: 0,
-        duration: 2000,
-        ease: 'Power2',
-        onComplete: () => winText.destroy()
-    });
-
-    // Pulse effect
-    const pulse = this.add.sprite(box.container.x, box.container.y, 'flare');
-    pulse.setScale(2);
-    pulse.setTint(0xffd700);
-    this.tweens.add({
-        targets: pulse, scale: 8.0, alpha: 0, duration: 400,
-        onComplete: () => pulse.destroy()
-    });
-
-    this.goldEmitter.setPosition(box.container.x, box.container.y);
-    this.goldEmitter.explode(30);
-    
-    const store = useGameStore.getState();
-    store.updateBalance(winVal);
-    store.setLastWinAmount(winVal);
-
-    this.tweens.add({
-        targets: box.container, scale: 1.2, alpha: 0, duration: 300,
-        onComplete: () => box.container.destroy()
-    });
-    this.bettingBoxes.splice(index, 1);
-  }
-
-  private handleLoss(box: BettingBox, index: number) {
-    box.bg.clear();
-    box.bg.fillStyle(0x555555, 1);
-    box.bg.fillRoundedRect(-box.boxWidth/2, -box.boxHeight/2, box.boxWidth, box.boxHeight, 8);
-    
-    this.tweens.add({
-        targets: box.container,
-        y: box.container.y + 50,
-        alpha: 0,
-        duration: 500,
-        onComplete: () => box.container.destroy()
-    });
-    this.bettingBoxes.splice(index, 1);
-  }
-}
- prefix
-    const txtAmt = this.add.text(0, -8, `${store.betAmount}`, {
+    // Text: Added '$' prefix
+    const txtAmt = this.add.text(0, -8, `$${store.betAmount}`, {
         fontFamily: 'monospace', fontSize: '14px', color: '#000000', fontStyle: 'bold'
     }).setOrigin(0.5);
     
@@ -727,18 +627,21 @@ export class MainScene extends Phaser.Scene {
         const boxY = box.container.y;
         
         // --- Proximity Logic (Spread Glow) ---
+        // Only glow when head is near
         const dist = Phaser.Math.Distance.Between(this.headX, this.headY, boxX, boxY);
-        const proximityRange = 250; // Distance to start glowing
+        const proximityRange = 250; 
         
         if (dist < proximityRange) {
-             // Calculate intensity based on distance (0 to 1)
-             // Closer = Stronger Glow
-             const intensity = Phaser.Math.Clamp(1 - (dist / proximityRange), 0, 1);
+             // Calculate intensity: 0 (at 250px) to 1 (at 0px)
+             const intensity = 1 - (dist / proximityRange);
              
-             // Non-linear ease for better visual (Square it)
-             const alpha = intensity * intensity;
+             // Smooth fade in using square ease for natural light falloff
+             const targetAlpha = intensity * intensity * 0.8; // Max alpha 0.8
              
-             box.glow.setAlpha(alpha);
+             // Smoothly interpolate current alpha to target
+             // Note: Since this runs every update, simple lerp is fine
+             // box.glow is a Game Object, we can set alpha directly
+             box.glow.setAlpha(targetAlpha);
         } else {
              box.glow.setAlpha(0);
         }
