@@ -10,5 +10,15 @@ export default defineConfig({
   base: "./",
   build: {
     outDir: "dist",
+    chunkSizeWarningLimit: 1000, // Increase warning limit to 1000kb
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          phaser: ["phaser"],
+          react: ["react", "react-dom"],
+          vendor: ["zustand", "@agent8/gameserver"],
+        },
+      },
+    },
   },
 });
