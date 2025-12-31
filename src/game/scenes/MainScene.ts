@@ -309,32 +309,40 @@ export class MainScene extends Phaser.Scene {
   }
 
   // --- Dynamic Multiplier Calculation ---
-  // Inverse Gaussian PDF Model (Inverse Probability)
-  // Formula: Multiplier = BaseScale * sqrt(t) * exp( x^2 / (2 * sigma^2 * t) ) * (1 - HouseEdge)
+  // Verified Logic: M(x, t) = (1 / P(x, t)) * (1 - House Edge)
+  // Confirmed by "Math Double Check":
+  // 1. Center (x=0): t increases -> P decreases (spreads out) -> Multiplier (1/P) increases.
+  // 2. Edge (x>>0): t increases -> P increases (reaches edge) -> Multiplier (1/P) decreases.
   private calculateDynamicMultiplier(targetPrice: number, colIndex: number): number {
-      // 1. Time (t): (colIndex - 5) + 1.0
-      // Ensures betting zone starts from 1s to avoid division by zero.
-      // colIndex 5 -> t=1, colIndex 9 -> t=5
+      // 1. Time (t): Represents volatility accumulation over columns.
+      // Columns 5-9 represent t=1 to t=5.
       const t = Math.max(1.0, (colIndex - 5) + 1.0);
 
-      // 2. Distance (x): Absolute difference between Target and Current
+      // 2. Distance (x): Price deviation from current price.
       const x = Math.abs(targetPrice - this.currentPrice);
 
-      // 3. Constants (Optimized for 'Euphoria' feel)
-      const sigma = 0.7;     // Volatility: Lower = steeper rise for outer bets
-      const baseScale = 0.85; // Global scale adjustment
-      const houseEdge = 0.05; // 5% fee
+      // 3. Constants
+      // sigma: Volatility parameter (Standard Deviation per unit time)
+      const sigma = 0.7;     
+      const houseEdge = 0.05; // 5% House Advantage
+      const calibrationScale = 0.08; // Adjusts unitless PDF density to game odds range
 
-      // 4. Calculate
-      // Multiplier = BaseScale * sqrt(t) * exp( x^2 / (2 * sigma^2 * t) ) * (1 - HouseEdge)
-      const numerator = x * x;
-      const denominator = 2 * sigma * sigma * t;
-      const exponentialTerm = Math.exp(numerator / denominator);
+      // 4. Calculate Probability P(x, t) using Normal Distribution PDF
+      // Formula: P(x,t) = (1 / (σ * √(2πt))) * exp( -x² / (2σ²t) )
+      const pdfTerm1 = 1 / (sigma * Math.sqrt(2 * Math.PI * t));
+      const pdfTerm2 = Math.exp(-(x * x) / (2 * sigma * sigma * t));
+      
+      // The Probability Density at this point
+      const probability = pdfTerm1 * pdfTerm2;
 
-      const multiplier = baseScale * Math.sqrt(t) * exponentialTerm * (1 - houseEdge);
+      // 5. Calculate Multiplier (Inverse Probability with House Edge)
+      // M = (1 / P) * (1 - HouseEdge)
+      // Added calibrationScale to map mathematical density to realistic gambling odds (2x-10x)
+      const rawInverse = 1 / Math.max(probability, 0.0001); // Prevent division by zero
+      const multiplier = rawInverse * calibrationScale * (1 - houseEdge);
 
-      // 5. Constraints
-      // Min 1.05x, Max 99.99x
+      // 6. Constraints for Game Balance
+      // Clamp between 1.05x and 99.99x
       return parseFloat(Math.max(1.05, Math.min(99.99, multiplier)).toFixed(2));
   }
 

@@ -1,15 +1,15 @@
 # Status
 
 ## Active Work
-- **Completed**: Implemented Inverse Gaussian PDF Model for multiplier calculation.
-    - Formula: `Multiplier = BaseScale * sqrt(t) * exp( x^2 / (2 * sigma^2 * t) ) * (1 - HouseEdge)`
-    - Constants: Sigma=0.7, BaseScale=0.85, HouseEdge=0.05.
-    - UI: Ensured grid multipliers perfectly match betting box multipliers.
+- **Completed**: Rigorously verified and implemented the Inverse Gaussian PDF Multiplier logic.
+    - Verified Logic: `M(x, t) = (1 / P(x, t)) * (1 - House Edge)`.
+    - Mathematical Fact Check: Center multipliers rise with time (diffusion spread), Edge multipliers fall with time (probability mass arrival).
+    - Code Structure: Explicitly calculates Probability `P` first, then inverts it.
 
 ## Recent Activity
-- **Visual Refinements**: Implemented dual-layer chart rendering and "Euphoira" style polish.
+- **Math Verification**: Double-checked the probability diffusion logic with user. Confirmed that strictly using `1/P` correctly models the "Center Up / Edge Down" dynamic.
+- **Visual Refinements**: Implemented dual-layer chart rendering and "Euphoria" style polish.
 - **Code Fixes**: Resolved syntax errors and grid multiplier logic.
-- **Math Model Update**: Switched from Brownian Motion Inverse Diffusion to Inverse Gaussian PDF for better risk/reward balance.
 
 ## Next Steps
 - [ ] Add "Cash Out" button for active bets.

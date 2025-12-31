@@ -7,6 +7,13 @@
     - Screen divided into exactly 10 columns.
     - **Left 5 Columns**: Clear space, faint grid lines, NO multipliers.
     - **Right 5 Columns**: Betting Zone. Gradient fade-in. Multipliers centered.
+- **Multiplier Logic (Strict Math)**:
+    - **Formula**: `M(x, t) = (1 / P(x, t)) * (1 - House Edge)`
+    - **P(x,t)**: Normal Distribution PDF (Diffusion Equation).
+    - **Behavior**:
+        - Center ($x=0$): Multiplier INCREASES over time ($t$).
+        - Edge ($x>>0$): Multiplier DECREASES over time ($t$).
+    - **House Edge**: 5% deduction from fair odds.
 - **Interaction**: Click to place a solid Pale Yellow Box.
     - Box snaps to grid cell center.
     - Box shows Bet Amount ($) and Multiplier (X).
