@@ -20,6 +20,7 @@ interface BettingBox {
   hit: boolean;
   boxWidth: number;
   boxHeight: number;
+  basePrice: number; // To recalculate multiplier dynamically if needed (though bets usually lock multiplier)
 }
 
 export class MainScene extends Phaser.Scene {
@@ -81,8 +82,6 @@ export class MainScene extends Phaser.Scene {
     this.pixelsPerSecond = this.scale.width / this.timeWindowSeconds;
     
     // 2. Camera FX (Bloom)
-    // NOTE: User asked to remove glow from boxes, but global bloom might be okay for the neon grid/line.
-    // We keep it for the chart line but ensure boxes don't get blown out.
     if (this.cameras.main.postFX) {
         this.cameras.main.postFX.addBloom(0xffffff, 1.0, 1.0, 1.2, 1.2);
     }
@@ -160,12 +159,16 @@ export class MainScene extends Phaser.Scene {
     graphics.fillCircle(16, 16, 16);
     graphics.generateTexture('flare', 32, 32);
 
-    // Box Glow Texture (Larger soft glow)
+    // Box Glow Rect Texture (Soft rectangular glow)
     graphics.clear();
-    // Create a radial gradient texture for the glow
-    graphics.fillStyle(0xffff00, 1); // Yellow core
-    graphics.fillCircle(64, 64, 64); // Base circle
-    graphics.generateTexture('box_glow', 128, 128);
+    graphics.fillStyle(0xffff00, 1);
+    // Draw a soft rect texture that fits the general box aspect ratio
+    // We'll scale this sprite, so a square-ish rect with rounded corners is fine
+    graphics.fillRoundedRect(0, 0, 64, 64, 16);
+    // Add some blur/softness logic if possible, or just rely on alpha.
+    // Since we can't easily blur in generateTexture without canvas manipulation, 
+    // we'll rely on the bloom FX and alpha fading.
+    graphics.generateTexture('box_glow_rect', 64, 64);
   }
 
   private createHeadLabel() {
@@ -264,17 +267,12 @@ export class MainScene extends Phaser.Scene {
     const width = this.scale.width;
     const buffer = 200;
 
-    // --- FIX: Use lineTo instead of Spline for stability ---
-    // User complaint: "Why does the past line wiggle? It should be fixed."
-    // Splines recalculate curves based on neighbors. Simple lines are fixed.
-    
     this.chartGraphics.beginPath();
 
     let started = false;
     
     // Draw history
     for (const p of this.priceHistory) {
-        // Optimization: Only draw visible points + small buffer
         if (p.worldX < scrollX - buffer) continue;
         if (p.worldX > scrollX + width + buffer) break;
 
@@ -297,8 +295,9 @@ export class MainScene extends Phaser.Scene {
     this.chartGraphics.lineStyle(16, 0xffffff, 0.05); 
     this.chartGraphics.strokePath();
     
-    // 2. Core (Clean White)
-    this.chartGraphics.lineStyle(3, 0xffffff, 1);
+    // 2. Core - THICKER as requested (approx 5px)
+    // "Thickness slightly thinner than end point(8px radius)" -> ~5-6px is good
+    this.chartGraphics.lineStyle(5, 0xffffff, 1);
     this.chartGraphics.strokePath();
     
     // 3. Head Dot
@@ -308,11 +307,49 @@ export class MainScene extends Phaser.Scene {
     this.chartGraphics.strokeCircle(this.headX, this.headY, 8);
   }
 
+  // --- Dynamic Multiplier Calculation ---
+  // Based on Gemini Analysis: 
+  // Center: Time ↑ -> Multiplier ↑ (Hard to stay still)
+  // Edge: Time ↑ -> Multiplier ↓ (Easier to reach over time)
+  private calculateDynamicMultiplier(rowPrice: number, colIndex: number): number {
+      const distance = Math.abs(rowPrice - this.currentPrice);
+      
+      // Standardize distance relative to typical volatility
+      // $10 diff is considered "Far"
+      const distFactor = Math.min(distance / 10.0, 1.0); 
+
+      // Time Factor (0 to 5) for right side columns
+      // colIndex passed here is relative to screen (0-9), we care about betting zone (5-9)
+      const timeSteps = Math.max(0, colIndex - 5); 
+
+      // Base Multiplier based on Difficulty (Distance)
+      // Close: ~2.0x, Far: ~8.0x
+      let baseMult = 2.0 + (distFactor * 6.0); 
+
+      // Apply Time/Volatility Logic
+      if (distFactor < 0.2) {
+          // CENTER ZONE: Increase over time
+          // "Probability of staying perfectly still decreases over time"
+          baseMult = baseMult * (1 + (timeSteps * 0.15));
+      } else if (distFactor > 0.6) {
+          // EDGE ZONE: Decrease over time
+          // "Probability of reaching far edge increases with more time"
+          baseMult = baseMult * (1 - (timeSteps * 0.08));
+      } else {
+          // MIDDLE ZONE: Slight increase or stable
+          baseMult = baseMult * (1 + (timeSteps * 0.05));
+      }
+
+      // Clamp values
+      return parseFloat(Math.max(1.05, Math.min(99.99, baseMult)).toFixed(2));
+  }
+
   private drawGridAndAxis() {
     this.gridGraphics.clear();
     
-    this.axisLabels.forEach(l => l.setVisible(false));
-    this.gridLabels.forEach(l => l.setVisible(false));
+    // Reset label usage indices (Object Pooling strategy)
+    let axisLabelIdx = 0;
+    let gridLabelIdx = 0;
     
     const scrollX = this.cameras.main.scrollX;
     const scrollY = this.cameras.main.scrollY;
@@ -324,8 +361,6 @@ export class MainScene extends Phaser.Scene {
     const gridStartTime = Math.floor(scrollX / colWidth) * colWidth;
     const gridEndTime = scrollX + width;
 
-    let gridLabelIdx = 0;
-
     const minVisibleY = scrollY;
     const maxVisibleY = scrollY + height;
     
@@ -335,16 +370,13 @@ export class MainScene extends Phaser.Scene {
     const startPrice = Math.floor(lowPrice / this.gridPriceInterval) * this.gridPriceInterval;
     const endPrice = Math.ceil(highPrice / this.gridPriceInterval) * this.gridPriceInterval;
     
-    let axisLabelIdx = 0;
-
-    // Draw Horizontal Lines
+    // Draw Horizontal Lines & Axis
     this.gridGraphics.lineStyle(1, 0xaa00ff, 0.15);
     
     for (let p = startPrice; p <= endPrice; p += this.gridPriceInterval) {
         const y = -(p - this.initialPrice!) * this.pixelPerDollar;
         const centerX = scrollX + (width * 0.5);
         
-        this.gridGraphics.lineStyle(1, 0xaa00ff, 0.15);
         this.gridGraphics.moveTo(centerX, y);
         this.gridGraphics.lineTo(scrollX + width, y);
         
@@ -372,6 +404,7 @@ export class MainScene extends Phaser.Scene {
         const x = c * colWidth;
         const screenX = x - scrollX;
         const normalizedScreenX = screenX / width;
+        const colIndexOnScreen = Math.floor(normalizedScreenX * 10); // 0-9
 
         // Gradient Fade-in Logic
         let alpha = 0.15;
@@ -381,10 +414,6 @@ export class MainScene extends Phaser.Scene {
              const fadeProgress = (normalizedScreenX - 0.5) * 5; 
              const entryAlpha = Phaser.Math.Clamp(fadeProgress, 0, 1);
              alpha = 0.15 + (entryAlpha * 0.3);
-             
-             // Text fade: Need to be > 50% visible to show text clearly?
-             // User Req: "If text is > 50% gone... disable betting"
-             // Text fade calculation:
              textFade = Phaser.Math.Clamp((normalizedScreenX - 0.5) * 8, 0, 1);
         } else {
              alpha = 0.15;
@@ -418,6 +447,7 @@ export class MainScene extends Phaser.Scene {
         gridLabelIdx++;
 
         // Multipliers (Only in Betting Zone)
+        // DYNAMIC UPDATE: Recalculate based on current price
         if (textFade > 0.01) {
             const cellCenterX = x + colWidth/2;
             
@@ -425,11 +455,10 @@ export class MainScene extends Phaser.Scene {
                 const y = -(p - this.initialPrice!) * this.pixelPerDollar;
                 const cellCenterY = y - (this.gridPriceInterval * this.pixelPerDollar) / 2;
                 
-                const seedX = Math.floor(cellCenterX);
-                const seedY = Math.floor(cellCenterY);
-                const random = Math.abs(Math.sin(seedX * 12.9898 + seedY * 78.233) * 43758.5453) % 1;
-                
-                let multi = 1.0 + (random * 4.0);
+                // --- NEW DYNAMIC LOGIC ---
+                // Calculate based on row price and column index
+                const rowPrice = p;
+                const dynamicMulti = this.calculateDynamicMultiplier(rowPrice, colIndexOnScreen);
                 
                 let gl = this.gridLabels[gridLabelIdx];
                 if (!gl) {
@@ -440,9 +469,10 @@ export class MainScene extends Phaser.Scene {
                 }
                 
                 gl.setPosition(cellCenterX, cellCenterY);
-                gl.setText(multi.toFixed(2) + 'X');
+                gl.setText(dynamicMulti.toFixed(2) + 'x');
                 
-                // Text fades based on gradient
+                // Color Code based on Multiplier value?
+                // For now keep uniform color but fade
                 gl.setAlpha(textFade); 
                 gl.setVisible(true);
                 gridLabelIdx++;
@@ -451,6 +481,10 @@ export class MainScene extends Phaser.Scene {
     }
     
     this.gridGraphics.strokePath();
+
+    // Hide unused labels
+    for (let i = axisLabelIdx; i < this.axisLabels.length; i++) this.axisLabels[i].setVisible(false);
+    for (let i = gridLabelIdx; i < this.gridLabels.length; i++) this.gridLabels[i].setVisible(false);
 
     this.drawCurrentPriceBox(scrollY, height, width);
   }
@@ -481,15 +515,11 @@ export class MainScene extends Phaser.Scene {
   private placeBet(pointer: Phaser.Input.Pointer) {
     if (!this.initialPrice) return;
 
-    // 1. STRICT Betting Restriction: 
-    // "If multiplier text in 6th column is > 50% gone... disable betting"
-    // Our text fade starts at 0.5 and reaches 1.0 at ~0.625 (0.5 + 1/8)
-    // So 50% fade is around 0.56 normalized width.
+    // 1. Restriction Check
     const screenX = pointer.x;
     const width = this.scale.width;
     const normalizedClickX = screenX / width;
 
-    // Threshold: 0.55 (55% of screen width)
     if (normalizedClickX < 0.55) {
         this.sound.play('sfx_error', { volume: 0.2 });
         return;
@@ -503,9 +533,9 @@ export class MainScene extends Phaser.Scene {
 
     // 2. Snap to Grid
     const colWidth = width / 10;
-    
     const colIdx = Math.floor(pointer.worldX / colWidth);
     const cellX = (colIdx * colWidth) + (colWidth/2);
+    const colIndexOnScreen = Math.floor(normalizedClickX * 10);
 
     const priceY = -(pointer.worldY / this.pixelPerDollar); 
     const rawPrice = this.initialPrice! + priceY;
@@ -515,12 +545,8 @@ export class MainScene extends Phaser.Scene {
     
     const cellY = -(cellCenterPrice - this.initialPrice!) * this.pixelPerDollar;
 
-    // 3. Get Multiplier
-    const seedX = Math.floor(cellX);
-    const seedY = Math.floor(cellY);
-    const random = Math.abs(Math.sin(seedX * 12.9898 + seedY * 78.233) * 43758.5453) % 1;
-    let multi = 1.0 + (random * 4.0);
-    multi = Math.max(1.1, multi);
+    // 3. Get Multiplier (Lock it in at time of bet)
+    const multi = this.calculateDynamicMultiplier(cellCenterPrice, colIndexOnScreen);
 
     // 4. Create Box
     store.updateBalance(-store.betAmount);
@@ -531,22 +557,20 @@ export class MainScene extends Phaser.Scene {
     const boxW = colWidth - 8; 
     const boxH = (this.gridPriceInterval * this.pixelPerDollar) - 8;
     
-    // Proximity Glow (Hidden by default, updated in checkCollisions)
-    const glow = this.add.image(0, 0, 'box_glow');
-    glow.setDisplaySize(boxW * 1.5, boxH * 1.5); // Larger glow area
+    // Proximity Glow Rect (NEW: Natural glow, not circle)
+    const glow = this.add.image(0, 0, 'box_glow_rect');
+    glow.setDisplaySize(boxW + 20, boxH + 20); // Slightly larger than box
     glow.setAlpha(0); 
-    glow.setTint(0xffd700); // Gold/Yellow glow
+    glow.setTint(0xffd700); 
 
-    // Box Graphics: Pale Yellow Solid (#fffacd)
-    // Requirement: "Remove 70% white border... add rounded corners to box itself"
+    // Box Graphics: Pale Yellow Solid (#fffacd) - NO GLOW
     const bg = this.add.graphics();
     bg.fillStyle(0xfffacd, 1); // Solid Pale Yellow
     bg.fillRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8); // Rounded Corners
-    // REMOVED lineStyle (70% white border) as requested
-
+    
     const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0); 
     
-    // Text: Amount & Multiplier in BOLD BLACK
+    // Text
     const txtAmt = this.add.text(0, -8, `${store.betAmount}`, {
         fontFamily: 'monospace', fontSize: '14px', color: '#000000', fontStyle: 'bold'
     }).setOrigin(0.5);
@@ -568,7 +592,7 @@ export class MainScene extends Phaser.Scene {
     this.bettingBoxes.push({
         container, rect, bg, glow, textAmount: txtAmt, textMulti: txtMulti,
         betAmount: store.betAmount, multiplier: multi,
-        hit: false, boxWidth: boxW, boxHeight: boxH
+        hit: false, boxWidth: boxW, boxHeight: boxH, basePrice: cellCenterPrice
     });
   }
 
@@ -580,29 +604,25 @@ export class MainScene extends Phaser.Scene {
         const boxX = box.container.x;
         const boxY = box.container.y;
         
-        // --- Proximity Logic ---
-        // "Why doesn't it glow yellow when close?"
+        // --- Proximity Logic (Refined) ---
         const dist = Phaser.Math.Distance.Between(this.headX, this.headY, boxX, boxY);
-        const proximityRange = 400; // Increased range
+        const proximityRange = 300; 
         
         if (dist < proximityRange) {
-            // Stronger glow as it gets closer
+            // Natural Pulse/Glow intensity
             const intensity = 1 - (dist / proximityRange); 
-            // Max alpha 0.8 for visibility
-            box.glow.setAlpha(intensity * 0.8);
+            // Pulse logic using current time for breathing effect
+            const pulse = 0.8 + (Math.sin(this.time.now / 100) * 0.2);
+            box.glow.setAlpha(intensity * pulse * 0.8);
         } else {
             box.glow.setAlpha(0);
         }
 
         // --- Collision Logic ---
-        // Requirement: "Graph point touches box LEFT edge means win"
-        // And "pass middle to win" complaint -> Implies we need strict left-edge trigger
         const boxLeftEdge = boxX - (box.boxWidth / 2);
 
-        // If head has crossed the LEFT edge of the box
         if (this.headX >= boxLeftEdge) {
              const diffY = Math.abs(this.headY - boxY);
-             // Hit window: Box Height / 2
              if (diffY < (box.boxHeight/2)) {
                  this.handleWin(box, i);
              } else {
@@ -630,6 +650,7 @@ export class MainScene extends Phaser.Scene {
         onComplete: () => winText.destroy()
     });
 
+    // Pulse effect
     const pulse = this.add.sprite(box.container.x, box.container.y, 'flare');
     pulse.setScale(2);
     pulse.setTint(0xffd700);
