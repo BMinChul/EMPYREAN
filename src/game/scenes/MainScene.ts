@@ -464,8 +464,8 @@ export class MainScene extends Phaser.Scene {
                 
                 // --- NEW DYNAMIC LOGIC ---
                 // Calculate based on row price and column index
-                const rowPrice = p;
-                const dynamicMulti = this.calculateDynamicMultiplier(rowPrice, colIndexOnScreen);
+                const cellCenterPrice = p + (this.gridPriceInterval / 2);
+                const dynamicMulti = this.calculateDynamicMultiplier(cellCenterPrice, colIndexOnScreen);
                 
                 let gl = this.gridLabels[gridLabelIdx];
                 if (!gl) {

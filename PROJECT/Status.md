@@ -12,6 +12,7 @@
         - Size scaled down significantly to appear as a subtle backlight just behind the box.
 
 ## Recent Activity
+- **Code Fixes**: Fixed discrepancy between grid multipliers and betting multipliers by using cell center price for calculation in `MainScene.ts`.
 - **Code Fixes**: Resolved syntax error in `MainScene.ts` caused by incomplete method definition.
 - **Refactoring**: Centralized visibility logic and collision handling.
 - **Polish**: Updated gradients and UI element sizing based on user feedback.
