@@ -82,13 +82,21 @@ export class MainScene extends Phaser.Scene {
     this.pixelsPerSecond = this.scale.width / this.timeWindowSeconds;
     
     // 2. Camera FX (Bloom)
-    if (this.cameras.main.postFX) {
-        this.cameras.main.postFX.addBloom(0xffffff, 1.0, 1.0, 1.2, 1.2);
-    }
-
+    // REMOVED Global Camera Bloom to prevent washing out the UI/Boxes
+    // We will apply bloom only to specific "Neon" elements (Chart, Grid)
+    
     // 3. Graphics Layers
     this.gridGraphics = this.add.graphics();
     this.chartGraphics = this.add.graphics();
+
+    // Apply Bloom specifically to the neon elements
+    if (this.chartGraphics.postFX) {
+        this.chartGraphics.postFX.addBloom(0xffffff, 1.0, 1.0, 1.2, 1.2);
+    }
+    if (this.gridGraphics.postFX) {
+        // Subtle bloom for grid
+        this.gridGraphics.postFX.addBloom(0xffffff, 0.5, 0.5, 1.0, 1.0);
+    }
     
     // 4. Generate Textures
     this.createTextures();
@@ -292,8 +300,8 @@ export class MainScene extends Phaser.Scene {
         this.chartGraphics.moveTo(this.headX, this.headY);
     }
     
-    // Core - THICKER (12px) Light Purple
-    this.chartGraphics.lineStyle(12, 0xE0B0FF, 1); 
+    // Core - THICKER (40px) Light Purple
+    this.chartGraphics.lineStyle(40, 0xE0B0FF, 1); 
     this.chartGraphics.strokePath();
   }
 
@@ -552,6 +560,17 @@ export class MainScene extends Phaser.Scene {
     bg.fillStyle(0xfffacd, 1); // Solid Pale Yellow
     bg.fillRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8); // Rounded Corners
     
+    // External Spread Glow (Initially Invisible)
+    // Uses 'box_glow_rect' texture created in createTextures
+    const glow = this.add.image(0, 0, 'box_glow_rect');
+    glow.setTint(0xfffacd);
+    glow.setAlpha(0); // Invisible by default
+    glow.setScale(boxW / 100, boxH / 100); // Approximate scale adjustment if needed, or just standard
+    // Actually, box_glow_rect is 160x160. Let's scale it to be slightly larger than box.
+    const glowScaleX = (boxW + 60) / 160;
+    const glowScaleY = (boxH + 60) / 160;
+    glow.setScale(glowScaleX, glowScaleY);
+
     const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0); 
     
     // Text
@@ -563,7 +582,7 @@ export class MainScene extends Phaser.Scene {
         fontFamily: 'monospace', fontSize: '12px', color: '#000000', fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    container.add([bg, rect, txtAmt, txtMulti]);
+    container.add([glow, bg, rect, txtAmt, txtMulti]); // Add glow first (bottom layer)
     
     container.setScale(0);
     this.tweens.add({
@@ -574,7 +593,7 @@ export class MainScene extends Phaser.Scene {
     });
 
     this.bettingBoxes.push({
-        container, rect, bg, glow: null as any, // Removed glow
+        container, rect, bg, glow: glow, 
         textAmount: txtAmt, textMulti: txtMulti,
         betAmount: store.betAmount, multiplier: multi,
         hit: false, boxWidth: boxW, boxHeight: boxH, basePrice: cellCenterPrice
@@ -589,27 +608,21 @@ export class MainScene extends Phaser.Scene {
         const boxX = box.container.x;
         const boxY = box.container.y;
         
-        // --- Proximity Logic (Removed Glow, Added Scale Bump) ---
+        // --- Proximity Logic (Spread Glow) ---
         const dist = Phaser.Math.Distance.Between(this.headX, this.headY, boxX, boxY);
-        const proximityRange = 150; 
+        const proximityRange = 250; // Distance to start glowing
         
         if (dist < proximityRange) {
-             // Subtle scale up instead of glow
-             if (box.container.scale === 1) {
-                 this.tweens.add({
-                     targets: box.container,
-                     scale: 1.05,
-                     duration: 100
-                 });
-             }
+             // Calculate intensity based on distance (0 to 1)
+             // Closer = Stronger Glow
+             const intensity = Phaser.Math.Clamp(1 - (dist / proximityRange), 0, 1);
+             
+             // Non-linear ease for better visual (Square it)
+             const alpha = intensity * intensity;
+             
+             box.glow.setAlpha(alpha);
         } else {
-             if (box.container.scale > 1.01) {
-                 this.tweens.add({
-                     targets: box.container,
-                     scale: 1,
-                     duration: 100
-                 });
-             }
+             box.glow.setAlpha(0);
         }
 
         // --- Collision Logic ---

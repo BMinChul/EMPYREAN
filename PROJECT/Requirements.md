@@ -2,26 +2,29 @@
 
 ## Core Gameplay
 - Real-time ETH/USDT Perpetual Futures feed (OKX WebSocket).
-- Visual: White line chart flowing left-to-right (infinite scrolling).
+- Visual: White/Light Purple line chart flowing left-to-right.
 - **Grid System (10-Column)**: 
     - Screen divided into exactly 10 columns.
     - **Left 5 Columns**: Clear space, faint grid lines, NO multipliers.
-    - **Right 5 Columns**: Betting Zone. Gradient fade-in from 50% width. Multipliers centered in cells.
+    - **Right 5 Columns**: Betting Zone. Gradient fade-in. Multipliers centered.
 - **Interaction**: Click to place a solid Pale Yellow Box.
     - Box snaps to grid cell center.
     - Box shows Bet Amount ($) and Multiplier (X).
 - **Win Logic**: Head dot hits the box -> Win.
-- **Feedback**: Floating win amount text above cell. Top-center notification bar.
+- **Feedback**: Floating win amount text. Top-center notification.
 
 ## Visual Aesthetics ("Euphoria" Style)
-- **Chart**: Clean white neon line. Head is a simple glowing dot. **NO CROSSHAIRS**.
+- **Chart**: Thick (**40px**) Light Purple (`0xE0B0FF`) line.
+- **Bloom**: Applied ONLY to Chart and Grid. Betting Boxes and Text remain crisp.
 - **Background**: Deep Magenta/Purple (`#1a0b2e`). Neon grid lines.
-- **Bet Box**: Pale Yellow (`#fffacd`), Rounded Corners, 70% White Border, Black Text, NO GLOW.
-- **Price Axis**: Right side, $0.5 increments. Moving "Current Price" tag.
+- **Betting Box**: 
+    - **Idle**: Solid Pale Yellow (`#fffacd`), Rounded Corners, Black Bold Text (`$10`), NO GLOW.
+    - **Proximity**: When Graph Head approaches (<250px), a "Spread Glow" fades in around the box.
+- **Text**: Always Black, Bold, and on top of the box.
 
 ## Camera & Time
 - **Head Position**: Fixed at **25%** screen width and **50%** screen height.
-- **Scroll**: 40-second window.
+- **Scroll**: 100-second window (variable based on screen width).
 
 ## Known Issues
 - Network latency might cause visual jumps (handled by spline smoothing).

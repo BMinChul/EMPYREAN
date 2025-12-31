@@ -1,17 +1,17 @@
 # Status
 
 ## Active Work
-- **Visual Refinements (User Feedback)**:
-    - **Graph**: Set to **12px** Solid Light Purple Line (`0xE0B0FF`) for better visibility without artifacts.
+- **Visual Polish ("Euphoria" Style)**:
+    - **Graph**: Thickened line to **40px** (`0xE0B0FF`) for high visibility.
+    - **Bloom**: Moved bloom from Global Camera to specific layers (Chart/Grid only).
     - **Betting Box**: 
-        - Removed ALL glow effects (strict "No Glow" rule).
-        - Added `$` symbol to price text (e.g., "$10").
-        - Replaced proximity glow with a subtle **scale-up** effect (1.05x) when approaching.
-    - **Text**: Ensured black text is always opaque and on top of the solid pale yellow box.
+        - Solid Pale Yellow (`#fffacd`) with NO internal glow.
+        - **Text**: Bold, Black, with `$` prefix (e.g., `$10`). crisp readability.
+        - **Proximity**: Implemented "Spread Glow" that only appears when the graph head is near (`< 250px`).
 
 ## Recent Activity
-- Modified `MainScene.ts` to implement strict visual rules.
-- Removed unused glow texture logic from betting boxes.
+- Refactored `MainScene.ts` to implement specific visual requests.
+- Optimized rendering to prevent text washout.
 
 ## Next Steps
 - [ ] Add "Cash Out" button for active bets.
