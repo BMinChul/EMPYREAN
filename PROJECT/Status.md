@@ -2,20 +2,20 @@
 
 ## Active Work
 - Implemented **Euphoria Half-Screen Logic**:
-    - **Camera Lock**: Head pinned to 50% screen width after initial run-up.
-    - **Infinite Scroll**: Background and objects scroll left while Head stays centered.
+    - **Camera Lock**: Head pinned to 25% screen width (Left side) and 50% height.
+    - **Infinite Scroll**: Background and objects scroll left while Head stays visual fixed.
 - **High-Frequency Volatility**:
-    - **Jitter System**: Added random Y-offset noise every 100ms to simulate market heartbeat.
-    - **Spline Smoothing**: Used `Phaser.Curves.Spline` for liquid movement despite the jitter.
+    - **Jitter System**: Added random Y-offset noise for "Live" feel.
+    - **Spline Smoothing**: Used `Phaser.Curves.Spline` with high-responsiveness.
 - **UI/UX Polish**:
     - **Strict Formatting**: Price always shows `$0,000.00`.
-    - **Layout**: Top-Left Price, Bottom-Left Balance, Bottom-Right Bet, Top-Center Win.
-    - **Glassmorphism**: Enhanced transparency and blur effects.
+    - **Layout**: "Euphoria" style with Glassmorphism and Neon Borders.
+    - **Grid**: Infinite scrolling grid with right-side Multipliers.
 
 ## Recent Activity
 - Rewrote `MainScene.ts` to support infinite world coordinates with a center-locked camera.
 - Implemented `jitter` logic in the update loop for visual energy.
-- Updated `UIOverlay.tsx` to ensure pixel-perfect positioning of widgets.
+- Updated `UIOverlay.tsx` and `App.css` for the complete visual overhaul.
 
 ## Next Steps
 - [ ] Add "Cash Out" button for active bets (optional).
