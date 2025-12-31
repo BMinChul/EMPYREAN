@@ -26,7 +26,7 @@ export class MainScene extends Phaser.Scene {
   private chartGraphics: Phaser.GameObjects.Graphics;
   private gridGraphics: Phaser.GameObjects.Graphics;
   
-  // Containers for UI elements that live in World Space but act like UI
+  // Containers for UI elements
   private headPriceLabel: Phaser.GameObjects.Container;
   private headPriceText: Phaser.GameObjects.Text;
   private headPriceBg: Phaser.GameObjects.Rectangle;
@@ -41,7 +41,6 @@ export class MainScene extends Phaser.Scene {
   private pixelsPerSecond: number = 0; // Calculated in create()
   
   // Price Scale: Vertical pixels per dollar
-  // Need to be sensitive enough to show movements
   private pixelPerDollar: number = 200; 
   private gridPriceInterval: number = 0.5; // Every $0.50
   
@@ -114,8 +113,9 @@ export class MainScene extends Phaser.Scene {
       gravityY: 300
     });
 
-    // 6. Head Price Label
+    // 6. Head Price Label (Hidden as per new req, but initialized)
     this.createHeadLabel();
+    this.headPriceLabel.setVisible(false);
 
     // 7. Data Service
     this.okxService = new OKXService((price) => this.handleNewPrice(price));
@@ -173,7 +173,6 @@ export class MainScene extends Phaser.Scene {
     this.headPriceLabel = this.add.container(0, 0);
     this.headPriceLabel.setDepth(100);
 
-    // Neon tag style
     this.headPriceBg = this.add.rectangle(0, 0, 80, 24, 0x000000, 0.8);
     this.headPriceBg.setStrokeStyle(1, 0x00ffff);
     
@@ -215,13 +214,13 @@ export class MainScene extends Phaser.Scene {
 
     // --- 2. Camera Sync (The "Anchor") ---
     // HEAD FIXED at: 
-    // X = 25% Screen Width
-    // Y = 50% Screen Height
+    // X = 50% Screen Width (Center)
+    // Y = 50% Screen Height (Center)
     
     const viewportW = this.scale.width;
     const viewportH = this.scale.height;
     
-    const targetScrollX = this.headX - (viewportW * 0.25);
+    const targetScrollX = this.headX - (viewportW * 0.5);
     const targetScrollY = this.headY - (viewportH * 0.5);
 
     // X is hard-locked (scrolling is constant)
@@ -248,15 +247,6 @@ export class MainScene extends Phaser.Scene {
     
     // --- 5. Visual Updates ---
     this.headEmitter.setPosition(this.headX, this.headY);
-    
-    // Head Label: Aligned with Head vertically, but stuck to right axis?
-    // Requirement: "Current Price Tag: A small label attached to the Head"
-    // AND "perfectly aligned with the right-side scale"
-    // Let's attach it to the Head but maybe offset it to the right? 
-    // Actually, usually "Attached to Head" means following the head tip.
-    this.headPriceLabel.setPosition(this.headX + 45, this.headY);
-    this.headPriceText.setText('$' + this.currentPrice.toFixed(1));
-
     this.checkCollisions();
   }
 
@@ -272,7 +262,6 @@ export class MainScene extends Phaser.Scene {
     useGameStore.getState().setCurrentPrice(price);
 
     // Y = -(Price - Initial) * Scale
-    // Higher Price = Lower Y (Up on screen)
     const priceDelta = price - this.initialPrice;
     this.targetHeadY = -(priceDelta * this.pixelPerDollar);
   }
@@ -307,14 +296,11 @@ export class MainScene extends Phaser.Scene {
     this.chartGraphics.lineStyle(3, 0xffffff, 1);
     curve.draw(this.chartGraphics, 64);
     
-    // 3. Head Diamond
+    // 3. Head Dot (Simple Glowing Dot)
     this.chartGraphics.fillStyle(0xffffff, 1);
-    this.chartGraphics.fillPoints([
-        { x: this.headX, y: this.headY - 6 },
-        { x: this.headX + 6, y: this.headY },
-        { x: this.headX, y: this.headY + 6 },
-        { x: this.headX - 6, y: this.headY }
-    ], true);
+    this.chartGraphics.fillCircle(this.headX, this.headY, 4);
+    this.chartGraphics.lineStyle(2, 0x00ffff, 0.8);
+    this.chartGraphics.strokeCircle(this.headX, this.headY, 8);
   }
 
   private drawGridAndAxis() {
@@ -330,26 +316,16 @@ export class MainScene extends Phaser.Scene {
     const height = this.scale.height;
 
     // --- 1. Vertical Grid Lines (Columns) ---
-    // Betting Zone = Right 75% of screen
-    // Total Columns = 8
-    // Zone Width = 0.75 * Width
-    // Column Width = Zone Width / 8
-    const zoneWidth = width * 0.75;
-    const colWidth = zoneWidth / 8;
+    // Requirement: Exactly 10 columns across screen width
+    const colWidth = width / 10;
     
-    // Start drawing from HeadX
-    // We want lines relative to headX, but fixed in time?
-    // "Scrolling: The chart and grid scroll left"
-    // This implies grid lines are fixed in World X.
-    // Let's create a grid fixed to world coordinates (Time).
-    
+    // Align grid to World Space (Time)
     const gridStartTime = Math.floor(scrollX / colWidth) * colWidth;
     const gridEndTime = scrollX + width;
 
     let gridLabelIdx = 0;
 
     // --- 2. Horizontal Price Lines ---
-    // Calculate visible price range
     const minVisibleY = scrollY;
     const maxVisibleY = scrollY + height;
     
@@ -372,9 +348,7 @@ export class MainScene extends Phaser.Scene {
         this.gridGraphics.moveTo(scrollX, y);
         this.gridGraphics.lineTo(scrollX + width, y);
         
-        // Right-Axis Label (Dynamic, Scrolls vertically with camera)
-        // Position: Fixed X (Right of Screen), World Y
-        // Since we are drawing in World Space, we put it at scrollX + width - padding
+        // Right-Axis Label
         const labelX = scrollX + width - 10;
         
         let label = this.axisLabels[axisLabelIdx];
@@ -386,53 +360,42 @@ export class MainScene extends Phaser.Scene {
         }
         
         label.setPosition(labelX, y);
-        label.setText('$' + p.toFixed(1)); // $2,975.5
+        label.setText(p.toFixed(1)); // 2,975.5
         label.setVisible(true);
         axisLabelIdx++;
     }
 
-    // Draw Time/Column Lines
+    // Draw Vertical Lines & Multipliers
     for (let x = gridStartTime; x <= gridEndTime; x += colWidth) {
         this.gridGraphics.moveTo(x, scrollY);
         this.gridGraphics.lineTo(x, scrollY + height);
 
         // --- Multiplier Logic ---
-        // Columns 1-4: No Multiplier
-        // Columns 5-8: Multiplier
-        // Determine column index relative to Head?
-        // "Head Position: The price line "Head" is pinned at 25% from the left."
-        // "Grid Structure: The right-side Betting Zone consists of exactly 8 horizontal segments"
+        // Requirement: 
+        // Cols 1-5 (Left): No Multiplier
+        // Cols 6-10 (Right): Multipliers
+        // "Right side" means visible screen space > 50% width
         
-        // Distance from Head
-        const distFromHead = x - this.headX;
+        // Cell Center X
+        const cellCenterX = x + colWidth/2;
+        const cellScreenX = cellCenterX - scrollX;
         
-        // If x is behind head, ignore
-        if (distFromHead < -10) continue; // Allow small buffer
-
-        // Convert distance to Column Index (0 to 7)
-        // Col 0 starts at HeadX
-        const colIndex = Math.floor(distFromHead / colWidth);
-        
-        // Only show multipliers for Cols 4, 5, 6, 7 (Index 4-7)
-        if (colIndex >= 4 && colIndex < 8) {
-            // Calculate transparency gradient (Col 4 faint -> Col 7 strong)
-            const alpha = 0.2 + ((colIndex - 4) * 0.2); // 0.2, 0.4, 0.6, 0.8
+        // Check if cell is in right half (Cols 6-10)
+        // 50% width is the boundary
+        if (cellScreenX > width * 0.5) {
             
-            // Draw multipliers in cells for this column
+            // Loop rows for this column
             for (let p = startPrice; p <= endPrice; p += this.gridPriceInterval) {
                 const y = -(p - this.initialPrice!) * this.pixelPerDollar;
-                // Cell center Y is between this line and previous line?
-                // Let's put it ON the line intersection for simplicity or center of cell?
-                // Request says "inside the cells". Let's center it.
-                
-                const cellCenterX = x + colWidth/2;
+                // Center Y of the cell
                 const cellCenterY = y - (this.gridPriceInterval * this.pixelPerDollar) / 2;
-
-                // Calculate Multiplier Value based on distance
-                // Farther X = Higher Multiplier
-                // Farther Y from Head = Higher Multiplier
-                const distY = Math.abs(cellCenterY - this.headY);
-                let multi = 1.0 + (colIndex * 0.5) + (distY / 200);
+                
+                // Deterministic Multiplier based on World Position
+                const seedX = Math.floor(cellCenterX);
+                const seedY = Math.floor(cellCenterY);
+                const random = Math.abs(Math.sin(seedX * 12.9898 + seedY * 78.233) * 43758.5453) % 1;
+                
+                let multi = 1.0 + (random * 4.0); // 1.0 to 5.0
                 
                 let gl = this.gridLabels[gridLabelIdx];
                 if (!gl) {
@@ -444,7 +407,7 @@ export class MainScene extends Phaser.Scene {
                 
                 gl.setPosition(cellCenterX, cellCenterY);
                 gl.setText(multi.toFixed(2) + 'X');
-                gl.setAlpha(alpha);
+                gl.setAlpha(0.5); // Subtle
                 gl.setVisible(true);
                 gridLabelIdx++;
             }
@@ -453,8 +416,8 @@ export class MainScene extends Phaser.Scene {
     
     this.gridGraphics.strokePath();
 
-    // Divider Line at Head
-    this.gridGraphics.lineStyle(2, 0xffffff, 0.5);
+    // Visual Indicator for Head "Now" Line
+    this.gridGraphics.lineStyle(2, 0xffffff, 0.2);
     this.gridGraphics.beginPath();
     this.gridGraphics.moveTo(this.headX, scrollY);
     this.gridGraphics.lineTo(this.headX, scrollY + height);
@@ -474,31 +437,28 @@ export class MainScene extends Phaser.Scene {
     }
 
     // 2. Snap to Grid
-    // We want the box to be "Fixed to that specific grid cell's coordinates"
-    // Calculate which cell we clicked
     const width = this.scale.width;
-    const zoneWidth = width * 0.75;
-    const colWidth = zoneWidth / 8;
+    const colWidth = width / 10;
     
-    // X Snap
-    // Col Index relative to Head
-    const distHead = pointer.worldX - this.headX;
-    const colIdx = Math.floor(distHead / colWidth);
-    const cellX = this.headX + (colIdx * colWidth) + (colWidth/2); // Center of cell
+    // Snap X to center of cell
+    const colIdx = Math.floor(pointer.worldX / colWidth);
+    const cellX = (colIdx * colWidth) + (colWidth/2);
 
-    // Y Snap (Price Line)
-    // Find closest price line
-    const relY = pointer.worldY; // World Y
-    // Convert to price
-    const priceAtCursor = this.initialPrice! - (relY / this.pixelPerDollar);
-    // Snap price to 0.5
-    const snappedPrice = Math.round(priceAtCursor / this.gridPriceInterval) * this.gridPriceInterval;
-    // Convert back to World Y
-    const cellY = -(snappedPrice - this.initialPrice!) * this.pixelPerDollar;
+    // Snap Y to center of cell
+    const priceY = -(pointer.worldY / this.pixelPerDollar); 
+    const rawPrice = this.initialPrice! + priceY;
+    
+    // Snap to grid interval center
+    const snappedBottomPrice = Math.floor(rawPrice / this.gridPriceInterval) * this.gridPriceInterval;
+    const cellCenterPrice = snappedBottomPrice + (this.gridPriceInterval / 2);
+    
+    const cellY = -(cellCenterPrice - this.initialPrice!) * this.pixelPerDollar;
 
-    // 3. Calculate Multiplier at this exact spot (Fixed at creation time)
-    const distY = Math.abs(cellY - this.headY);
-    let multi = 1.0 + (colIdx * 0.5) + (distY / 200);
+    // 3. Get Multiplier
+    const seedX = Math.floor(cellX);
+    const seedY = Math.floor(cellY);
+    const random = Math.abs(Math.sin(seedX * 12.9898 + seedY * 78.233) * 43758.5453) % 1;
+    let multi = 1.0 + (random * 4.0);
     multi = Math.max(1.1, multi);
 
     // 4. Create Box
@@ -507,19 +467,19 @@ export class MainScene extends Phaser.Scene {
 
     const container = this.add.container(cellX, cellY);
     
-    // Yellow Box
-    const boxW = 80;
-    const boxH = 30;
+    // Yellow Box - Solid, No Glow
+    const boxW = colWidth - 4; // Margin
+    const boxH = (this.gridPriceInterval * this.pixelPerDollar) - 4;
+    
     const rect = this.add.rectangle(0, 0, boxW, boxH, 0xffd700, 1);
-    rect.setStrokeStyle(2, 0xffffff);
     
     // Text: Amount (Top), Multiplier (Bottom)
     const txtAmt = this.add.text(0, -6, `$${store.betAmount}`, {
-        fontFamily: 'monospace', fontSize: '12px', color: '#000000', fontStyle: 'bold'
+        fontFamily: 'monospace', fontSize: '14px', color: '#000000', fontStyle: 'bold'
     }).setOrigin(0.5);
     
-    const txtMulti = this.add.text(0, 6, `${multi.toFixed(2)}X`, {
-        fontFamily: 'monospace', fontSize: '10px', color: '#000000'
+    const txtMulti = this.add.text(0, 8, `${multi.toFixed(2)}X`, {
+        fontFamily: 'monospace', fontSize: '12px', color: '#000000'
     }).setOrigin(0.5);
 
     container.add([rect, txtAmt, txtMulti]);
@@ -529,7 +489,7 @@ export class MainScene extends Phaser.Scene {
     this.tweens.add({
         targets: container,
         scale: 1,
-        duration: 300,
+        duration: 200,
         ease: 'Back.out'
     });
 
@@ -545,18 +505,15 @@ export class MainScene extends Phaser.Scene {
         const box = this.bettingBoxes[i];
         if (box.hit) continue;
 
-        // Collision Logic:
-        // Head reaches the X of the box
-        // Tolerance on Y
+        // Collision Logic
         const boxX = box.container.x;
         const boxY = box.container.y;
         
         // Check if Head passed the box center
         if (this.headX >= boxX) {
-             // Check Height
              const diffY = Math.abs(this.headY - boxY);
-             // Hit window: Box Height / 2 + Line Thickness buffer
-             if (diffY < (box.boxHeight/2 + 10)) {
+             // Hit window: Box Height / 2
+             if (diffY < (box.boxHeight/2 + 5)) {
                  this.handleWin(box, i);
              } else {
                  this.handleLoss(box, i);
@@ -587,9 +544,9 @@ export class MainScene extends Phaser.Scene {
     store.updateBalance(winVal);
     store.setLastWinAmount(winVal);
 
-    // Destroy
+    // Clean remove box
     this.tweens.add({
-        targets: box.container, scale: 1.5, alpha: 0, duration: 300,
+        targets: box.container, scale: 1.1, alpha: 0, duration: 200,
         onComplete: () => box.container.destroy()
     });
     this.bettingBoxes.splice(index, 1);
@@ -598,7 +555,6 @@ export class MainScene extends Phaser.Scene {
   private handleLoss(box: BettingBox, index: number) {
     // Visual Fail
     box.rect.setFillStyle(0x333333);
-    box.rect.setStrokeStyle(1, 0xff0000);
     
     this.tweens.add({
         targets: box.container,
