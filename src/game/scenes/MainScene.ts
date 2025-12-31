@@ -11,6 +11,7 @@ interface PricePoint {
 interface BettingBox {
   container: Phaser.GameObjects.Container;
   rect: Phaser.GameObjects.Rectangle;
+  glow: Phaser.GameObjects.Image; // Added Glow Sprite
   textAmount: Phaser.GameObjects.Text;
   textMulti: Phaser.GameObjects.Text;
   betAmount: number;
@@ -156,17 +157,17 @@ export class MainScene extends Phaser.Scene {
     graphics.fillCircle(16, 16, 16);
     graphics.generateTexture('flare', 32, 32);
     
-    // Hexagon Pulse
+    // Box Glow (Soft Rect)
     graphics.clear();
-    graphics.lineStyle(6, 0xffd700, 1);
-    const radius = 50;
-    const points: Phaser.Math.Vector2[] = [];
-    for (let i = 0; i < 7; i++) {
-      const angle = Phaser.Math.DegToRad(60 * i);
-      points.push(new Phaser.Math.Vector2(52 + Math.cos(angle) * radius, 52 + Math.sin(angle) * radius));
-    }
-    graphics.strokePoints(points);
-    graphics.generateTexture('pulse_ring', 104, 104);
+    graphics.fillStyle(0xfffacd, 1);
+    graphics.fillRoundedRect(0, 0, 64, 32, 8);
+    graphics.generateTexture('box_base', 64, 32); // Base shape if needed
+
+    // Soft Outer Glow Texture
+    graphics.clear();
+    graphics.fillStyle(0xfffacd, 0.4);
+    graphics.fillRoundedRect(0, 0, 80, 48, 16); // Larger, softer
+    graphics.generateTexture('box_glow', 80, 48);
   }
 
   private createHeadLabel() {
@@ -354,7 +355,7 @@ export class MainScene extends Phaser.Scene {
         let label = this.axisLabels[axisLabelIdx];
         if (!label) {
             label = this.add.text(0, 0, '', {
-                fontFamily: 'monospace', fontSize: '11px', color: '#ff00ff', align: 'right'
+                fontFamily: 'monospace', fontSize: '14px', color: '#ff00ff', align: 'right', fontStyle: 'bold'
             }).setOrigin(1, 0.5);
             this.axisLabels.push(label);
         }
@@ -442,13 +443,6 @@ export class MainScene extends Phaser.Scene {
     
     this.gridGraphics.strokePath();
 
-    // Visual Indicator for Head "Now" Line - REMOVED for clean look
-    // this.gridGraphics.lineStyle(2, 0xffffff, 0.2);
-    // this.gridGraphics.beginPath();
-    // this.gridGraphics.moveTo(this.headX, scrollY);
-    // this.gridGraphics.lineTo(this.headX, scrollY + height);
-    // this.gridGraphics.strokePath();
-
     // --- Draw Current Price Box on Right Axis ---
     this.drawCurrentPriceBox(scrollY, height, width);
   }
@@ -456,22 +450,21 @@ export class MainScene extends Phaser.Scene {
   private drawCurrentPriceBox(scrollY: number, height: number, width: number) {
      // Price Box moves with Head Y
      // We need to clamp it to the screen area
-     const boxY = Phaser.Math.Clamp(this.headY, scrollY + 15, scrollY + height - 15);
+     const boxY = Phaser.Math.Clamp(this.headY, scrollY + 20, scrollY + height - 20);
      const boxX = this.cameras.main.scrollX + width; // Right edge
 
-     this.gridGraphics.fillStyle(0xffffff, 1);
-     // Small tag on the right axis
-     this.gridGraphics.fillRoundedRect(boxX - 55, boxY - 10, 55, 20, 4);
+     // Update: Dark Magenta Background, No Glow
+     this.gridGraphics.fillStyle(0x2a1b4e, 1); // Slightly lighter than bg
+     this.gridGraphics.lineStyle(1, 0xff00ff, 0.5); // Thin purple border
      
-     // Add text if not exists or update it
-     // Note: In a real optimized scenario we'd use a Container for the box+text, 
-     // but since this is redraw-heavy we can just draw the box and update a single text label.
-     // However, simpler to just use a dedicated text object we manage.
+     // Small tag on the right axis
+     this.gridGraphics.fillRoundedRect(boxX - 60, boxY - 12, 60, 24, 4);
+     this.gridGraphics.strokeRoundedRect(boxX - 60, boxY - 12, 60, 24, 4);
      
      let priceLabel = this.children.getByName('currentPriceLabel') as Phaser.GameObjects.Text;
      if (!priceLabel) {
          priceLabel = this.add.text(0, 0, '', {
-             fontFamily: 'monospace', fontSize: '11px', color: '#000000', fontStyle: 'bold'
+             fontFamily: 'monospace', fontSize: '13px', color: '#ffffff', fontStyle: 'bold'
          }).setOrigin(1, 0.5).setName('currentPriceLabel').setDepth(20);
      }
      
@@ -526,6 +519,13 @@ export class MainScene extends Phaser.Scene {
     const boxW = colWidth - 8; 
     const boxH = (this.gridPriceInterval * this.pixelPerDollar) - 8;
     
+    // Proximity Glow Sprite (Behind everything in container)
+    // Scale it to be slightly larger than box
+    const glow = this.add.image(0, 0, 'box_glow');
+    glow.setDisplaySize(boxW + 20, boxH + 20);
+    glow.setAlpha(0); // Hidden by default
+    glow.setTint(0xfffacd); // Pale Yellow tint
+
     // Use Graphics for rounded rect
     const bg = this.add.graphics();
     bg.fillStyle(0xfffacd, 1); // Pale Yellow
@@ -545,7 +545,7 @@ export class MainScene extends Phaser.Scene {
         fontFamily: 'monospace', fontSize: '12px', color: '#000000'
     }).setOrigin(0.5);
 
-    container.add([bg, rect, txtAmt, txtMulti]);
+    container.add([glow, bg, rect, txtAmt, txtMulti]);
     
     // Spawn Animation (Simple Pop)
     container.setScale(0);
@@ -557,7 +557,7 @@ export class MainScene extends Phaser.Scene {
     });
 
     this.bettingBoxes.push({
-        container, rect, textAmount: txtAmt, textMulti: txtMulti,
+        container, rect, glow, textAmount: txtAmt, textMulti: txtMulti,
         betAmount: store.betAmount, multiplier: multi,
         hit: false, boxWidth: boxW, boxHeight: boxH
     });
@@ -568,15 +568,30 @@ export class MainScene extends Phaser.Scene {
         const box = this.bettingBoxes[i];
         if (box.hit) continue;
 
-        // Collision Logic
         const boxX = box.container.x;
         const boxY = box.container.y;
         
-        // Check if Head passed the box center
+        // --- Proximity Logic ---
+        // Calculate distance from Head to Box Center
+        const dist = Phaser.Math.Distance.Between(this.headX, this.headY, boxX, boxY);
+        const proximityRange = 250; // Pixels
+        
+        if (dist < proximityRange) {
+            // Closer = Higher Alpha
+            const alpha = 1 - (dist / proximityRange);
+            // Non-linear glow falloff
+            box.glow.setAlpha(alpha * alpha * 0.8);
+        } else {
+            box.glow.setAlpha(0);
+        }
+
+        // --- Collision Logic ---
+        // Check if Head passed the box center (X-axis)
+        // AND is within strict vertical bounds (Head physically meets box)
         if (this.headX >= boxX) {
              const diffY = Math.abs(this.headY - boxY);
-             // Hit window: Box Height / 2
-             if (diffY < (box.boxHeight/2 + 5)) {
+             // Hit window: Box Height / 2 + slight tolerance
+             if (diffY < (box.boxHeight/2)) {
                  this.handleWin(box, i);
              } else {
                  this.handleLoss(box, i);

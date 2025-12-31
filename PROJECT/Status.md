@@ -1,19 +1,21 @@
 # Status
 
 ## Active Work
-- **Completed Euphoria UI Polish**:
-    - **Grid System**: Implemented strictly 10 columns. Left 5 columns clear, Right 5 columns with gradient fade-in and multipliers.
-    - **Betting Box**: Updated to Pale Yellow (Solid), Rounded Corners, No Glow.
-    - **Camera**: Head fixed at 25% width (Left-center) and 50% height.
-    - **Visuals**: Removed all crosshairs/guide lines for a clean look. Added "Current Price Box" on right axis.
-    - **Win Effect**: Added floating "+$XX.XX" text above winning cells.
+- **Refined Euphoria UI Implementation**:
+    - **Betting Boxes**: Solid Pale Yellow (`#fffacd`), rounded corners, 70% white border. Added proximity-based outer glow effect.
+    - **Price Axis**: Increased label size for better visibility.
+    - **Current Price Box**: Updated to Dark Magenta (`#2a1b4e`) to match theme, removed internal glow.
+    - **Win Notifications**: Styled top-center popup to match Deep Magenta theme.
 
 ## Recent Activity
-- Refactored `MainScene.ts` to implement the new grid and camera logic.
-- Updated `App.css` to match the Deep Magenta/Purple background (`#1a0b2e`).
-- Simplified Head visual to a single glowing dot.
+- Modified `MainScene.ts` to implement:
+    - New betting box visual style and proximity glow logic.
+    - Larger font size for axis labels.
+    - Dark-themed Current Price Box.
+    - Precise collision detection (Head meets box).
+- Updated `App.css` to align HUD elements with the `#1a0b2e` background.
 
 ## Next Steps
-- [ ] Add "Cash Out" button for active bets (optional).
+- [ ] Add "Cash Out" button for active bets.
 - [ ] Implement Leaderboard for biggest single win.
 - [ ] Add background music (Ambient/Cyberpunk).
