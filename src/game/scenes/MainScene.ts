@@ -300,11 +300,11 @@ export class MainScene extends Phaser.Scene {
     };
 
     // Layer 1: Bottom - Thick Dark Purple (Stroke/Outline effect)
-    this.chartGraphics.lineStyle(100, 0x4B0082, 1); // Dark Indigo/Purple
+    this.chartGraphics.lineStyle(10, 0x4B0082, 1); // Dark Indigo/Purple
     drawPath();
 
     // Layer 2: Top - Bright Light Purple
-    this.chartGraphics.lineStyle(60, 0xE0B0FF, 1); 
+    this.chartGraphics.lineStyle(5, 0xE0B0FF, 1); 
     drawPath();
   }
 
@@ -598,8 +598,8 @@ export class MainScene extends Phaser.Scene {
     glow.setAlpha(0); // Invisible by default
     
     // Scale glow significantly smaller for subtle "just behind" effect
-    const glowScaleX = (boxW + 50) / 160;
-    const glowScaleY = (boxH + 50) / 160;
+    const glowScaleX = (boxW + 80) / 160;
+    const glowScaleY = (boxH + 80) / 160;
     glow.setScale(glowScaleX, glowScaleY);
 
     const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0); 
@@ -642,7 +642,7 @@ export class MainScene extends Phaser.Scene {
         // --- Proximity Logic (Spread Glow) ---
         // Only glow when head is near
         const dist = Phaser.Math.Distance.Between(this.headX, this.headY, boxX, boxY);
-        const proximityRange = 100; // Reduced to 100px
+        const proximityRange = 180; // Reduced to 100px
         
         if (dist < proximityRange) {
              // Calculate intensity: 0 (at 100px) to 1 (at 0px)
