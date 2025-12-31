@@ -1,11 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2 } from 'lucide-react';
+import { useGameServer, useAsset } from '@agent8/gameserver';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ShoppingBag } from 'lucide-react';
 
 const UIOverlay: React.FC = () => {
-  const { currentPrice, balance, betAmount, setBetAmount, lastWinAmount, setLastWinAmount } = useGameStore();
+  const { currentPrice, balance, betAmount, setBetAmount, lastWinAmount, setLastWinAmount, setBalance } = useGameStore();
+  const { connected, server } = useGameServer();
+  const { assets } = useAsset();
   const [showWin, setShowWin] = useState(false);
   const [prevPrice, setPrevPrice] = useState(0);
+
+  // Sync Server Asset to Game Store
+  useEffect(() => {
+    if (assets && typeof assets['credit'] === 'number') {
+      setBalance(assets['credit']);
+    }
+  }, [assets, setBalance]);
+
+  // Crossramp Shop
+  const openShop = async () => {
+    if (!connected || !server) return;
+    try {
+      const url = await server.getCrossRampShopUrl("en");
+      window.open(url, "CrossRampShop", "width=1024,height=768");
+    } catch (error) {
+      console.error("Failed to open Shop:", error);
+    }
+  };
 
   // Win Notification logic
   useEffect(() => {
@@ -81,17 +102,21 @@ const UIOverlay: React.FC = () => {
       </div>
 
       {/* --- Bottom Left: Balance --- */}
-      <div className="widget-panel bottom-left glass-panel">
+      <div className="widget-panel bottom-left glass-panel pointer-events-auto cursor-pointer hover:bg-white/5 transition-colors" onClick={openShop}>
         <div className="panel-row flex items-center gap-3">
           <div className="icon-box wallet neon-border flex items-center justify-center w-8 h-8 rounded bg-emerald-900/30 border border-emerald-500/30">
             <Wallet size={16} color="#00ff9d" />
           </div>
           <div className="col flex flex-col">
-            <span className="label text-[9px] tracking-widest text-emerald-400 font-bold mb-0.5">BALANCE</span>
+            <div className="flex items-center gap-1">
+              <span className="label text-[9px] tracking-widest text-emerald-400 font-bold mb-0.5">BALANCE</span>
+              <div className="bg-emerald-500/20 px-1 rounded text-[8px] text-emerald-300">Wallet</div>
+            </div>
             <span className="value-md text-lg font-bold text-white font-mono tracking-wide">
               {fmtBalance(balance)}
             </span>
           </div>
+          <ShoppingBag size={14} className="text-emerald-400/50 ml-1" />
         </div>
       </div>
 

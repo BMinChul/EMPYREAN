@@ -1,5 +1,18 @@
 {
-  "sprites": {},
+  "sprites": {
+    "tokens": {
+      "usdt": {
+        "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/ui_icon-1767225245508.jpg",
+        "description": "Test USDT Token Icon"
+      }
+    },
+    "items": {
+      "credit": {
+        "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/item-1767225248890.jpg",
+        "description": "USDT Credit Chip"
+      }
+    }
+  },
   "audio": {
     "sfx": {
       "win": {
