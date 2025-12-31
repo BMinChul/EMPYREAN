@@ -1,14 +1,17 @@
 # Status
 
 ## Active Work
-- **Strict Visual Cleanup**:
-    - **Graph**: Removed head dot/circle completely. 50px Solid Light Purple Line only.
-    - **Betting Box**: Added `$` symbol. Removed all internal glow effects.
-    - **Proximity**: Reduced glow trigger range to `150px` (only lights up on close approach).
+- **Visual Refinements (User Feedback)**:
+    - **Graph**: Set to **12px** Solid Light Purple Line (`0xE0B0FF`) for better visibility without artifacts.
+    - **Betting Box**: 
+        - Removed ALL glow effects (strict "No Glow" rule).
+        - Added `$` symbol to price text (e.g., "$10").
+        - Replaced proximity glow with a subtle **scale-up** effect (1.05x) when approaching.
+    - **Text**: Ensured black text is always opaque and on top of the solid pale yellow box.
 
 ## Recent Activity
-- Modified `MainScene.ts` to enforce strict visual rules requested by user.
-- Fixed currency display logic in betting boxes.
+- Modified `MainScene.ts` to implement strict visual rules.
+- Removed unused glow texture logic from betting boxes.
 
 ## Next Steps
 - [ ] Add "Cash Out" button for active bets.

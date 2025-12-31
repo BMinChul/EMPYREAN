@@ -292,8 +292,8 @@ export class MainScene extends Phaser.Scene {
         this.chartGraphics.moveTo(this.headX, this.headY);
     }
     
-    // Core - THICKER (50px) Light Purple
-    this.chartGraphics.lineStyle(50, 0xE0B0FF, 1); 
+    // Core - THICKER (12px) Light Purple
+    this.chartGraphics.lineStyle(12, 0xE0B0FF, 1); 
     this.chartGraphics.strokePath();
   }
 
@@ -547,13 +547,7 @@ export class MainScene extends Phaser.Scene {
     const boxW = colWidth - 8; 
     const boxH = (this.gridPriceInterval * this.pixelPerDollar) - 8;
     
-    // Proximity Glow Rect (Spread Effect)
-    const glow = this.add.image(0, 0, 'box_glow_rect');
-    glow.setDisplaySize(boxW * 1.5, boxH * 1.5); 
-    glow.setAlpha(0); 
-    glow.setTint(0xfffacd); 
-
-    // Box Graphics: Pale Yellow Solid (#fffacd) - NO GLOW, NO BORDER
+    // Box Graphics: Pale Yellow Solid (#fffacd) - NO GLOW
     const bg = this.add.graphics();
     bg.fillStyle(0xfffacd, 1); // Solid Pale Yellow
     bg.fillRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8); // Rounded Corners
@@ -569,7 +563,7 @@ export class MainScene extends Phaser.Scene {
         fontFamily: 'monospace', fontSize: '12px', color: '#000000', fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    container.add([glow, bg, rect, txtAmt, txtMulti]);
+    container.add([bg, rect, txtAmt, txtMulti]);
     
     container.setScale(0);
     this.tweens.add({
@@ -580,7 +574,8 @@ export class MainScene extends Phaser.Scene {
     });
 
     this.bettingBoxes.push({
-        container, rect, bg, glow, textAmount: txtAmt, textMulti: txtMulti,
+        container, rect, bg, glow: null as any, // Removed glow
+        textAmount: txtAmt, textMulti: txtMulti,
         betAmount: store.betAmount, multiplier: multi,
         hit: false, boxWidth: boxW, boxHeight: boxH, basePrice: cellCenterPrice
     });
@@ -594,18 +589,27 @@ export class MainScene extends Phaser.Scene {
         const boxX = box.container.x;
         const boxY = box.container.y;
         
-        // --- Proximity Logic (Refined) ---
+        // --- Proximity Logic (Removed Glow, Added Scale Bump) ---
         const dist = Phaser.Math.Distance.Between(this.headX, this.headY, boxX, boxY);
-        const proximityRange = 150; // Reduced range to be strictly "approaching"
+        const proximityRange = 150; 
         
         if (dist < proximityRange) {
-            // Natural Pulse/Glow intensity
-            const intensity = 1 - (dist / proximityRange); 
-            // Pulse logic using current time for breathing effect
-            const pulse = 0.8 + (Math.sin(this.time.now / 100) * 0.2);
-            box.glow.setAlpha(intensity * pulse * 0.8);
+             // Subtle scale up instead of glow
+             if (box.container.scale === 1) {
+                 this.tweens.add({
+                     targets: box.container,
+                     scale: 1.05,
+                     duration: 100
+                 });
+             }
         } else {
-            box.glow.setAlpha(0);
+             if (box.container.scale > 1.01) {
+                 this.tweens.add({
+                     targets: box.container,
+                     scale: 1,
+                     duration: 100
+                 });
+             }
         }
 
         // --- Collision Logic ---
