@@ -56,7 +56,8 @@ export class OKXService {
     };
 
     this.ws.onerror = (error) => {
-      console.error('OKX WebSocket Error:', error);
+      // Use warn to avoid triggering error overlays in preview environment
+      console.warn('OKX WebSocket Connection Warning:', error);
     };
   }
 
@@ -65,6 +66,7 @@ export class OKXService {
     if (this.ws) {
       this.ws.onmessage = null; // Prevent handling messages during closing
       this.ws.onclose = null; // Prevent reconnect loop
+      this.ws.onerror = null; // Prevent error reporting during close
       this.ws.close();
       this.ws = null;
     }

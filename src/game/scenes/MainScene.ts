@@ -82,6 +82,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number) {
+    if (!this.sys.isActive()) return;
     if (!this.initialPrice) return;
 
     // Scroll Camera
@@ -180,7 +181,7 @@ export class MainScene extends Phaser.Scene {
     this.gridGraphics.lineStyle(1, 0x333333, 1);
 
     const width = this.scale.width;
-    const height = this.scale.height;
+    const height = this.scale ? this.scale.height : 600;
     const gridSize = 100;
 
     // Calculate visible range
@@ -224,7 +225,7 @@ export class MainScene extends Phaser.Scene {
     }
 
     // Calculate Price for this Y
-    const height = this.scale.height;
+    const height = this.scale ? this.scale.height : 600;
     const centerY = height / 2;
     const targetPrice = this.initialPrice + (centerY - worldY) / this.pixelPerDollar;
     
