@@ -10,7 +10,9 @@ interface PricePoint {
 
 interface BettingBox {
   container: Phaser.GameObjects.Container;
-  rect: Phaser.GameObjects.Rectangle;
+  rect: Phaser.GameObjects.Rectangle; // Hitbox
+  bg: Phaser.GameObjects.Graphics; // Visual Background
+  glow: Phaser.GameObjects.Image; // Proximity Glow
   textAmount: Phaser.GameObjects.Text;
   textMulti: Phaser.GameObjects.Text;
   betAmount: number;
@@ -155,18 +157,14 @@ export class MainScene extends Phaser.Scene {
     graphics.fillStyle(0xffffff, 1);
     graphics.fillCircle(16, 16, 16);
     graphics.generateTexture('flare', 32, 32);
-    
-    // Hexagon Pulse
+
+    // Soft Outer Glow Texture for Boxes
     graphics.clear();
-    graphics.lineStyle(6, 0xffd700, 1);
-    const radius = 50;
-    const points: Phaser.Math.Vector2[] = [];
-    for (let i = 0; i < 7; i++) {
-      const angle = Phaser.Math.DegToRad(60 * i);
-      points.push(new Phaser.Math.Vector2(52 + Math.cos(angle) * radius, 52 + Math.sin(angle) * radius));
-    }
-    graphics.strokePoints(points);
-    graphics.generateTexture('pulse_ring', 104, 104);
+    graphics.fillStyle(0xfffacd, 1);
+    // Draw a larger rounded rect with gradient transparency if possible, 
+    // but standard texture is fine, we will handle alpha in update
+    graphics.fillRoundedRect(0, 0, 64, 64, 16);
+    graphics.generateTexture('box_glow', 64, 64);
   }
 
   private createHeadLabel() {
@@ -214,7 +212,7 @@ export class MainScene extends Phaser.Scene {
 
     // --- 2. Camera Sync (The "Anchor") ---
     // HEAD FIXED at: 
-    // X = 50% Screen Width (Center)
+    // X = 25% Screen Width (Left-Center)
     // Y = 50% Screen Height (Center)
     
     const viewportW = this.scale.width;
@@ -288,18 +286,18 @@ export class MainScene extends Phaser.Scene {
 
     const curve = new Phaser.Curves.Spline(points);
 
-    // 1. Glow
-    this.chartGraphics.lineStyle(16, 0x00ffff, 0.1); 
+    // 1. Glow (Subtle White/Cyan)
+    this.chartGraphics.lineStyle(16, 0xffffff, 0.05); 
     curve.draw(this.chartGraphics, 64);
     
-    // 2. Core
+    // 2. Core (Clean White)
     this.chartGraphics.lineStyle(3, 0xffffff, 1);
     curve.draw(this.chartGraphics, 64);
     
-    // 3. Head Dot (Simple Glowing Dot)
+    // 3. Head Dot (Simple Glowing Dot, No Crosshairs)
     this.chartGraphics.fillStyle(0xffffff, 1);
     this.chartGraphics.fillCircle(this.headX, this.headY, 4);
-    this.chartGraphics.lineStyle(2, 0x00ffff, 0.8);
+    this.chartGraphics.lineStyle(2, 0xffffff, 0.5);
     this.chartGraphics.strokeCircle(this.headX, this.headY, 8);
   }
 
@@ -339,22 +337,45 @@ export class MainScene extends Phaser.Scene {
     let axisLabelIdx = 0;
 
     // Draw Price Lines & Axis Labels
-    this.gridGraphics.lineStyle(1, 0xaa00ff, 0.15); // Neon Purple Grid
+    this.gridGraphics.lineStyle(1, 0xaa00ff, 0.15); // Base Neon Purple Grid
     
     for (let p = startPrice; p <= endPrice; p += this.gridPriceInterval) {
         const y = -(p - this.initialPrice!) * this.pixelPerDollar;
         
-        // Horizontal Line
-        this.gridGraphics.moveTo(scrollX, y);
+        // Horizontal Line (Full width) - but we fade it on the left?
+        // Requirement says "Smooth Alpha Gradient starting exactly from the 50% screen mark towards the right"
+        // This implies left side is empty/clean.
+        // Let's draw horizontal lines only on right side or full?
+        // "Left 5 Columns... Empty space... NO betting allowed here."
+        // "Grid lines... must fade in naturally... over the betting zone"
+        
+        // We'll draw horizontal lines with a gradient alpha from left to right
+        // Left 50% = 0 alpha. Right 50% = fades in.
+        
+        // Phaser Graphics gradient stroke isn't direct. We simulate by segments or just draw lines where alpha > 0.
+        // Or simpler: Draw full lines but with a mask? No, complex.
+        // We'll just draw horizontal lines starting from screen center (scrollX + width/2) to right edge.
+        
+        const centerX = scrollX + (width * 0.5);
+        
+        // Gradient effect for horizontal lines:
+        // Since we can't do per-pixel gradient easily on lines in one call, 
+        // we'll draw them as "fading in" from center. 
+        // Actually, let's keep it simple: Draw from center to right with low alpha, 
+        // maybe use multiple segments if needed, but single line is cleaner.
+        // We'll draw it with fixed low alpha from center to right.
+        
+        this.gridGraphics.lineStyle(1, 0xaa00ff, 0.15);
+        this.gridGraphics.moveTo(centerX, y);
         this.gridGraphics.lineTo(scrollX + width, y);
         
-        // Right-Axis Label
+        // Right-Axis Label (Increased Size)
         const labelX = scrollX + width - 10;
         
         let label = this.axisLabels[axisLabelIdx];
         if (!label) {
             label = this.add.text(0, 0, '', {
-                fontFamily: 'monospace', fontSize: '11px', color: '#ff00ff', align: 'right'
+                fontFamily: 'monospace', fontSize: '14px', color: '#ff00ff', align: 'right', fontStyle: 'bold'
             }).setOrigin(1, 0.5);
             this.axisLabels.push(label);
         }
@@ -366,35 +387,25 @@ export class MainScene extends Phaser.Scene {
     }
 
     // Draw Vertical Lines & Multipliers
-    // COLUMNS 1-5 (Left 50%): No multipliers, clear space.
-    // COLUMNS 6-10 (Right 50%): Multipliers + Grid lines with fade-in.
-    
-    // We iterate through all potential columns in view
-    // Start from the first visible column index
     const startColIdx = Math.floor(gridStartTime / colWidth);
     const endColIdx = Math.ceil(gridEndTime / colWidth);
 
     for (let c = startColIdx; c <= endColIdx; c++) {
         const x = c * colWidth;
         // Determine screen position relative to camera view
-        // 0 = Left Edge, width = Right Edge
         const screenX = x - scrollX;
         const normalizedScreenX = screenX / width; // 0.0 to 1.0
 
         // "Horizontal Gradient Fade-in" starting from 50% mark (0.5)
         // If < 0.5, alpha is 0. If > 0.5, alpha increases.
         let alpha = 0;
-        if (normalizedScreenX > 0.5) {
-            // Map 0.5->1.0 to 0.0->1.0
-            alpha = (normalizedScreenX - 0.5) * 2;
-            alpha = Phaser.Math.Clamp(alpha, 0, 0.4); // Max alpha 0.4
-        } else {
-            // Left side (Columns 1-5): Very faint lines or clear? 
-            // Prompt says "Clear chart space". Let's keep it extremely subtle or hidden.
-            alpha = 0.05; 
+        if (normalizedScreenX >= 0.5) {
+            // Map 0.5->1.0 to 0.0->MaxAlpha
+            alpha = (normalizedScreenX - 0.5) * 2; // 0 to 1
+            alpha = Phaser.Math.Clamp(alpha, 0, 0.3); // Cap at 0.3 opacity
         }
 
-        if (alpha <= 0.05 && normalizedScreenX > 0.5) continue; // Optimization
+        if (alpha <= 0.01) continue; // Skip invisible lines
 
         this.gridGraphics.lineStyle(1, 0xaa00ff, alpha);
         this.gridGraphics.moveTo(x, scrollY);
@@ -402,16 +413,13 @@ export class MainScene extends Phaser.Scene {
 
         // --- Multiplier Logic ---
         // Only show multipliers in the right 50% (Columns 6-10)
-        // normalizedScreenX > 0.5 check matches "Columns 6-10" roughly
+        // normalizedScreenX > 0.5 matches this
         
-        if (normalizedScreenX > 0.5) {
-            // Center X of the cell
+        if (normalizedScreenX >= 0.5) {
             const cellCenterX = x + colWidth/2;
             
-            // Loop rows for this column
             for (let p = startPrice; p <= endPrice; p += this.gridPriceInterval) {
                 const y = -(p - this.initialPrice!) * this.pixelPerDollar;
-                // Center Y of the cell
                 const cellCenterY = y - (this.gridPriceInterval * this.pixelPerDollar) / 2;
                 
                 // Deterministic Multiplier
@@ -433,7 +441,7 @@ export class MainScene extends Phaser.Scene {
                 gl.setText(multi.toFixed(2) + 'X');
                 
                 // Text Alpha follows the gradient too
-                gl.setAlpha(alpha + 0.3); 
+                gl.setAlpha(alpha + 0.2); 
                 gl.setVisible(true);
                 gridLabelIdx++;
             }
@@ -442,48 +450,45 @@ export class MainScene extends Phaser.Scene {
     
     this.gridGraphics.strokePath();
 
-    // Visual Indicator for Head "Now" Line - REMOVED for clean look
-    // this.gridGraphics.lineStyle(2, 0xffffff, 0.2);
-    // this.gridGraphics.beginPath();
-    // this.gridGraphics.moveTo(this.headX, scrollY);
-    // this.gridGraphics.lineTo(this.headX, scrollY + height);
-    // this.gridGraphics.strokePath();
-
     // --- Draw Current Price Box on Right Axis ---
     this.drawCurrentPriceBox(scrollY, height, width);
   }
 
   private drawCurrentPriceBox(scrollY: number, height: number, width: number) {
-     // Price Box moves with Head Y
-     // We need to clamp it to the screen area
-     const boxY = Phaser.Math.Clamp(this.headY, scrollY + 15, scrollY + height - 15);
+     const boxY = Phaser.Math.Clamp(this.headY, scrollY + 20, scrollY + height - 20);
      const boxX = this.cameras.main.scrollX + width; // Right edge
 
-     this.gridGraphics.fillStyle(0xffffff, 1);
-     // Small tag on the right axis
-     this.gridGraphics.fillRoundedRect(boxX - 55, boxY - 10, 55, 20, 4);
+     // Update: Dark Background (Matches Theme), No Internal Glow
+     this.gridGraphics.fillStyle(0x2a1b4e, 1); // Dark Magenta
+     this.gridGraphics.lineStyle(1, 0xbd00ff, 1); // Solid Neon Purple Border
      
-     // Add text if not exists or update it
-     // Note: In a real optimized scenario we'd use a Container for the box+text, 
-     // but since this is redraw-heavy we can just draw the box and update a single text label.
-     // However, simpler to just use a dedicated text object we manage.
+     // Larger, cleaner box
+     const boxW = 80;
+     const boxH = 30;
+     this.gridGraphics.fillRoundedRect(boxX - boxW, boxY - boxH/2, boxW, boxH, 6);
+     this.gridGraphics.strokeRoundedRect(boxX - boxW, boxY - boxH/2, boxW, boxH, 6);
      
      let priceLabel = this.children.getByName('currentPriceLabel') as Phaser.GameObjects.Text;
      if (!priceLabel) {
          priceLabel = this.add.text(0, 0, '', {
-             fontFamily: 'monospace', fontSize: '11px', color: '#000000', fontStyle: 'bold'
+             fontFamily: 'monospace', fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
          }).setOrigin(1, 0.5).setName('currentPriceLabel').setDepth(20);
      }
      
      priceLabel.setPosition(boxX - 5, boxY);
-     priceLabel.setText(this.currentPrice.toFixed(1));
+     priceLabel.setText(this.currentPrice.toFixed(2));
   }
 
   private placeBet(pointer: Phaser.Input.Pointer) {
     if (!this.initialPrice) return;
 
-    // 1. Validate Click Zone (Must be right of Head)
-    if (pointer.worldX <= this.headX) return;
+    // 1. STRICT Betting Restriction: Only allowed in Right 50%
+    if (pointer.x < this.scale.width / 2) {
+        // Play error sound or show visual feedback?
+        // Prompt says "Betting interaction (clicks) must be DISABLED"
+        // Silent return is safest, maybe small sound
+        return;
+    }
 
     const store = useGameStore.getState();
     if (store.balance < store.betAmount) {
@@ -495,11 +500,9 @@ export class MainScene extends Phaser.Scene {
     const width = this.scale.width;
     const colWidth = width / 10;
     
-    // Snap X to center of cell
     const colIdx = Math.floor(pointer.worldX / colWidth);
     const cellX = (colIdx * colWidth) + (colWidth/2);
 
-    // Snap Y to center of cell
     const priceY = -(pointer.worldY / this.pixelPerDollar); 
     const rawPrice = this.initialPrice! + priceY;
     
@@ -522,22 +525,26 @@ export class MainScene extends Phaser.Scene {
 
     const container = this.add.container(cellX, cellY);
     
-    // Yellow Box - Solid, No Glow, Rounded Corners
     const boxW = colWidth - 8; 
     const boxH = (this.gridPriceInterval * this.pixelPerDollar) - 8;
     
-    // Use Graphics for rounded rect
+    // Proximity Glow (Hidden by default)
+    const glow = this.add.image(0, 0, 'box_glow');
+    glow.setDisplaySize(boxW + 30, boxH + 30);
+    glow.setAlpha(0); 
+    glow.setTint(0xfffacd);
+
+    // Box Graphics: Pale Yellow Solid, Transparent White Border, No Glow
     const bg = this.add.graphics();
-    bg.fillStyle(0xfffacd, 1); // Pale Yellow
+    bg.fillStyle(0xfffacd, 1); // Pale Yellow Solid
     bg.fillRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8);
     bg.lineStyle(2, 0xffffff, 0.7); // 70% opacity white border
     bg.strokeRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8);
 
-    // Reference rect for physics (invisible)
     const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0); 
     
-    // Text: Amount (Top), Multiplier (Bottom) - Black Text
-    const txtAmt = this.add.text(0, -8, `${store.betAmount}`, {
+    // Text: Amount & Multiplier in Black
+    const txtAmt = this.add.text(0, -8, `$${store.betAmount}`, {
         fontFamily: 'monospace', fontSize: '14px', color: '#000000', fontStyle: 'bold'
     }).setOrigin(0.5);
     
@@ -545,9 +552,9 @@ export class MainScene extends Phaser.Scene {
         fontFamily: 'monospace', fontSize: '12px', color: '#000000'
     }).setOrigin(0.5);
 
-    container.add([bg, rect, txtAmt, txtMulti]);
+    container.add([glow, bg, rect, txtAmt, txtMulti]);
     
-    // Spawn Animation (Simple Pop)
+    // Spawn Animation (Clean Scale Up)
     container.setScale(0);
     this.tweens.add({
         targets: container,
@@ -557,7 +564,7 @@ export class MainScene extends Phaser.Scene {
     });
 
     this.bettingBoxes.push({
-        container, rect, textAmount: txtAmt, textMulti: txtMulti,
+        container, rect, bg, glow, textAmount: txtAmt, textMulti: txtMulti,
         betAmount: store.betAmount, multiplier: multi,
         hit: false, boxWidth: boxW, boxHeight: boxH
     });
@@ -568,15 +575,27 @@ export class MainScene extends Phaser.Scene {
         const box = this.bettingBoxes[i];
         if (box.hit) continue;
 
-        // Collision Logic
         const boxX = box.container.x;
         const boxY = box.container.y;
         
-        // Check if Head passed the box center
+        // --- Proximity Logic ---
+        const dist = Phaser.Math.Distance.Between(this.headX, this.headY, boxX, boxY);
+        const proximityRange = 300; // Trigger range
+        
+        // "Very subtle, faint outer glow"
+        if (dist < proximityRange) {
+            const intensity = 1 - (dist / proximityRange);
+            // Max alpha 0.4 for subtlety
+            box.glow.setAlpha(intensity * 0.4);
+        } else {
+            box.glow.setAlpha(0);
+        }
+
+        // --- Collision Logic ---
         if (this.headX >= boxX) {
              const diffY = Math.abs(this.headY - boxY);
              // Hit window: Box Height / 2
-             if (diffY < (box.boxHeight/2 + 5)) {
+             if (diffY < (box.boxHeight/2)) {
                  this.handleWin(box, i);
              } else {
                  this.handleLoss(box, i);
@@ -589,54 +608,58 @@ export class MainScene extends Phaser.Scene {
     box.hit = true;
     this.sound.play('sfx_win');
 
-    // Floating Win Text
+    // Win Feedback: Gold Text directly ABOVE winning cell
     const winVal = box.betAmount * box.multiplier;
-    const winText = this.add.text(box.container.x, box.container.y - 40, `+${winVal.toFixed(2)}`, {
-        fontFamily: 'Orbitron', fontSize: '18px', color: '#ffd700', fontStyle: 'bold'
-    }).setOrigin(0.5).setStroke('#000000', 3);
+    const winText = this.add.text(box.container.x, box.container.y - (box.boxHeight/2) - 20, `+$${winVal.toFixed(2)}`, {
+        fontFamily: 'Orbitron', fontSize: '20px', color: '#ffd700', fontStyle: 'bold'
+    }).setOrigin(0.5).setStroke('#000000', 4);
 
     this.tweens.add({
         targets: winText,
-        y: winText.y - 50,
+        y: winText.y - 60,
         alpha: 0,
-        duration: 1500,
+        duration: 2000,
+        ease: 'Power2',
         onComplete: () => winText.destroy()
     });
 
-    // Pulse Ring
-    const pulse = this.add.sprite(box.container.x, box.container.y, 'pulse_ring');
-    pulse.setScale(0.5);
+    // Simple Pulse
+    const pulse = this.add.sprite(box.container.x, box.container.y, 'flare');
+    pulse.setScale(2);
+    pulse.setTint(0xffd700);
     this.tweens.add({
-        targets: pulse, scale: 2.0, alpha: 0, duration: 600,
+        targets: pulse, scale: 8.0, alpha: 0, duration: 400,
         onComplete: () => pulse.destroy()
     });
 
     // Particles
     this.goldEmitter.setPosition(box.container.x, box.container.y);
-    this.goldEmitter.explode(40);
+    this.goldEmitter.explode(30);
     
     // Update Store
     const store = useGameStore.getState();
     store.updateBalance(winVal);
     store.setLastWinAmount(winVal);
 
-    // Clean remove box
+    // Remove Box
     this.tweens.add({
-        targets: box.container, scale: 1.1, alpha: 0, duration: 200,
+        targets: box.container, scale: 1.2, alpha: 0, duration: 300,
         onComplete: () => box.container.destroy()
     });
     this.bettingBoxes.splice(index, 1);
   }
 
   private handleLoss(box: BettingBox, index: number) {
-    // Visual Fail
-    box.rect.setFillStyle(0x333333);
+    // Visual Fail: Grey out
+    box.bg.clear();
+    box.bg.fillStyle(0x555555, 1);
+    box.bg.fillRoundedRect(-box.boxWidth/2, -box.boxHeight/2, box.boxWidth, box.boxHeight, 8);
     
     this.tweens.add({
         targets: box.container,
-        y: box.container.y + 30,
+        y: box.container.y + 50,
         alpha: 0,
-        duration: 400,
+        duration: 500,
         onComplete: () => box.container.destroy()
     });
     this.bettingBoxes.splice(index, 1);
