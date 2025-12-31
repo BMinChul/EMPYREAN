@@ -7,15 +7,16 @@
     - **Bet Selector**: Added interactive bet amount buttons ($1, $5, $10, $25).
     - **Win Notification**: Central popup showing exact win amount.
 - **Refined Gameplay Logic**:
+    - **Time vs Price**: Implemented correct X (Time) vs Y (Price) movement.
     - **Liquid Physics**: Tuned Spline curves and lerping for ultra-smooth vertical ascent.
     - **Neon Visuals**: Deep space background, glowing purple grid, white neon line with bloom.
-    - **Betting Updates**: Logic now uses selected bet amount; visual boxes show accurate multipliers.
+    - **Betting Updates**: Logic now uses selected bet amount; visual boxes show accurate multipliers based on distance.
     - **Gold Effects**: Added gold particle explosions and pulse rings on win.
 
 ## Recent Activity
-- Rewrote `UIOverlay.tsx` to match design specs (Icons, Layout).
-- Updated `MainScene.ts` physics and rendering loop.
-- Added global fonts (Inter, Orbitron) in `index.css`.
+- Rewrote `MainScene.ts` to implement Time-based X movement and Price-based Y movement.
+- Updated `UIOverlay.tsx` to match "Euphoria" design specs (Icons, Layout, Animations).
+- Updated `index.css` with advanced glassmorphism and animations.
 
 ## Next Steps
 - [ ] Add "Cash Out" button for active bets (optional).
