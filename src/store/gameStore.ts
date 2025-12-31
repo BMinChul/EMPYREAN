@@ -14,7 +14,7 @@ interface GameState {
 
 export const useGameStore = create<GameState>((set) => ({
   currentPrice: 0,
-  balance: 1000, // Starting balance
+  balance: 0, // Starting balance controlled by server
   betAmount: 1, // Default bet
   lastWinAmount: 0,
   setCurrentPrice: (price) => set({ currentPrice: price }),
