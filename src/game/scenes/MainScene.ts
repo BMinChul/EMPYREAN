@@ -26,24 +26,28 @@ export class MainScene extends Phaser.Scene {
   private gridGraphics: Phaser.GameObjects.Graphics;
   private bettingBoxes: BettingBox[] = [];
   
-  // Movement & Scale
-  private speedX: number = 100; // Pixels per second horizontal (Time)
-  private pixelPerDollar: number = 200; // Y sensitivity (Pixels per $1 change)
+  // --- Configuration ---
+  private speedX: number = 150; // Horizontal speed (pixels/sec)
+  private pixelPerDollar: number = 300; // Vertical sensitivity
   
+  // --- State ---
   private initialPrice: number | null = null;
   private currentPrice: number = 0;
   
-  // Head Position
+  // --- Head Physics ---
   private headX: number = 0;
   private headY: number = 0;
   private targetHeadY: number = 0;
-  
-  // Starting Anchors
   private startY: number = 0;
   
-  // Visuals
+  // Volatility / Jitter
+  private jitterOffset: number = 0;
+  private jitterTimer: number = 0;
+
+  // --- Visuals ---
   private headEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
   private goldEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
+  private pulseRingTexture: string = 'pulse_ring';
   
   private lastPointTime: number = 0;
 
@@ -58,52 +62,53 @@ export class MainScene extends Phaser.Scene {
   }
 
   create() {
-    // 1. Setup World & Camera
+    // 1. Setup World
     this.cameras.main.setBackgroundColor('#050510');
     
-    // Start in middle of screen vertically
+    // Start vertically centered
     this.startY = this.scale.height / 2;
     this.headY = this.startY;
     this.targetHeadY = this.startY;
-    this.headX = 100; // Start with some padding
-
-    // Camera Setup
-    this.cameras.main.setZoom(1);
     
-    // 2. Post FX: Strong Neon Bloom
+    // Start at far LEFT (0)
+    this.headX = 0;
+
+    // 2. Camera FX (Bloom)
     if (this.cameras.main.postFX) {
-        this.cameras.main.postFX.addBloom(0xffffff, 1.2, 1.2, 0.8, 1.1);
+        // Color, Intensity, Blur, Strength
+        this.cameras.main.postFX.addBloom(0xffffff, 1.0, 1.0, 0.9, 1.2);
     }
 
     // 3. Graphics Layers
     this.gridGraphics = this.add.graphics();
     this.chartGraphics = this.add.graphics();
 
-    // 4. Textures
+    // 4. Generate Textures
     this.createTextures();
 
     // 5. Particles
-    // Blue/White Engine Trail
+    // Blue/White Engine Trail (Subtle)
     this.headEmitter = this.add.particles(0, 0, 'flare', {
-      speed: 50,
-      scale: { start: 0.4, end: 0 },
+      speed: 20,
+      scale: { start: 0.3, end: 0 },
       alpha: { start: 0.5, end: 0 },
       tint: 0xaaccff,
       blendMode: 'ADD',
-      lifespan: 300,
-      frequency: 50
+      lifespan: 200,
+      frequency: 40
     });
 
-    // Gold Win Explosion
+    // Gold Win Explosion (High Energy)
     this.goldEmitter = this.add.particles(0, 0, 'flare', {
-      speed: { min: 150, max: 400 },
-      scale: { start: 0.6, end: 0 },
+      speed: { min: 200, max: 500 },
+      scale: { start: 0.8, end: 0 },
       alpha: { start: 1, end: 0 },
       tint: 0xffd700,
       blendMode: 'ADD',
-      lifespan: 800,
+      lifespan: 1000,
       emitting: false,
-      quantity: 40
+      quantity: 50,
+      gravityY: 200
     });
 
     // 6. Data Service
@@ -116,11 +121,10 @@ export class MainScene extends Phaser.Scene {
     });
 
     // Waiting Text
-    this.add.text(this.scale.width / 2, this.scale.height / 2, 'WAITING FOR MARKET DATA...', { 
-      fontFamily: 'Orbitron',
-      fontSize: '24px', 
-      color: '#6c5ce7',
-      fontStyle: 'bold'
+    const centerX = this.scale.width / 2;
+    const centerY = this.scale.height / 2;
+    this.add.text(centerX, centerY, 'CONNECTING TO OKX...', { 
+      fontFamily: 'Orbitron', fontSize: '24px', color: '#6c5ce7', fontStyle: 'bold'
     })
     .setOrigin(0.5)
     .setScrollFactor(0)
@@ -141,15 +145,14 @@ export class MainScene extends Phaser.Scene {
     // Hexagon Pulse
     graphics.clear();
     graphics.lineStyle(4, 0xffd700, 1);
-    // Draw Hexagon
-    const radius = 30;
+    const radius = 40;
     const points: Phaser.Math.Vector2[] = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 7; i++) {
       const angle = Phaser.Math.DegToRad(60 * i);
-      points.push(new Phaser.Math.Vector2(32 + Math.cos(angle) * radius, 32 + Math.sin(angle) * radius));
+      points.push(new Phaser.Math.Vector2(42 + Math.cos(angle) * radius, 42 + Math.sin(angle) * radius));
     }
-    graphics.strokePoints(points, true, true);
-    graphics.generateTexture('pulse_ring', 64, 64);
+    graphics.strokePoints(points);
+    graphics.generateTexture('pulse_ring', 84, 84);
   }
 
   private cleanup() {
@@ -162,51 +165,55 @@ export class MainScene extends Phaser.Scene {
     if (!this.sys.isActive()) return;
     if (!this.initialPrice) return;
 
-    const dt = delta / 1000; // Seconds
+    const dt = delta / 1000;
 
-    // 1. Move Head X (Time)
+    // --- 1. Horizontal Movement (Time) ---
     this.headX += this.speedX * dt;
 
-    // 2. Move Head Y (Price) - Lerp for smooth "Liquid" feel
-    // Use a Cubic ease for reactivity but smoothness
-    const lerpT = 0.1; 
-    this.headY = Phaser.Math.Linear(this.headY, this.targetHeadY, lerpT);
+    // --- 2. Vertical Movement (Price + Volatility) ---
+    // Add "Jitter" to simulate market noise/heartbeat
+    this.jitterTimer += dt;
+    if (this.jitterTimer > 0.1) { // Change jitter target every 100ms
+        this.jitterOffset = (Math.random() - 0.5) * 15; // +/- 7.5px jitter
+        this.jitterTimer = 0;
+    }
 
-    // 3. Camera Tracking
-    // Keep head at 70% of the screen width
-    // scrollX = headX - (screenWidth * 0.7)
-    const targetScrollX = this.headX - (this.scale.width * 0.7);
-    this.cameras.main.scrollX = targetScrollX; // Hard lock X
-    // We can also smooth Y slightly if we want the grid to move vertically, 
-    // but typically arcade charts keep camera fixed Y or slow follow.
-    // Let's do slow follow Y to keep line centered if it goes too far
-    const targetScrollY = this.headY - (this.scale.height * 0.5);
-    this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, targetScrollY, 0.05);
+    // Smooth Lerp towards (Target + Jitter)
+    // Faster lerp (0.15) for high reactivity
+    const finalTargetY = this.targetHeadY + this.jitterOffset;
+    this.headY = Phaser.Math.Linear(this.headY, finalTargetY, 0.15);
 
-    // 4. Update History (Sampling)
-    // Add point every 50ms or so to create the curve
-    if (time - this.lastPointTime > 50) {
+    // --- 3. Half-Screen Logic ---
+    const halfScreen = this.scale.width / 2;
+    
+    if (this.headX > halfScreen) {
+        // Phase 2: Head is pinned at center, world scrolls left
+        // Camera ScrollX = HeadX - HalfScreen
+        this.cameras.main.scrollX = this.headX - halfScreen;
+    } else {
+        // Phase 1: Head moves from Left to Center
+        this.cameras.main.scrollX = 0;
+    }
+
+    // --- 4. History Recording ---
+    // Record frequently for smooth cubic bezier curves
+    if (time - this.lastPointTime > 30) {
       this.priceHistory.push({ worldX: this.headX, worldY: this.headY });
       this.lastPointTime = time;
       
-      // Prune old points to save memory (keep last 2000px worth)
-      if (this.priceHistory.length > 500) {
-        // Remove points that are far off screen to the left
-        const leftBound = this.cameras.main.scrollX - 200;
-        if (this.priceHistory[0].worldX < leftBound) {
-           this.priceHistory.shift();
-        }
+      // Memory Management: Remove points far behind camera
+      const leftBound = this.cameras.main.scrollX - 200;
+      if (this.priceHistory.length > 0 && this.priceHistory[0].worldX < leftBound) {
+         this.priceHistory.shift();
       }
     }
 
-    // 5. Draw
+    // --- 5. Draw ---
     this.drawGrid();
     this.drawChart();
     
-    // 6. Emitter
+    // --- 6. Updates ---
     this.headEmitter.setPosition(this.headX, this.headY);
-
-    // 7. Collisions
     this.checkCollisions();
   }
 
@@ -221,11 +228,9 @@ export class MainScene extends Phaser.Scene {
     this.currentPrice = price;
     useGameStore.getState().setCurrentPrice(price);
 
-    // Calculate Target Y
-    // Delta = Current - Initial
-    // Y = StartY - (Delta * Sensitivity)
-    // (Minus because Y goes UP as value decreases in 2D coords)
+    // Delta calculation
     const delta = price - this.initialPrice;
+    // Y goes DOWN as Price goes UP
     this.targetHeadY = this.startY - (delta * this.pixelPerDollar);
   }
 
@@ -234,42 +239,48 @@ export class MainScene extends Phaser.Scene {
     
     if (this.priceHistory.length < 2) return;
 
-    // Use points visible in camera + buffer
+    // Only draw what's visible
     const scrollX = this.cameras.main.scrollX;
     const width = this.scale.width;
-    const buffer = 100;
+    const buffer = 150; // Draw slightly outside
 
-    // Construct curve points: History + Current Head
+    // Extract points for Spline
     const points: Phaser.Math.Vector2[] = [];
     
-    // Optimization: Binary search or just simple loop since array is small (<500)
     for (const p of this.priceHistory) {
-      if (p.worldX > scrollX - buffer && p.worldX < scrollX + width + buffer) {
-        points.push(new Phaser.Math.Vector2(p.worldX, p.worldY));
-      }
+        // Very basic culling
+        if (p.worldX > scrollX - buffer && p.worldX < scrollX + width + buffer) {
+            points.push(new Phaser.Math.Vector2(p.worldX, p.worldY));
+        }
     }
-    // Add current head
+    // Always add current head for connectivity
     points.push(new Phaser.Math.Vector2(this.headX, this.headY));
 
     if (points.length < 2) return;
 
     const curve = new Phaser.Curves.Spline(points);
 
-    // 1. Glow (Wide/Soft)
-    this.chartGraphics.lineStyle(12, 0xffffff, 0.1); 
+    // 1. Outer Glow (Soft Bloom)
+    this.chartGraphics.lineStyle(16, 0xffffff, 0.05);
     curve.draw(this.chartGraphics, 64);
     
-    // 2. Glow (Medium)
-    this.chartGraphics.lineStyle(6, 0xffffff, 0.3);
+    // 2. Inner Glow
+    this.chartGraphics.lineStyle(6, 0xffffff, 0.2);
     curve.draw(this.chartGraphics, 64);
 
-    // 3. Core Line (White Neon)
+    // 3. Core Neon Line
     this.chartGraphics.lineStyle(3, 0xffffff, 1);
     curve.draw(this.chartGraphics, 64);
     
-    // Head Dot
+    // 4. Head Diamond
     this.chartGraphics.fillStyle(0xffffff, 1);
-    this.chartGraphics.fillCircle(this.headX, this.headY, 5);
+    // Draw rotated square (diamond)
+    this.chartGraphics.fillPoints([
+        { x: this.headX, y: this.headY - 6 },
+        { x: this.headX + 6, y: this.headY },
+        { x: this.headX, y: this.headY + 6 },
+        { x: this.headX - 6, y: this.headY }
+    ], true);
   }
 
   private drawGrid() {
@@ -280,147 +291,138 @@ export class MainScene extends Phaser.Scene {
     const width = this.scale.width;
     const height = this.scale.height;
     
-    // Deep Purple Grid
-    this.gridGraphics.lineStyle(1, 0x6c5ce7, 0.2);
+    // Visual Style: Dark Purple Grid
+    this.gridGraphics.lineStyle(1, 0x6c5ce7, 0.15); // Low opacity purple
 
-    const gridSize = 100;
+    const gridSize = 80;
 
-    // Vertical Lines (World X based)
+    // Calculate grid offsets based on camera
     const startX = Math.floor(scrollX / gridSize) * gridSize;
     const endX = startX + width + gridSize;
+    
+    const startY = Math.floor(scrollY / gridSize) * gridSize;
+    const endY = startY + height + gridSize;
 
+    // Draw Vertical Lines
     for (let x = startX; x <= endX; x += gridSize) {
       this.gridGraphics.moveTo(x, scrollY);
       this.gridGraphics.lineTo(x, scrollY + height);
     }
 
-    // Horizontal Lines (World Y based)
-    const startY = Math.floor(scrollY / gridSize) * gridSize;
-    const endY = startY + height + gridSize;
-
+    // Draw Horizontal Lines
     for (let y = startY; y <= endY; y += gridSize) {
       this.gridGraphics.moveTo(scrollX, y);
       this.gridGraphics.lineTo(scrollX + width, y);
     }
-
+    
+    this.gridGraphics.strokePath();
+    
+    // Central Divider (The "Present" Line)
+    // It's always at screenWidth / 2 relative to camera
+    // So WorldX = scrollX + screenWidth/2
+    const centerX = scrollX + (this.scale.width / 2);
+    
+    this.gridGraphics.lineStyle(2, 0xffffff, 0.1);
+    this.gridGraphics.beginPath();
+    this.gridGraphics.moveTo(centerX, scrollY);
+    this.gridGraphics.lineTo(centerX, scrollY + height);
     this.gridGraphics.strokePath();
   }
 
   private placeBet(pointer: Phaser.Input.Pointer) {
     if (!this.initialPrice) return;
 
-    // Convert Screen input to World space
-    // Since we control camera, pointer.worldX/Y are already correct
+    // Rule: Must click on RIGHT SIDE of screen (The "Future")
+    const halfScreen = this.scale.width / 2;
+    if (pointer.x < halfScreen) {
+        // Ignore clicks on the history side
+        return;
+    }
+
+    // Get World Coordinates
     const worldX = pointer.worldX;
     const worldY = pointer.worldY;
 
-    // Validation: Must place AHEAD of the head (Future X)
-    if (worldX <= this.headX + 50) {
-      this.sound.play('sfx_error', { volume: 0.5 });
-      // Visual feedback
-      const txt = this.add.text(worldX, worldY, "Aim Ahead!", {
-        fontFamily: 'Inter', fontSize: '14px', color: '#ff4d4d'
-      }).setOrigin(0.5);
-      this.tweens.add({ targets: txt, y: worldY-30, alpha: 0, duration: 800, onComplete: () => txt.destroy() });
-      return;
-    }
-
-    // Check Balance
+    // Balance Check
     const store = useGameStore.getState();
     const betAmount = store.betAmount;
     if (store.balance < betAmount) {
-      this.sound.play('sfx_error');
-      return;
+        this.sound.play('sfx_error');
+        return;
     }
 
-    // Deduct
+    // Deduct Balance
     store.updateBalance(-betAmount);
-    this.sound.play('sfx_place', { volume: 0.6 });
+    this.sound.play('sfx_place', { volume: 0.5 });
 
     // Calculate Multiplier
-    // Logic: Further away (X) and further from center (Y) = Higher Multiplier
-    const xDist = worldX - this.headX;
-    const yDiff = Math.abs(worldY - this.headY);
+    // Based on distance from HEAD (Risk) and distance from CENTER Y (Volatility Risk)
+    const distX = worldX - this.headX;
+    const distY = Math.abs(worldY - this.headY);
     
-    // Example: 
-    // X=500px away -> +1.0x
-    // Y=200px diff -> +1.0x
-    let multiplier = 1.0 + (xDist / 500) + (yDiff / 200);
-    multiplier = Math.max(1.1, Math.min(50, multiplier)); // Clamp
+    // Base 1.1x + X_Risk + Y_Risk
+    let multiplier = 1.1 + (distX / 600) + (distY / 250);
+    multiplier = Math.max(1.1, Math.min(100.0, multiplier)); // Clamp
 
-    // Create Box
-    const boxW = 60;
+    // Create Visual Box
+    const boxW = 80;
     const boxH = 40;
+    
     const container = this.add.container(worldX, worldY);
     
-    // Neon Yellow Box
-    const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0.6);
+    // Neon Yellow styling
+    const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0.7);
     rect.setStrokeStyle(2, 0xffd700);
     
     const text = this.add.text(0, 0, `${multiplier.toFixed(2)}x`, {
-      fontFamily: 'Orbitron',
-      fontSize: '12px',
-      color: '#ffd700',
-      fontStyle: 'bold'
+        fontFamily: 'Orbitron', fontSize: '14px', color: '#ffd700', fontStyle: 'bold'
     }).setOrigin(0.5);
 
     container.add([rect, text]);
     container.setSize(boxW, boxH);
-
-    // Pop in
+    
+    // Animation: Pop in
     container.setScale(0);
     this.tweens.add({
-      targets: container,
-      scale: 1,
-      duration: 300,
-      ease: 'Back.out'
+        targets: container,
+        scale: 1,
+        duration: 400,
+        ease: 'Back.out'
     });
 
     this.bettingBoxes.push({
-      container,
-      rect,
-      text,
-      betAmount,
-      multiplier,
-      hit: false,
-      boxWidth: boxW,
-      boxHeight: boxH
+        container, rect, text,
+        betAmount, multiplier, hit: false,
+        boxWidth: boxW, boxHeight: boxH
     });
   }
 
   private checkCollisions() {
-    // Collision logic: Line Head vs Box
-    // Since X only moves forward, we only check if HeadX >= BoxX - Width/2
-    // If HeadX passes BoxX + Width/2, it's a miss.
-    
-    const headRect = new Phaser.Geom.Circle(this.headX, this.headY, 5);
+    // Only check collision if head has reached/passed the box
+    // Head Radius
+    const headRadius = 8;
+    const headCircle = new Phaser.Geom.Circle(this.headX, this.headY, headRadius);
 
     for (let i = this.bettingBoxes.length - 1; i >= 0; i--) {
-      const box = this.bettingBoxes[i];
-      if (box.hit) continue;
+        const box = this.bettingBoxes[i];
+        if (box.hit) continue;
 
-      const boxX = box.container.x;
-      const boxY = box.container.y;
-      
-      // Box Bounds (World)
-      const boxBounds = new Phaser.Geom.Rectangle(
-        boxX - box.boxWidth/2,
-        boxY - box.boxHeight/2,
-        box.boxWidth,
-        box.boxHeight
-      );
+        const boxX = box.container.x;
+        const boxY = box.container.y;
+        
+        // 1. Check Intersection
+        const boxRect = new Phaser.Geom.Rectangle(boxX - box.boxWidth/2, boxY - box.boxHeight/2, box.boxWidth, box.boxHeight);
+        
+        if (Phaser.Geom.Intersects.CircleToRectangle(headCircle, boxRect)) {
+            this.handleWin(box, i);
+            continue;
+        }
 
-      // Check Intersection
-      if (Phaser.Geom.Intersects.CircleToRectangle(headRect, boxBounds)) {
-        this.handleWin(box, i);
-        continue;
-      }
-
-      // Check Miss (Passed it)
-      // If headX > boxX + width/2 + buffer
-      if (this.headX > boxX + box.boxWidth/2 + 20) {
-        this.handleLoss(box, i);
-      }
+        // 2. Check "Miss" (Passed completely)
+        // If HeadX > BoxX + BoxWidth/2 + Buffer
+        if (this.headX > boxX + box.boxWidth/2 + 20) {
+            this.handleLoss(box, i);
+        }
     }
   }
 
@@ -428,51 +430,51 @@ export class MainScene extends Phaser.Scene {
     box.hit = true;
     this.sound.play('sfx_win', { volume: 0.8 });
 
-    // Gold Explosion
+    // 1. Gold Explosion
     this.goldEmitter.setPosition(box.container.x, box.container.y);
-    this.goldEmitter.explode(30);
+    this.goldEmitter.explode(40);
 
-    // Hexagon Pulse
-    const pulse = this.add.image(box.container.x, box.container.y, 'pulse_ring');
-    pulse.setScale(0.5);
-    pulse.setTint(0xffd700);
+    // 2. Pulse Ring
+    const ring = this.add.image(box.container.x, box.container.y, 'pulse_ring');
+    ring.setTint(0xffd700);
+    ring.setScale(0.5);
     this.tweens.add({
-      targets: pulse,
-      scale: 2.5,
-      alpha: 0,
-      duration: 600,
-      onComplete: () => pulse.destroy()
+        targets: ring,
+        scale: 2.0,
+        alpha: 0,
+        duration: 600,
+        onComplete: () => ring.destroy()
     });
 
-    // Reward
+    // 3. Update State
     const winAmount = box.betAmount * box.multiplier;
     const store = useGameStore.getState();
     store.updateBalance(winAmount);
     store.setLastWinAmount(winAmount);
 
-    // Remove Box Visual
+    // 4. Remove Box
     this.tweens.add({
-      targets: box.container,
-      scale: 1.5,
-      alpha: 0,
-      duration: 200,
-      onComplete: () => box.container.destroy()
+        targets: box.container,
+        scale: 1.5,
+        alpha: 0,
+        duration: 150,
+        onComplete: () => box.container.destroy()
     });
 
     this.bettingBoxes.splice(index, 1);
   }
 
   private handleLoss(box: BettingBox, index: number) {
-    // Turn Red and fade
+    // Visual Feedback: Turn Red, Fall down
     box.rect.setStrokeStyle(2, 0xff4d4d);
     box.text.setColor('#ff4d4d');
 
     this.tweens.add({
-      targets: box.container,
-      alpha: 0,
-      scale: 0.8,
-      duration: 300,
-      onComplete: () => box.container.destroy()
+        targets: box.container,
+        y: box.container.y + 50,
+        alpha: 0,
+        duration: 400,
+        onComplete: () => box.container.destroy()
     });
 
     this.bettingBoxes.splice(index, 1);
