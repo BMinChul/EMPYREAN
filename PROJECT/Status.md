@@ -1,16 +1,14 @@
 # Status
 
 ## Active Work
-- **Visual Refinement (User Feedback)**:
-    - **Graph**: Changed to **50px Thick Light Purple (`#E0B0FF`)** line for bold visibility.
-    - **Betting Box**: 
-        - Simplified to **Solid Pale Yellow** (No internal glow/border).
-        - Added `$` prefix to bet amounts.
-    - **Proximity Effect**: Implemented a **"Spread Glow"** texture (soft fade-out) behind boxes instead of hard shapes.
+- **Strict Visual Cleanup**:
+    - **Graph**: Removed head dot/circle completely. 50px Solid Light Purple Line only.
+    - **Betting Box**: Added `$` symbol. Removed all internal glow effects.
+    - **Proximity**: Reduced glow trigger range to `150px` (only lights up on close approach).
 
 ## Recent Activity
-- Modified `MainScene.ts` to overhaul visual styles (Graph thickness, colors, box aesthetics).
-- Refined `box_glow_rect` texture generation to create a multi-layered soft spread effect.
+- Modified `MainScene.ts` to enforce strict visual rules requested by user.
+- Fixed currency display logic in betting boxes.
 
 ## Next Steps
 - [ ] Add "Cash Out" button for active bets.

@@ -291,20 +291,10 @@ export class MainScene extends Phaser.Scene {
     } else {
         this.chartGraphics.moveTo(this.headX, this.headY);
     }
-
-    // 1. Glow (Subtle White/Cyan)
-    this.chartGraphics.lineStyle(50, 0xE0B0FF, 0.3); 
-    this.chartGraphics.strokePath();
     
-    // 2. Core - THICKER as requested (50px)
-    this.chartGraphics.lineStyle(50, 0xE0B0FF, 1); // Light Purple (Yeon-bora)
+    // Core - THICKER (50px) Light Purple
+    this.chartGraphics.lineStyle(50, 0xE0B0FF, 1); 
     this.chartGraphics.strokePath();
-    
-    // 3. Head Dot
-    this.chartGraphics.fillStyle(0xffffff, 1);
-    this.chartGraphics.fillCircle(this.headX, this.headY, 4);
-    this.chartGraphics.lineStyle(4, 0xffffff, 0.8);
-    this.chartGraphics.strokeCircle(this.headX, this.headY, 25);
   }
 
   // --- Dynamic Multiplier Calculation ---
@@ -606,7 +596,7 @@ export class MainScene extends Phaser.Scene {
         
         // --- Proximity Logic (Refined) ---
         const dist = Phaser.Math.Distance.Between(this.headX, this.headY, boxX, boxY);
-        const proximityRange = 300; 
+        const proximityRange = 150; // Reduced range to be strictly "approaching"
         
         if (dist < proximityRange) {
             // Natural Pulse/Glow intensity
