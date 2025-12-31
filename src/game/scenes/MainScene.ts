@@ -32,7 +32,6 @@ export class MainScene extends Phaser.Scene {
   private initialPrice: number | null = null;
   private lastPrice: number = 0;
 
-  private isConnected: boolean = false;
   private headX: number = 0;
 
   constructor() {
@@ -86,8 +85,6 @@ export class MainScene extends Phaser.Scene {
     if (!this.initialPrice) return;
 
     // Scroll Camera
-    // We want the "Head" to be at 80% of the screen width usually, or just scroll as time passes.
-    // Let's make "Time" the driver.
     const currentTime = Date.now();
     const elapsedTime = (currentTime - this.startTime) / 1000;
     
@@ -111,9 +108,14 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handleNewPrice(price: number) {
-    // Safety checks for destroyed scene
-    if (!this.scene || !this.sys || !this.sys.isActive()) return;
-    if (!this.cameras || !this.cameras.main) return;
+    // Safety checks for destroyed scene or invalid state
+    if (!this.sys || !this.sys.isActive()) return;
+    
+    // Use scale manager as safer fallback for dimensions
+    const height = this.scale ? this.scale.height : (this.cameras.main ? this.cameras.main.height : 600);
+    
+    // Extra safety: if we somehow don't have a valid height, skip
+    if (!height) return;
 
     const now = Date.now();
     
@@ -131,9 +133,8 @@ export class MainScene extends Phaser.Scene {
     const elapsedTime = (now - this.startTime) / 1000;
     const worldX = elapsedTime * this.pixelPerSecond;
     
-    // Y Axis: Center screen is initialPrice. Up is higher price (smaller Y in Phaser)
-    // y = centerY - (price - initialPrice) * scale
-    const centerY = this.cameras.main.height / 2;
+    // Y Axis: Center screen is initialPrice
+    const centerY = height / 2;
     const worldY = centerY - (price - this.initialPrice!) * this.pixelPerDollar;
 
     this.priceHistory.push({
@@ -178,8 +179,8 @@ export class MainScene extends Phaser.Scene {
     this.gridGraphics.clear();
     this.gridGraphics.lineStyle(1, 0x333333, 1);
 
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
+    const width = this.scale.width;
+    const height = this.scale.height;
     const gridSize = 100;
 
     // Calculate visible range
@@ -223,16 +224,14 @@ export class MainScene extends Phaser.Scene {
     }
 
     // Calculate Price for this Y
-    const centerY = this.cameras.main.height / 2;
-    // worldY = centerY - (targetPrice - initial) * scale
+    const height = this.scale.height;
+    const centerY = height / 2;
     const targetPrice = this.initialPrice + (centerY - worldY) / this.pixelPerDollar;
     
     // Calculate Multiplier
     const priceDiff = Math.abs(targetPrice - this.lastPrice);
     
     // Example Multiplier Logic: 
-    // Base 1.5x + 0.1x per $0.1 difference?
-    // Let's say per dollar diff.
     let multiplier = 1.5 + (priceDiff * 2); 
     multiplier = Math.round(multiplier * 100) / 100;
 

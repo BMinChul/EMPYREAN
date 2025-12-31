@@ -2,12 +2,14 @@ export class OKXService {
   private ws: WebSocket | null = null;
   private onPriceUpdate: (price: number) => void;
   private isConnected = false;
+  private shouldReconnect = true;
 
   constructor(onPriceUpdate: (price: number) => void) {
     this.onPriceUpdate = onPriceUpdate;
   }
 
   connect() {
+    this.shouldReconnect = true;
     this.ws = new WebSocket('wss://ws.okx.com:8443/ws/v5/public');
 
     this.ws.onopen = () => {
@@ -46,8 +48,11 @@ export class OKXService {
     this.ws.onclose = () => {
       console.log('OKX WebSocket Closed');
       this.isConnected = false;
-      // Simple reconnect logic
-      setTimeout(() => this.connect(), 5000);
+      
+      // Only reconnect if we didn't intentionally disconnect
+      if (this.shouldReconnect) {
+        setTimeout(() => this.connect(), 5000);
+      }
     };
 
     this.ws.onerror = (error) => {
@@ -56,7 +61,10 @@ export class OKXService {
   }
 
   disconnect() {
+    this.shouldReconnect = false;
     if (this.ws) {
+      this.ws.onmessage = null; // Prevent handling messages during closing
+      this.ws.onclose = null; // Prevent reconnect loop
       this.ws.close();
       this.ws = null;
     }
