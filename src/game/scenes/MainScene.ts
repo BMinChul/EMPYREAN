@@ -616,7 +616,6 @@ export class MainScene extends Phaser.Scene {
     this.goldEmitter.explode(40);
     
     // Update Store
-    const winVal = box.betAmount * box.multiplier;
     const store = useGameStore.getState();
     store.updateBalance(winVal);
     store.setLastWinAmount(winVal);
