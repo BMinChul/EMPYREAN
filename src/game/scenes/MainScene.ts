@@ -171,7 +171,7 @@ export class MainScene extends Phaser.Scene {
     // 10 layers of decreasing opacity to create a "Spread" effect
     graphics.clear();
     for (let i = 0; i < 10; i++) {
-        const alpha = 0.08 - (i * 0.005);
+        const alpha = 0.2 - (i * 0.015); // Stronger alpha (starts at 0.2)
         graphics.fillStyle(0xfffacd, alpha); // Light yellow spread
         const size = 64 + (i * 10); // Increasing size
         const offset = (160 - size) / 2; // Center in 160x160 texture
@@ -300,8 +300,8 @@ export class MainScene extends Phaser.Scene {
         this.chartGraphics.moveTo(this.headX, this.headY);
     }
     
-    // Core - THICKER (40px) Light Purple
-    this.chartGraphics.lineStyle(40, 0xE0B0FF, 1); 
+    // Core - THICKER (80px) Light Purple
+    this.chartGraphics.lineStyle(80, 0xE0B0FF, 1); 
     this.chartGraphics.strokePath();
   }
 
@@ -497,13 +497,13 @@ export class MainScene extends Phaser.Scene {
      const boxY = Phaser.Math.Clamp(this.headY, scrollY + 40, scrollY + height - 40);
      const boxX = this.cameras.main.scrollX + width; 
 
-     // Background: Darker, matching grid theme, slightly transparent
-     this.gridGraphics.fillStyle(0x1a0b2e, 0.9); 
+     // Background: Light Purple (#9F88FF), 70% opacity
+     this.gridGraphics.fillStyle(0x9F88FF, 0.7); 
      // Border: Matching grid/chart accent
      this.gridGraphics.lineStyle(2, 0xE0B0FF, 1); 
      
-     // Larger Size: 120x45
-     const boxW = 120;
+     // Tighter Size: 80x45
+     const boxW = 80;
      const boxH = 45;
      
      // Draw Box
@@ -558,6 +558,16 @@ export class MainScene extends Phaser.Scene {
     
     const cellY = -(cellCenterPrice - this.initialPrice!) * this.pixelPerDollar;
 
+    // Prevent duplicate betting in the same spot
+    const existingBet = this.bettingBoxes.find(b => 
+      Math.abs(b.container.x - cellX) < 5 && 
+      Math.abs(b.container.y - cellY) < 5
+    );
+    if (existingBet) {
+        this.sound.play('sfx_error', { volume: 0.2 });
+        return;
+    }
+
     // 3. Get Multiplier (Lock it in at time of bet)
     const multi = this.calculateDynamicMultiplier(cellCenterPrice, colIndexOnScreen);
 
@@ -584,9 +594,9 @@ export class MainScene extends Phaser.Scene {
     glow.setTint(0xfffacd); // Pale Yellow Glow
     glow.setAlpha(0); // Invisible by default
     
-    // Scale glow slightly larger than box
-    const glowScaleX = (boxW + 80) / 160;
-    const glowScaleY = (boxH + 80) / 160;
+    // Scale glow significantly larger to bleed out from behind box
+    const glowScaleX = (boxW + 160) / 160;
+    const glowScaleY = (boxH + 160) / 160;
     glow.setScale(glowScaleX, glowScaleY);
 
     const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0); 
@@ -635,8 +645,8 @@ export class MainScene extends Phaser.Scene {
              // Calculate intensity: 0 (at 250px) to 1 (at 0px)
              const intensity = 1 - (dist / proximityRange);
              
-             // Smooth fade in using square ease for natural light falloff
-             const targetAlpha = intensity * intensity * 0.8; // Max alpha 0.8
+             // Linear fade in for brighter/earlier visibility (removed square)
+             const targetAlpha = intensity * 1.0;
              
              // Smoothly interpolate current alpha to target
              // Note: Since this runs every update, simple lerp is fine
