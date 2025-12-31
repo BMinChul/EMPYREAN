@@ -1,17 +1,17 @@
 # Status
 
 ## Active Work
-- **Completed Euphoria UI Overhaul**:
-    - **Grid**: Implemented 10-column system with multiplier logic for right-side columns.
-    - **Betting**: Solid yellow boxes with clean black text centered in cells.
-    - **Camera**: Head locked to 50% screen center. Smooth scrolling.
-    - **Visuals**: Removed crosshairs. Simplified Head to a glowing dot.
-    - **Feedback**: Added minimal "You Won" notification bar at top center.
+- **Completed Euphoria UI Polish**:
+    - **Grid System**: Implemented strictly 10 columns. Left 5 columns clear, Right 5 columns with gradient fade-in and multipliers.
+    - **Betting Box**: Updated to Pale Yellow (Solid), Rounded Corners, No Glow.
+    - **Camera**: Head fixed at 25% width (Left-center) and 50% height.
+    - **Visuals**: Removed all crosshairs/guide lines for a clean look. Added "Current Price Box" on right axis.
+    - **Win Effect**: Added floating "+$XX.XX" text above winning cells.
 
 ## Recent Activity
-- Rewrote `MainScene.ts` to support the new 10-column grid and screen-space multiplier logic.
-- Updated `UIOverlay.tsx` to replace large popup with sleek notification bar.
-- Refined `App.css` for the "Euphoria" aesthetic.
+- Refactored `MainScene.ts` to implement the new grid and camera logic.
+- Updated `App.css` to match the Deep Magenta/Purple background (`#1a0b2e`).
+- Simplified Head visual to a single glowing dot.
 
 ## Next Steps
 - [ ] Add "Cash Out" button for active bets (optional).
