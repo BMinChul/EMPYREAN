@@ -1,18 +1,16 @@
 # Status
 
 ## Active Work
-- **Completed Visual Overhaul & Logic Upgrade**:
-    - **Graph Thickness**: Increased line width to 5px for better visibility.
-    - **Dynamic Multipliers**: Implemented the "Gemini Logic" (Volatility-based).
-        - Center Grid: Multipliers *increase* over time (Rightward).
-        - Edge Grid: Multipliers *decrease* over time (Rightward).
-        - All values update dynamically based on real-time price distance.
-    - **Bet Box Aesthetics**: 
-        - Removed internal glow and borders. Now pure "Solid Pale Yellow".
-        - Replaced "Yellow Circle" proximity effect with a **Natural Rectangular Pulse** behind the box.
+- **Visual Refinement (User Feedback)**:
+    - **Graph**: Changed to **50px Thick Light Purple (`#E0B0FF`)** line for bold visibility.
+    - **Betting Box**: 
+        - Simplified to **Solid Pale Yellow** (No internal glow/border).
+        - Added `$` prefix to bet amounts.
+    - **Proximity Effect**: Implemented a **"Spread Glow"** texture (soft fade-out) behind boxes instead of hard shapes.
 
 ## Recent Activity
-- Modified `MainScene.ts` to implement the advanced probability math for multipliers and refine the rendering loop.
+- Modified `MainScene.ts` to overhaul visual styles (Graph thickness, colors, box aesthetics).
+- Refined `box_glow_rect` texture generation to create a multi-layered soft spread effect.
 
 ## Next Steps
 - [ ] Add "Cash Out" button for active bets.

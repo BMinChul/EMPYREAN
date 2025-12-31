@@ -159,16 +159,17 @@ export class MainScene extends Phaser.Scene {
     graphics.fillCircle(16, 16, 16);
     graphics.generateTexture('flare', 32, 32);
 
-    // Box Glow Rect Texture (Soft rectangular glow)
+    // Box Glow Rect Texture (Soft Spread Effect)
+    // 10 layers of decreasing opacity to create a "Spread" effect
     graphics.clear();
-    graphics.fillStyle(0xffff00, 1);
-    // Draw a soft rect texture that fits the general box aspect ratio
-    // We'll scale this sprite, so a square-ish rect with rounded corners is fine
-    graphics.fillRoundedRect(0, 0, 64, 64, 16);
-    // Add some blur/softness logic if possible, or just rely on alpha.
-    // Since we can't easily blur in generateTexture without canvas manipulation, 
-    // we'll rely on the bloom FX and alpha fading.
-    graphics.generateTexture('box_glow_rect', 64, 64);
+    for (let i = 0; i < 10; i++) {
+        const alpha = 0.08 - (i * 0.005);
+        graphics.fillStyle(0xfffacd, alpha); // Light yellow spread
+        const size = 64 + (i * 10); // Increasing size
+        const offset = (160 - size) / 2; // Center in 160x160 texture
+        graphics.fillRoundedRect(offset, offset, size, size, 20);
+    }
+    graphics.generateTexture('box_glow_rect', 160, 160);
   }
 
   private createHeadLabel() {
@@ -292,19 +293,18 @@ export class MainScene extends Phaser.Scene {
     }
 
     // 1. Glow (Subtle White/Cyan)
-    this.chartGraphics.lineStyle(16, 0xffffff, 0.05); 
+    this.chartGraphics.lineStyle(50, 0xE0B0FF, 0.3); 
     this.chartGraphics.strokePath();
     
-    // 2. Core - THICKER as requested (approx 5px)
-    // "Thickness slightly thinner than end point(8px radius)" -> ~5-6px is good
-    this.chartGraphics.lineStyle(5, 0xffffff, 1);
+    // 2. Core - THICKER as requested (50px)
+    this.chartGraphics.lineStyle(50, 0xE0B0FF, 1); // Light Purple (Yeon-bora)
     this.chartGraphics.strokePath();
     
     // 3. Head Dot
     this.chartGraphics.fillStyle(0xffffff, 1);
     this.chartGraphics.fillCircle(this.headX, this.headY, 4);
-    this.chartGraphics.lineStyle(2, 0xffffff, 0.5);
-    this.chartGraphics.strokeCircle(this.headX, this.headY, 8);
+    this.chartGraphics.lineStyle(4, 0xffffff, 0.8);
+    this.chartGraphics.strokeCircle(this.headX, this.headY, 25);
   }
 
   // --- Dynamic Multiplier Calculation ---
@@ -557,13 +557,13 @@ export class MainScene extends Phaser.Scene {
     const boxW = colWidth - 8; 
     const boxH = (this.gridPriceInterval * this.pixelPerDollar) - 8;
     
-    // Proximity Glow Rect (NEW: Natural glow, not circle)
+    // Proximity Glow Rect (Spread Effect)
     const glow = this.add.image(0, 0, 'box_glow_rect');
-    glow.setDisplaySize(boxW + 20, boxH + 20); // Slightly larger than box
+    glow.setDisplaySize(boxW * 1.5, boxH * 1.5); 
     glow.setAlpha(0); 
-    glow.setTint(0xffd700); 
+    glow.setTint(0xfffacd); 
 
-    // Box Graphics: Pale Yellow Solid (#fffacd) - NO GLOW
+    // Box Graphics: Pale Yellow Solid (#fffacd) - NO GLOW, NO BORDER
     const bg = this.add.graphics();
     bg.fillStyle(0xfffacd, 1); // Solid Pale Yellow
     bg.fillRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8); // Rounded Corners
