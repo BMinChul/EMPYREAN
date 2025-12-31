@@ -1,3 +1,19 @@
 {
-  "sprites": {}
+  "sprites": {},
+  "audio": {
+    "sfx": {
+      "win": {
+        "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/audio-85979cff-d57b-4655-ae47-3ece4d6068bd.ogg",
+        "description": "Arcade winning sound"
+      },
+      "place_bet": {
+        "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/audio-0f4cee2f-c6e0-490c-bfd6-5c1b0f84d74c.ogg",
+        "description": "Sound for placing a bet"
+      },
+      "error": {
+        "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/audio-537c4444-2c7e-4986-a0f0-c1d27dea40bf.ogg",
+        "description": "Error or invalid action sound"
+      }
+    }
+  }
 }

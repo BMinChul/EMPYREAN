@@ -20,7 +20,7 @@ export class OKXService {
         args: [
           {
             channel: 'tickers',
-            instId: 'ETH-USDT',
+            instId: 'ETH-USDT-SWAP',
           },
         ],
       };

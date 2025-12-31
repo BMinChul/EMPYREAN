@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { OKXService } from '../../services/okxService';
 import { useGameStore } from '../../store/gameStore';
+import Assets from '../../assets.json';
 
 interface PricePoint {
   time: number;
@@ -38,10 +39,24 @@ export class MainScene extends Phaser.Scene {
     super({ key: 'MainScene' });
   }
 
+  preload() {
+    // Load Audio
+    this.load.audio('sfx_win', Assets.audio.sfx.win.url);
+    this.load.audio('sfx_place', Assets.audio.sfx.place_bet.url);
+    this.load.audio('sfx_error', Assets.audio.sfx.error.url);
+  }
+
   create() {
     // Setup Camera
-    this.cameras.main.setBackgroundColor('#1a1a1a');
+    this.cameras.main.setBackgroundColor('#0f0518'); // Dark Purple/Black background
     
+    // Post FX: Bloom
+    // Note: Bloom requires Phaser 3.60+. If unavailable, it might need a custom shader or fallback.
+    // Assuming 3.60+ based on package.json ^3.90.0
+    if (this.cameras.main.postFX) {
+        const bloom = this.cameras.main.postFX.addBloom(0xffffff, 1, 1, 1.2, 1.5);
+    }
+
     // Graphics
     this.gridGraphics = this.add.graphics();
     this.chartGraphics = this.add.graphics();
@@ -153,32 +168,52 @@ export class MainScene extends Phaser.Scene {
 
   private drawChart() {
     this.chartGraphics.clear();
-    this.chartGraphics.lineStyle(2, 0xffffff, 1);
+    // Glowing white line
+    this.chartGraphics.lineStyle(3, 0xffffff, 1);
 
     if (this.priceHistory.length < 2) return;
 
-    this.chartGraphics.beginPath();
+    // Use Spline for smooth liquid look
+    // Create points array for Spline
+    const points: Phaser.Math.Vector2[] = [];
     
-    // Draw all history points
-    const first = this.priceHistory[0];
-    this.chartGraphics.moveTo(first.worldX, first.worldY);
+    // Optimization: Only draw points visible on screen + padding
+    const scrollX = this.cameras.main.scrollX;
+    const width = this.cameras.main.width;
+    const buffer = 100;
 
-    for (let i = 1; i < this.priceHistory.length; i++) {
-      const p = this.priceHistory[i];
-      this.chartGraphics.lineTo(p.worldX, p.worldY);
+    for (const p of this.priceHistory) {
+      // Simple culling
+      if (p.worldX > scrollX - buffer && p.worldX < scrollX + width + buffer) {
+        points.push(new Phaser.Math.Vector2(p.worldX, p.worldY));
+      }
     }
     
+    if (points.length < 2) return;
+
+    // Append the "head" current position interpolated if needed, 
+    // but for now priceHistory updates fast enough. 
+    // Actually, to make it super smooth "liquid", we might want to interpolate the very tip.
+    // For now, CatmullRom with existing points is good.
+
+    const curve = new Phaser.Curves.Spline(points);
+    
+    this.chartGraphics.beginPath();
+    curve.draw(this.chartGraphics, 64); // 64 points per segment for smoothness
     this.chartGraphics.strokePath();
 
     // Draw a "Head" dot
-    const last = this.priceHistory[this.priceHistory.length - 1];
+    const last = points[points.length - 1];
     this.chartGraphics.fillStyle(0xffffff, 1);
-    this.chartGraphics.fillCircle(last.worldX, last.worldY, 4);
+    this.chartGraphics.fillCircle(last.x, last.y, 6);
+    
+    // Add a glow sprite at the head if desired, but PostFX bloom handles global glow
   }
 
   private drawGrid(scrollX: number) {
     this.gridGraphics.clear();
-    this.gridGraphics.lineStyle(1, 0x333333, 1);
+    // Cyberpunk Purple Grid
+    this.gridGraphics.lineStyle(1, 0x440066, 0.5); // Dark Purple, 50% opacity
 
     const width = this.scale.width;
     const height = this.scale ? this.scale.height : 600;
@@ -203,26 +238,71 @@ export class MainScene extends Phaser.Scene {
     this.gridGraphics.strokePath();
   }
 
+  private showToast(message: string, color: string = '#ff0000') {
+    const toast = this.add.text(this.scale.width / 2, this.scale.height - 100, message, {
+      fontSize: '24px',
+      color: '#ffffff',
+      backgroundColor: color,
+      padding: { x: 10, y: 5 }
+    })
+    .setOrigin(0.5)
+    .setScrollFactor(0)
+    .setDepth(100);
+
+    this.tweens.add({
+      targets: toast,
+      y: toast.y - 50,
+      alpha: 0,
+      duration: 2000,
+      ease: 'Power2',
+      onComplete: () => toast.destroy()
+    });
+  }
+
+  private showFloatingText(x: number, y: number, message: string, color: string = '#ffff00') {
+    const text = this.add.text(x, y, message, {
+      fontSize: '20px',
+      color: color,
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+
+    this.tweens.add({
+      targets: text,
+      y: y - 50,
+      alpha: 0,
+      duration: 1000,
+      ease: 'Back.out',
+      onComplete: () => text.destroy()
+    });
+  }
+
   private placeBet(pointer: Phaser.Input.Pointer) {
     if (!this.initialPrice) return;
+
+    const worldX = pointer.worldX;
+    const worldY = pointer.worldY;
+
+    // 1. Validation: Cannot place bet in the past
+    // Allow a small buffer (e.g., 50px) to prevent accidental clicks right on the head failing
+    if (worldX <= this.headX) {
+      this.sound.play('sfx_error', { volume: 0.5 });
+      this.showToast("Too late! Line already passed.", '#ff0000');
+      return;
+    }
 
     // Check Balance
     const store = useGameStore.getState();
     if (store.balance < 1) {
+      this.sound.play('sfx_error', { volume: 0.5 });
+      this.showToast("Insufficient Balance!", '#ff0000');
       return;
     }
 
     // Deduct $1
     store.updateBalance(-1);
-
-    // World Coordinates
-    const worldX = pointer.worldX;
-    const worldY = pointer.worldY;
-
-    // Can only place bets in the future (to the right of the head)
-    if (worldX <= this.headX) {
-      return;
-    }
+    this.sound.play('sfx_place', { volume: 0.6 });
 
     // Calculate Price for this Y
     const height = this.scale ? this.scale.height : 600;
@@ -240,7 +320,7 @@ export class MainScene extends Phaser.Scene {
     const boxSize = 40;
     const container = this.add.container(worldX, worldY);
     
-    const rect = this.add.rectangle(0, 0, boxSize, boxSize, 0xffff00, 0.3);
+    const rect = this.add.rectangle(0, 0, boxSize, boxSize, 0xffff00, 0.2);
     rect.setStrokeStyle(2, 0xffff00);
     
     const text = this.add.text(0, 0, `x${multiplier}`, { 
@@ -308,16 +388,19 @@ export class MainScene extends Phaser.Scene {
   private handleWin(box: BettingBox, index: number) {
     box.hit = true;
     
+    // Play sound
+    this.sound.play('sfx_win', { volume: 0.8 });
+
     // Effect
     const particles = this.add.particles(box.container.x, box.container.y, 'flare', {
-      speed: 100,
+      speed: 150,
       scale: { start: 1, end: 0 },
       blendMode: 'ADD',
-      duration: 500,
+      lifespan: 600,
       emitting: false
     });
     
-    particles.explode(20);
+    particles.explode(30);
     
     this.tweens.add({
       targets: box.container,
@@ -333,6 +416,9 @@ export class MainScene extends Phaser.Scene {
     const store = useGameStore.getState();
     const reward = 1 * box.multiplier;
     store.updateBalance(reward);
+    
+    // Floating Text
+    this.showFloatingText(box.container.x, box.container.y - 40, `+$${reward.toFixed(2)}`, '#00ff00');
 
     this.bettingBoxes.splice(index, 1);
   }
@@ -353,6 +439,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private cleanupOffscreen() {
-    // Optional
+    // Optional: Remove boxes that are far off screen (left)
+    // Already handled by handleLoss mostly, but can add extra safety here if needed
   }
 }
