@@ -70,6 +70,16 @@ export class MainScene extends Phaser.Scene {
       fontSize: '20px', 
       color: '#ffffff' 
     }).setScrollFactor(0).setName('statusText');
+
+    // Cleanup
+    this.events.on('shutdown', () => this.cleanup());
+    this.events.on('destroy', () => this.cleanup());
+  }
+
+  private cleanup() {
+    if (this.okxService) {
+      this.okxService.disconnect();
+    }
   }
 
   update(time: number, delta: number) {
@@ -101,6 +111,10 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handleNewPrice(price: number) {
+    // Safety checks for destroyed scene
+    if (!this.scene || !this.sys || !this.sys.isActive()) return;
+    if (!this.cameras || !this.cameras.main) return;
+
     const now = Date.now();
     
     if (this.initialPrice === null) {

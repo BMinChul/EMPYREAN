@@ -31,11 +31,15 @@ export class OKXService {
         if (response.data && response.data.length > 0) {
           const price = parseFloat(response.data[0].last);
           if (!isNaN(price)) {
-            this.onPriceUpdate(price);
+            try {
+              this.onPriceUpdate(price);
+            } catch (err) {
+              console.warn('Error in price update handler:', err);
+            }
           }
         }
       } catch (e) {
-        console.error('Error parsing OKX message:', e);
+        console.error('Error processing OKX message:', e);
       }
     };
 

@@ -10,6 +10,7 @@
     - UI Overlay for Balance and Current Price.
 
 ## Recent Activity
+- Fixed WebSocket error during hot-reload (added cleanup and safety checks).
 - Created `src/store/gameStore.ts` for state management.
 - Created `src/services/okxService.ts` for WebSocket data.
 - Rewrote `src/game/scenes/MainScene.ts` with game logic.
