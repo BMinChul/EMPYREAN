@@ -38,8 +38,8 @@ export class MainScene extends Phaser.Scene {
   private gridLabels: Phaser.GameObjects.Text[] = [];
 
   // --- Configuration ---
-  // The screen width represents exactly 40 seconds
-  private timeWindowSeconds: number = 40; 
+  // The screen width represents exactly 100 seconds (10 cols * 10 sec)
+  private timeWindowSeconds: number = 100; 
   private pixelsPerSecond: number = 0; // Calculated in create()
   
   // Price Scale: Vertical pixels per dollar
@@ -390,32 +390,76 @@ export class MainScene extends Phaser.Scene {
     const startColIdx = Math.floor(gridStartTime / colWidth);
     const endColIdx = Math.ceil(gridEndTime / colWidth);
 
+    const now = new Date();
+
     for (let c = startColIdx; c <= endColIdx; c++) {
         const x = c * colWidth;
         // Determine screen position relative to camera view
         const screenX = x - scrollX;
         const normalizedScreenX = screenX / width; // 0.0 to 1.0
 
-        // "Horizontal Gradient Fade-in" starting from 50% mark (0.5)
-        // If < 0.5, alpha is 0. If > 0.5, alpha increases.
-        let alpha = 0;
-        if (normalizedScreenX >= 0.5) {
-            // Map 0.5->1.0 to 0.0->MaxAlpha
-            alpha = (normalizedScreenX - 0.5) * 2; // 0 to 1
-            alpha = Phaser.Math.Clamp(alpha, 0, 0.3); // Cap at 0.3 opacity
-        }
+        // "Horizontal Gradient Fade-in" for the betting zone (Right 5 cols)
+        // Betting zone starts at 50% (0.5).
+        // User wants "right line located at the far left" (of betting zone) to disappear like a gradient.
+        // We handle this by controlling the alpha of the grid lines based on their position relative to the 50% mark.
+        
+        let alpha = 0.15; // Default faint grid alpha for left side (safe zone)
 
-        if (alpha <= 0.01) continue; // Skip invisible lines
+        // If in betting zone (>= 50%), lines are stronger but the transition fades in
+        if (normalizedScreenX >= 0.5) {
+             // Gradient fade in from 0.5 to 0.6
+             const fadeProgress = (normalizedScreenX - 0.5) * 5; // 0.0 to 0.5 maps to 0 to 2.5?
+             const entryAlpha = Phaser.Math.Clamp(fadeProgress, 0, 1);
+             alpha = 0.15 + (entryAlpha * 0.3); // Boost alpha up to ~0.45
+        } else {
+             // Left side (Safe zone) - Keep faint
+             alpha = 0.15;
+        }
 
         this.gridGraphics.lineStyle(1, 0xaa00ff, alpha);
         this.gridGraphics.moveTo(x, scrollY);
         this.gridGraphics.lineTo(x, scrollY + height);
 
-        // --- Multiplier Logic ---
-        // Only show multipliers in the right 50% (Columns 6-10)
-        // normalizedScreenX > 0.5 matches this
+        // --- Time Labels (EST) ---
+        // 1. Calculate time difference from Head (Current Time)
+        // headX is "NOW". x is the grid line position.
+        const distFromHead = x - this.headX;
+        const secondsDiff = distFromHead / this.pixelsPerSecond;
         
+        // 2. Create timestamp
+        const gridTime = new Date(now.getTime() + (secondsDiff * 1000));
+        
+        // 3. Format to HH:MM:SS (EST)
+        const timeString = gridTime.toLocaleTimeString('en-US', {
+            timeZone: 'America/New_York',
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+
+        // 4. Draw Label at bottom
+        let timeLabel = this.gridLabels[gridLabelIdx];
+        if (!timeLabel) {
+            timeLabel = this.add.text(0, 0, '', {
+                fontFamily: 'monospace', fontSize: '10px', color: '#888888'
+            }).setOrigin(0.5, 1);
+            this.gridLabels.push(timeLabel);
+        }
+        timeLabel.setPosition(x, scrollY + height - 5);
+        timeLabel.setText(timeString);
+        timeLabel.setVisible(true);
+        gridLabelIdx++;
+
+
+        // --- Multipliers (Only in Betting Zone >= 50%) ---
+        // Smooth fade-in for multipliers too
         if (normalizedScreenX >= 0.5) {
+            
+            // Calculate fade for multipliers
+            const fade = Phaser.Math.Clamp((normalizedScreenX - 0.5) * 8, 0, 1); // Sharper fade for text
+            if (fade <= 0.01) continue;
+
             const cellCenterX = x + colWidth/2;
             
             for (let p = startPrice; p <= endPrice; p += this.gridPriceInterval) {
@@ -429,6 +473,10 @@ export class MainScene extends Phaser.Scene {
                 
                 let multi = 1.0 + (random * 4.0);
                 
+                // Reuse existing label array or create new specific ones?
+                // We are sharing gridLabels for both Time and Multipliers which is messy.
+                // Let's increment gridLabelIdx correctly.
+                
                 let gl = this.gridLabels[gridLabelIdx];
                 if (!gl) {
                     gl = this.add.text(0, 0, '', {
@@ -440,8 +488,8 @@ export class MainScene extends Phaser.Scene {
                 gl.setPosition(cellCenterX, cellCenterY);
                 gl.setText(multi.toFixed(2) + 'X');
                 
-                // Text Alpha follows the gradient too
-                gl.setAlpha(alpha + 0.2); 
+                // Text Alpha follows the gradient
+                gl.setAlpha(fade); 
                 gl.setVisible(true);
                 gridLabelIdx++;
             }
@@ -482,11 +530,15 @@ export class MainScene extends Phaser.Scene {
   private placeBet(pointer: Phaser.Input.Pointer) {
     if (!this.initialPrice) return;
 
-    // 1. STRICT Betting Restriction: Only allowed in Right 50%
-    if (pointer.x < this.scale.width / 2) {
-        // Play error sound or show visual feedback?
-        // Prompt says "Betting interaction (clicks) must be DISABLED"
-        // Silent return is safest, maybe small sound
+    // 1. STRICT Betting Restriction: Only allowed in Right 50% (Columns 6-10)
+    // The visual boundary is exactly 50% of screen width.
+    const screenX = pointer.x;
+    const width = this.scale.width;
+    
+    // If click is on the left half (Columns 1-5), REJECT IT.
+    if (screenX < width * 0.5) {
+        // Silent rejection as per previous logic, or play subtle error sound
+        this.sound.play('sfx_error', { volume: 0.2 });
         return;
     }
 
@@ -497,7 +549,6 @@ export class MainScene extends Phaser.Scene {
     }
 
     // 2. Snap to Grid
-    const width = this.scale.width;
     const colWidth = width / 10;
     
     const colIdx = Math.floor(pointer.worldX / colWidth);
@@ -534,23 +585,26 @@ export class MainScene extends Phaser.Scene {
     glow.setAlpha(0); 
     glow.setTint(0xfffacd);
 
-    // Box Graphics: Pale Yellow Solid, Transparent White Border, No Glow
+    // Box Graphics: Pale Yellow Solid (#fffacd), Transparent White Border
+    // "No internal glow/light bleed" - Fill is solid.
     const bg = this.add.graphics();
-    bg.fillStyle(0xfffacd, 1); // Pale Yellow Solid
+    bg.fillStyle(0xfffacd, 1); // Solid Pale Yellow
     bg.fillRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8);
     bg.lineStyle(2, 0xffffff, 0.7); // 70% opacity white border
     bg.strokeRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8);
 
     const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0); 
     
-    // Text: Amount & Multiplier in Black
-    const txtAmt = this.add.text(0, -8, `$${store.betAmount}`, {
-        fontFamily: 'monospace', fontSize: '14px', color: '#000000', fontStyle: 'bold'
+    // Text: Amount & Multiplier in BOLD BLACK
+    const txtAmt = this.add.text(0, -8, `${store.betAmount}`, {
+        fontFamily: 'monospace', fontSize: '14px', color: '#000000', fontStyle: 'bold' // Bold Black
     }).setOrigin(0.5);
     
     const txtMulti = this.add.text(0, 8, `${multi.toFixed(2)}X`, {
-        fontFamily: 'monospace', fontSize: '12px', color: '#000000'
+        fontFamily: 'monospace', fontSize: '12px', color: '#000000', fontStyle: 'bold' // Bold Black
     }).setOrigin(0.5);
+
+    // Removed the glow effects/postFX that might make text unreadable
 
     container.add([glow, bg, rect, txtAmt, txtMulti]);
     
@@ -592,7 +646,13 @@ export class MainScene extends Phaser.Scene {
         }
 
         // --- Collision Logic ---
-        if (this.headX >= boxX) {
+        // Requirement: "Graph point touches box LEFT edge means win"
+        // NOT box center.
+        // Box Left Edge X = boxX - (box.boxWidth / 2)
+        const boxLeftEdge = boxX - (box.boxWidth / 2);
+
+        // If head has crossed the LEFT edge of the box
+        if (this.headX >= boxLeftEdge) {
              const diffY = Math.abs(this.headY - boxY);
              // Hit window: Box Height / 2
              if (diffY < (box.boxHeight/2)) {
