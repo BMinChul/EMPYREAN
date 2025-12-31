@@ -275,34 +275,37 @@ export class MainScene extends Phaser.Scene {
     const scrollX = this.cameras.main.scrollX;
     const width = this.scale.width;
     const buffer = 200;
-
-    this.chartGraphics.beginPath();
-
-    let started = false;
     
-    // Draw history
+    // Collect points first to avoid duplicate culling logic
+    const points: {x: number, y: number}[] = [];
+    
     for (const p of this.priceHistory) {
         if (p.worldX < scrollX - buffer) continue;
         if (p.worldX > scrollX + width + buffer) break;
+        points.push({ x: p.worldX, y: p.worldY });
+    }
+    // Add current head
+    points.push({ x: this.headX, y: this.headY });
 
-        if (!started) {
-            this.chartGraphics.moveTo(p.worldX, p.worldY);
-            started = true;
-        } else {
-            this.chartGraphics.lineTo(p.worldX, p.worldY);
+    if (points.length < 2) return;
+
+    // Helper to draw path
+    const drawPath = () => {
+        this.chartGraphics.beginPath();
+        this.chartGraphics.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) {
+            this.chartGraphics.lineTo(points[i].x, points[i].y);
         }
-    }
-    
-    // Draw to current head
-    if (started) {
-        this.chartGraphics.lineTo(this.headX, this.headY);
-    } else {
-        this.chartGraphics.moveTo(this.headX, this.headY);
-    }
-    
-    // Core - THICKER (80px) Light Purple
-    this.chartGraphics.lineStyle(80, 0xE0B0FF, 1); 
-    this.chartGraphics.strokePath();
+        this.chartGraphics.strokePath();
+    };
+
+    // Layer 1: Bottom - Thick Dark Purple (Stroke/Outline effect)
+    this.chartGraphics.lineStyle(100, 0x4B0082, 1); // Dark Indigo/Purple
+    drawPath();
+
+    // Layer 2: Top - Bright Light Purple
+    this.chartGraphics.lineStyle(60, 0xE0B0FF, 1); 
+    drawPath();
   }
 
   // --- Dynamic Multiplier Calculation ---
@@ -514,10 +517,10 @@ export class MainScene extends Phaser.Scene {
      if (!priceLabel) {
          priceLabel = this.add.text(0, 0, '', {
              fontFamily: 'monospace', fontSize: '18px', color: '#ffffff', fontStyle: 'bold'
-         }).setOrigin(1, 0.5).setName('currentPriceLabel').setDepth(20);
+         }).setOrigin(0.5, 0.5).setName('currentPriceLabel').setDepth(20);
      }
      
-     priceLabel.setPosition(boxX - 10, boxY);
+     priceLabel.setPosition(boxX - boxW / 2, boxY);
      priceLabel.setText(this.currentPrice.toFixed(2));
   }
 
@@ -594,9 +597,9 @@ export class MainScene extends Phaser.Scene {
     glow.setTint(0xfffacd); // Pale Yellow Glow
     glow.setAlpha(0); // Invisible by default
     
-    // Scale glow significantly larger to bleed out from behind box
-    const glowScaleX = (boxW + 160) / 160;
-    const glowScaleY = (boxH + 160) / 160;
+    // Scale glow significantly smaller for subtle "just behind" effect
+    const glowScaleX = (boxW + 50) / 160;
+    const glowScaleY = (boxH + 50) / 160;
     glow.setScale(glowScaleX, glowScaleY);
 
     const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0); 
@@ -639,10 +642,10 @@ export class MainScene extends Phaser.Scene {
         // --- Proximity Logic (Spread Glow) ---
         // Only glow when head is near
         const dist = Phaser.Math.Distance.Between(this.headX, this.headY, boxX, boxY);
-        const proximityRange = 250; 
+        const proximityRange = 100; // Reduced to 100px
         
         if (dist < proximityRange) {
-             // Calculate intensity: 0 (at 250px) to 1 (at 0px)
+             // Calculate intensity: 0 (at 100px) to 1 (at 0px)
              const intensity = 1 - (dist / proximityRange);
              
              // Linear fade in for brighter/earlier visibility (removed square)
@@ -657,15 +660,20 @@ export class MainScene extends Phaser.Scene {
         }
 
         // --- Collision Logic ---
-        const boxLeftEdge = boxX - (box.boxWidth / 2);
+        const halfW = box.boxWidth / 2;
+        const halfH = box.boxHeight / 2;
+        
+        // 1. Win Condition: Head enters box area
+        if (this.headX >= (boxX - halfW) && this.headX <= (boxX + halfW)) {
+            if (Math.abs(this.headY - boxY) <= halfH) {
+                this.handleWin(box, i);
+                continue; 
+            }
+        }
 
-        if (this.headX >= boxLeftEdge) {
-             const diffY = Math.abs(this.headY - boxY);
-             if (diffY < (box.boxHeight/2)) {
-                 this.handleWin(box, i);
-             } else {
-                 this.handleLoss(box, i);
-             }
+        // 2. Loss Condition: Head passes Right Edge completely
+        if (this.headX > (boxX + halfW)) {
+             this.handleLoss(box, i);
         }
     }
   }

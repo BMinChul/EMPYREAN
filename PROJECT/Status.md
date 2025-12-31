@@ -2,13 +2,14 @@
 
 ## Active Work
 - **Visual & Gameplay Refinements ("Euphoria" Polish)**:
-    - **Chart Visibility**: Line thickness increased drastically to **80px** for maximum impact.
-    - **Betting Safety**: Implemented logic to prevent placing multiple bets on the exact same grid cell.
-    - **Price Box**: Redesigned to be tighter (80px width) with a Light Purple (`#9F88FF`) semi-transparent (0.7) background.
+    - **Chart Visuals**: Implemented dual-layer rendering (100px Dark Purple bottom + 60px Bright Purple top) for a high-contrast, stroke-like appearance.
+    - **Price Box**: Text is now perfectly centered.
+    - **Win/Loss Logic**: 
+        - **Win**: Instant trigger upon touching the box area.
+        - **Loss**: Only triggers when the graph head completely clears the right edge of the box.
     - **Proximity Glow**: 
-        - Texture intensity increased.
-        - Glow scale doubled to ensure it bleeds out visibly from behind the betting box.
-        - Falloff logic changed from squared to linear for earlier, brighter activation.
+        - Range reduced to 100px.
+        - Size scaled down significantly to appear as a subtle backlight just behind the box.
 
 ## Recent Activity
 - **Code Fixes**: Resolved syntax error in `MainScene.ts` caused by incomplete method definition.
