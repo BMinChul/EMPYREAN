@@ -2,23 +2,22 @@
 
 ## Project Overview
 Crypto Arcade: Real-time ETH price betting game ("Euphoria" Style).
-User bets on future price points. Chart scrolls horizontally.
-Win if price line hits the betting box.
+User bets on future price points using Blockchain Tokens (Testnet USDT).
+Chart scrolls horizontally. Win if price line hits the betting box.
 
 ## Tech Stack
 - React + Vite
 - Phaser 3 (Game Engine)
 - Zustand (State Management)
 - WebSocket (OKX API for Data: ETH-USDT-SWAP)
+- **Crossramp (Blockchain Layer)**: Asset management and Token swapping.
 
 ## User Context
-User requested a specific "Euphoria" look:
-- 10-column grid.
-- Center-locked camera.
-- Minimalist betting boxes (Yellow, no glow).
-- Clean white line chart.
+- **Betting**: Uses "Credits" pegged 1:1 to Testnet USDT.
+- **Wallet**: Users deposit USDT via Crossramp Shop to get Credits.
+- **Visuals**: "Euphoria" style (Deep Purple, Neon, Minimalist).
 
 ## Critical Memory
-- `MainScene.ts` handles all game logic (rendering, input, collision, 10-col grid).
-- `okxService.ts` handles WebSocket connection (ETH-USDT-SWAP).
-- `gameStore.ts` syncs data between Phaser and React UI.
+- `MainScene.ts` handles game loop and triggers bet/win actions via `gameStore`.
+- `UIOverlay.tsx` acts as the bridge, listening to `gameStore` and calling `useAsset` (burn/mint).
+- `.crossramp` file contains deployment UUID and asset keys.

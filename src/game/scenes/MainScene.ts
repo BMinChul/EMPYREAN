@@ -536,8 +536,12 @@ export class MainScene extends Phaser.Scene {
     }
 
     const store = useGameStore.getState();
-    if (store.balance < store.betAmount) {
+    // Check balance in TOKENS against bet amount converted to TOKENS
+    const costInTokens = store.betAmount / store.tokenPrice;
+    
+    if (store.balance < costInTokens) {
         this.sound.play('sfx_error');
+        // Optional: Show "Insufficient Funds" text or shake UI
         return;
     }
 
@@ -569,7 +573,7 @@ export class MainScene extends Phaser.Scene {
     const multi = this.calculateDynamicMultiplier(cellCenterPrice, colIndexOnScreen);
 
     // 4. Create Box
-    store.updateBalance(-store.betAmount);
+    store.requestBet(store.betAmount);
     this.sound.play('sfx_place', { volume: 0.5 });
 
     const container = this.add.container(cellX, cellY);
@@ -703,7 +707,7 @@ export class MainScene extends Phaser.Scene {
     this.goldEmitter.explode(30);
     
     const store = useGameStore.getState();
-    store.updateBalance(winVal);
+    store.requestWin(winVal);
     store.setLastWinAmount(winVal);
 
     this.tweens.add({

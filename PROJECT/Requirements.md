@@ -2,29 +2,25 @@
 
 ## Core Gameplay
 - Real-time ETH/USDT Perpetual Futures feed (OKX WebSocket).
-- Visual: White/Light Purple line chart flowing left-to-right.
-- **Grid System (10-Column)**: 
-    - Screen divided into exactly 10 columns.
-    - **Left 5 Columns**: Clear space, faint grid lines, NO multipliers.
-    - **Right 5 Columns**: Betting Zone. Gradient fade-in. Multipliers centered.
-- **Interaction**: Click to place a solid Pale Yellow Box.
-    - Box snaps to grid cell center.
-    - Box shows Bet Amount ($) and Multiplier (X).
-- **Win Logic**: Head dot hits the box -> Win.
-- **Feedback**: Floating win amount text. Top-center notification.
+- **Betting System (Blockchain)**:
+    - Currency: "Credits" (1:1 with Testnet USDT).
+    - **Deposit**: User swaps USDT for Credits via Shop.
+    - **Bet**: Deducts (Burns) Credits.
+    - **Win**: Adds (Mints) Credits.
+    - **Withdraw**: User swaps Credits for USDT via Shop.
+- **Grid System**: 10 columns, multipliers based on probability.
 
 ## Visual Aesthetics ("Euphoria" Style)
-- **Chart**: Thick (**40px**) Light Purple (`0xE0B0FF`) line.
-- **Bloom**: Applied ONLY to Chart and Grid. Betting Boxes and Text remain crisp.
-- **Background**: Deep Magenta/Purple (`#1a0b2e`). Neon grid lines.
-- **Betting Box**: 
-    - **Idle**: Solid Pale Yellow (`#fffacd`), Rounded Corners, Black Bold Text (`$10`), NO GLOW.
-    - **Proximity**: When Graph Head approaches (<250px), a "Spread Glow" fades in around the box.
-- **Text**: Always Black, Bold, and on top of the box.
+- **Chart**: Thick Light Purple line with Bloom.
+- **Background**: Deep Magenta/Purple.
+- **UI**: Glassmorphism panels, Neon accents.
+- **Feedback**:
+    - Win: Pulse effect, floating text, top notification.
+    - Balance: Shows "Credits (USDT)" in real-time.
 
 ## Camera & Time
-- **Head Position**: Fixed at **25%** screen width and **50%** screen height.
-- **Scroll**: 100-second window (variable based on screen width).
+- Fixed Head Position (25% screen width).
+- 100-second scroll window.
 
 ## Known Issues
-- Network latency might cause visual jumps (handled by spline smoothing).
+- Optimistic UI updates might revert if server transaction fails (handled via error catch).
