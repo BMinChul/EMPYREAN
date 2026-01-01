@@ -1,18 +1,20 @@
 # Status
 
 ## Active Work
-- **Loading Screen/Crash Fix**:
-    - **Issue**: Application was crashing or showing infinite loading when `VITE_PRIVY_APP_ID` was missing.
-    - **Fix**: Implemented `ConfigError` component to catch missing configuration in `main.tsx` and prevent `PrivyProvider` crash.
-    - **Fix**: Updated `MainScene.ts` to ensuring "WAITING FOR OKX FEED..." text is reliably removed even in simulation mode.
+- **Authentication Migration**:
+    - **Issue**: Privy was causing continuous configuration errors and timeouts.
+    - **Fix**: Migrated to **Reown AppKit (WalletConnect)** for broader wallet support (OKX, MetaMask, etc.) and stability.
+    - **Implementation**:
+        - Replaced `PrivyProvider` with `WagmiProvider` + `wagmiAdapter`.
+        - Updated `UIOverlay.tsx` to use `useAppKit` for connection.
+        - Removed `LoginModal.tsx` in favor of AppKit's native modal.
 
 ## Recent Activity
-- **Privy Configuration**:
-    - **Issue**: Users reporting "missing_or_empty_authorization_header" error.
-    - **Fix**: Updated `LoginModal` to explicitly show the current domain and provide a "Copy" button for easy whitelisting.
-- **UI Update**: Enhanced `LoginModal.tsx` with detailed "Configuration Required" state when Privy fails to initialize (timeout > 5s).
+- **Loading Screen/Crash Fix**:
+    - Implemented `ConfigError` component to catch missing `VITE_REOWN_PROJECT_ID`.
+- **Privy Removal**: Completely uninstalled `@privy-io` packages.
 
 ## Next Steps
-- [ ] **Verify**: Reload app without `.env` to see new `ConfigError` screen.
-- [ ] **Verify**: Add `.env` and check if "Initializing Privy..." completes successfully.
-- [ ] **User Action**: If seeing `ConfigError`, follow instructions to add `VITE_PRIVY_APP_ID`.
+- [ ] **Verify**: User needs to set `VITE_REOWN_PROJECT_ID` in `.env` (currently using a fallback/test ID).
+- [ ] **Testing**: Test connection with OKX Wallet and MetaMask on Cross Testnet.
+- [ ] **Game Loop**: Ensure `burnAsset`/`mintAsset` works correctly with the new `wagmi` signer.

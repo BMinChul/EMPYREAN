@@ -1,53 +1,32 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { PrivyProvider } from '@privy-io/react-auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { WagmiProvider } from '@privy-io/wagmi';
+import { WagmiProvider } from 'wagmi';
 import "./index.css";
 import App from "./App";
 import ConfigError from "./components/ConfigError";
-import { config, crossTestnet } from './wagmi';
+import { wagmiAdapter, projectId } from './wagmi';
 
 const queryClient = new QueryClient();
 
-// Use environment variable for App ID
-const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID;
-
-// Check if App ID is missing
-if (!PRIVY_APP_ID) {
-  console.error("❌ CRITICAL: VITE_PRIVY_APP_ID is missing in .env file!");
+// Check if Project ID is missing
+if (!projectId || projectId === 'YOUR_PROJECT_ID') {
+  console.error("❌ CRITICAL: VITE_REOWN_PROJECT_ID is missing in .env file!");
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
       <ConfigError />
     </StrictMode>
   );
 } else {
-  console.log("✅ Privy App ID loaded:", `${PRIVY_APP_ID.substring(0, 5)}...`);
+  console.log("✅ Reown Project ID loaded");
   
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
-      <PrivyProvider
-        appId={PRIVY_APP_ID}
-        config={{
-        loginMethods: ['email', 'wallet', 'google', 'twitter', 'discord'],
-        defaultChain: crossTestnet,
-        supportedChains: [crossTestnet],
-        appearance: {
-          theme: 'dark',
-          accentColor: '#676FFF',
-          logo: 'https://agent8-games.verse8.io/assets/logos/logo_v8.png', // Optional branding
-        },
-        embeddedWallets: {
-          createOnLogin: 'users-without-wallets',
-        },
-      }}
-    >
-      <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={config}>
+      <WagmiProvider config={wagmiAdapter.wagmiConfig}>
+        <QueryClientProvider client={queryClient}>
           <App />
-        </WagmiProvider>
-      </QueryClientProvider>
-    </PrivyProvider>
-  </StrictMode>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </StrictMode>
   );
 }

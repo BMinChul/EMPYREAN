@@ -13,7 +13,7 @@ const ConfigError: React.FC = () => {
           </div>
           <h1 className="text-4xl font-bold text-white tracking-tight">Configuration Missing</h1>
           <p className="text-lg text-gray-400 max-w-lg mx-auto">
-            The application cannot start because the <span className="text-white font-mono font-bold">Privy App ID</span> is missing.
+            The application cannot start because the <span className="text-white font-mono font-bold">Reown Project ID</span> is missing.
           </p>
         </div>
 
@@ -29,9 +29,9 @@ const ConfigError: React.FC = () => {
             <div className="bg-black/50 rounded-lg p-4 font-mono text-sm border border-white/5 overflow-x-auto">
               <div className="flex gap-4">
                 <span className="text-gray-600 select-none">1</span>
-                <span className="text-purple-400">VITE_PRIVY_APP_ID</span>
+                <span className="text-purple-400">VITE_REOWN_PROJECT_ID</span>
                 <span className="text-white">=</span>
-                <span className="text-green-400">"your-app-id-here"</span>
+                <span className="text-green-400">"your-project-id-here"</span>
               </div>
             </div>
           </div>
@@ -55,10 +55,10 @@ const ConfigError: React.FC = () => {
               <div className="flex gap-4">
                 <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</div>
                 <div>
-                  <h4 className="text-white font-bold text-sm mb-1">Get App ID</h4>
-                  <p className="text-sm text-gray-400 mb-2">Go to Privy Dashboard to get your App ID.</p>
+                  <h4 className="text-white font-bold text-sm mb-1">Get Project ID</h4>
+                  <p className="text-sm text-gray-400 mb-2">Go to Reown Cloud Dashboard to get your Project ID.</p>
                   <a 
-                    href="https://dashboard.privy.io/" 
+                    href="https://cloud.reown.com/" 
                     target="_blank" 
                     rel="noreferrer"
                     className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded transition-colors"
@@ -73,7 +73,7 @@ const ConfigError: React.FC = () => {
                 <div>
                   <h4 className="text-white font-bold text-sm mb-1">Add Variable</h4>
                   <p className="text-sm text-gray-400">
-                    Add <code className="text-purple-300">VITE_PRIVY_APP_ID</code> to your .env file with your ID.
+                    Add <code className="text-purple-300">VITE_REOWN_PROJECT_ID</code> to your .env file with your ID.
                   </p>
                 </div>
               </div>

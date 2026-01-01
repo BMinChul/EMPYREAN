@@ -4,7 +4,7 @@
 - Real-time ETH/USDT Perpetual Futures feed (OKX WebSocket).
 - **Betting System (Blockchain)**:
     - Currency: "**tCROSS**" (Native Token of Cross testnet).
-    - **Authentication**: **Privy.io** (Email, Social, Wallet).
+    - **Authentication**: **Reown AppKit** (WalletConnect v3).
     - **Deposit/Withdraw**: Via Shop (future integration).
 - **Grid System**: 10 columns, multipliers based on probability.
 
@@ -12,11 +12,11 @@
 - **Chart**: Thick Light Purple line with Bloom.
 - **Background**: Deep Magenta/Purple.
 - **UI**: Glassmorphism panels, Neon accents.
-- **Login Modal**: Dark theme, rounded buttons, specific "CROSSx" branding.
+- **Login**: Reown AppKit Modal (Dark theme, Euphoria Green accents).
 
 ## Camera & Time
 - Fixed Head Position (25% screen width).
 - 100-second scroll window.
 
 ## Known Issues
-- `VITE_PRIVY_APP_ID` needs to be set in `.env` for auth to work.
+- `VITE_REOWN_PROJECT_ID` should be set in `.env` for production use.

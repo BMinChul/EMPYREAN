@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useGameServer, useAsset } from '@agent8/gameserver';
-import { usePrivy } from '@privy-io/react-auth';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, AlertCircle, X, HelpCircle, Coins, LogOut, ShoppingBag, ArrowRightLeft, ExternalLink } from 'lucide-react';
+import { useAppKit } from '@reown/appkit/react';
+import { useAccount, useDisconnect } from 'wagmi';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, HelpCircle, ShoppingBag, LogOut, X } from 'lucide-react';
 import Assets from '../assets.json';
-import LoginModal from './LoginModal';
-
 import { crossTestnet } from '../wagmi';
 
 const UIOverlay: React.FC = () => {
@@ -16,12 +15,13 @@ const UIOverlay: React.FC = () => {
     tokenPrice
   } = useGameStore();
   
-  const { connected, server, connect: connectServer, disconnect: disconnectServer } = useGameServer();
+  const { connected, server, connect: connectServer } = useGameServer();
   const { assets, burnAsset, mintAsset } = useAsset();
   
-  // Privy Hooks for Authentication
-  const { authenticated, user, logout } = usePrivy();
-  const address = user?.wallet?.address;
+  // WalletConnect / Reown Hooks
+  const { open } = useAppKit();
+  const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
 
   // Safe Balance Calculation (Use Store/Server Balance only)
   const displayBalance = React.useMemo(() => {
@@ -32,13 +32,10 @@ const UIOverlay: React.FC = () => {
   const [prevPrice, setPrevPrice] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [isOpeningShop, setIsOpeningShop] = useState(false);
 
   // --- Auto-Connect GameServer (Backend) ---
   useEffect(() => {
     // Connect to game server if not connected
-    // Note: Server authentication might need to be updated to support Privy explicitly in the future
     if (!connected && connectServer) {
         connectServer();
     }
@@ -113,25 +110,11 @@ const UIOverlay: React.FC = () => {
   const trendColor = trend === 'up' ? '#00ff9d' : '#ff3b30';
 
   const handleConnect = () => {
-    setIsLoginModalOpen(true);
+    open({ view: 'Connect' });
   };
 
-  const handleDisconnect = async () => {
-    await logout();
-    // disconnectServer(); // Optional
-  };
-
-  const openShop = async () => {
-    if (!server) return;
-    setIsOpeningShop(true);
-    try {
-        const url = await server.getCrossRampShopUrl("en");
-        if (url) window.open(url, "CrossRampShop", "width=1200,height=800");
-    } catch (e) {
-        console.error("Failed to open shop:", e);
-    } finally {
-        setIsOpeningShop(false);
-    }
+  const handleDisconnect = () => {
+    disconnect();
   };
 
   // Formatting: $0,000.00
@@ -191,7 +174,7 @@ const UIOverlay: React.FC = () => {
 
       {/* --- Bottom Left: Balance & Wallet --- */}
       <div className="widget-panel bottom-left glass-panel pointer-events-auto flex items-center gap-4">
-        {!authenticated ? (
+        {!isConnected ? (
           <button 
             onClick={handleConnect}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-md transition-all font-bold tracking-wide uppercase text-xs shadow-lg shadow-blue-500/20"
@@ -353,12 +336,6 @@ const UIOverlay: React.FC = () => {
             </div>
         </div>
       )}
-
-      {/* --- Login Modal --- */}
-      <LoginModal 
-        isOpen={isLoginModalOpen} 
-        onClose={() => setIsLoginModalOpen(false)} 
-      />
     </div>
   );
 };
