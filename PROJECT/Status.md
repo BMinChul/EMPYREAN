@@ -13,6 +13,7 @@
 - **Deployment**: Successfully deployed to Crossramp testnet (UUID: `019b76d6...`).
 - **UI Update**: Replaced local balance state with server-authoritative asset state.
 - **Assets**: Generated icons for Token and Credits.
+- **UI Update**: Added "Get EUP Tokens" widget to main UI with Forge link and copyable address (`0xCc...`).
 
 ## Next Steps
 - [ ] Add "Cash Out" button for active bets.
