@@ -1,16 +1,17 @@
 # Status
 
 ## Active Work
-- **Completed**: Implemented Crosschain USDT Betting (Crossramp Integration).
-    - Deployed "Euphoria Token" (EUPH) and "Credits" (CRED) to testnet.
-    - Added "Deposit / Shop" button for token swapping.
-    - Synced game balance with server-side `useAsset` hook.
-    - Updated betting logic to Burn/Mint assets on server.
+- **Completed**: Implemented tCROSS Token System.
+    - Added `GuidePopup` to explain token acquisition.
+    - Updated `UIOverlay` to display tCROSS balance and dynamic USD value.
+    - Integrated simulated `tokenPrice` fluctuation ($0.80 - $1.80).
+    - Refactored Betting/Winning logic to convert USD values to tCROSS tokens.
+    - Added "Swap" functionality via clicking the balance bar.
 
 ## Recent Activity
-- **Blockchain**: Integrated `@agent8/gameserver` asset management.
-- **UI**: Added Wallet connection and Balance display in `UIOverlay`.
-- **Game Logic**: Refactored `MainScene` to use `gameStore` bridge for asset operations.
+- **Blockchain**: Switched logic to treat "Credits" asset as "tCROSS".
+- **UI**: Added Info button `(!)` and improved Wallet/Balance visibility.
+- **Store**: Added `requestBet` and `requestWin` actions with currency conversion.
 
 ## Next Steps
 - [ ] Add "Cash Out" button for active bets.

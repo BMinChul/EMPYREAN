@@ -536,8 +536,12 @@ export class MainScene extends Phaser.Scene {
     }
 
     const store = useGameStore.getState();
-    if (store.balance < store.betAmount) {
+    // Check balance in TOKENS against bet amount converted to TOKENS
+    const costInTokens = store.betAmount / store.tokenPrice;
+    
+    if (store.balance < costInTokens) {
         this.sound.play('sfx_error');
+        // Optional: Show "Insufficient Funds" text or shake UI
         return;
     }
 
