@@ -2,6 +2,9 @@
 
 ## Active Work
 - **Bug Fixes**:
+    - **Fixed Vite Build Error**: 
+        - Reordered imports in `src/main.tsx` (imports must be top-level).
+        - Updated `index.html` script path to be relative (`src/main.tsx`) to match `vite.config.ts` base.
     - **Fixed Recursion Error**: Updated `UIOverlay.tsx` to prevent infinite loop when syncing assets (added value check).
     - **Fixed Chain Config**: Updated `wagmi.ts` to use standard CrossFi Testnet settings (ID: 4157, RPC: https://rpc.testnet.ms).
     - **Optimized Performance**: Reduced balance polling frequency to 10s.
