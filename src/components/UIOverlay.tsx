@@ -1,30 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useGameServer, useAsset } from '@agent8/gameserver';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ShoppingBag } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, AlertCircle, X, HelpCircle, Coins } from 'lucide-react';
+import Assets from '../assets.json';
 
 const UIOverlay: React.FC = () => {
   const { 
     currentPrice, balance, betAmount, setBetAmount, 
     lastWinAmount, setLastWinAmount,
-    pendingBet, pendingWin, clearPendingBet, clearPendingWin, setBalance
+    pendingBet, pendingWin, clearPendingBet, clearPendingWin, setBalance,
+    tokenPrice
   } = useGameStore();
   
-  const { connected, server } = useGameServer();
+  const { connected, server, connect } = useGameServer();
   const { assets, burnAsset, mintAsset } = useAsset();
   
   const [showWin, setShowWin] = useState(false);
   const [prevPrice, setPrevPrice] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   // --- Asset Synchronization ---
   useEffect(() => {
-    if (assets && typeof assets['credits'] === 'number') {
-      // Only sync if significant difference (to avoid jitter from optimistic updates)
-      // Or simply sync always if we trust server speed. 
-      // Let's trust server but allow optimistic updates to hold for a bit?
-      // Actually, simple sync is safest.
-      setBalance(assets['credits']);
+    // Sync tCROSS balance (using 'tcross' key)
+    if (assets && typeof assets['tcross'] === 'number') {
+      setBalance(assets['tcross']);
     }
   }, [assets, setBalance]);
 
@@ -32,24 +32,29 @@ const UIOverlay: React.FC = () => {
   useEffect(() => {
     if (pendingBet !== null && pendingBet > 0 && !isProcessing) {
         setIsProcessing(true);
-        burnAsset('credits', pendingBet)
+        // Convert USD Bet to Tokens
+        const tokenAmount = pendingBet / tokenPrice;
+        
+        burnAsset('tcross', tokenAmount)
             .then(() => {
                 clearPendingBet();
             })
             .catch(err => {
                 console.error("Bet failed:", err);
-                // Revert balance on failure?
-                // setBalance(balance + pendingBet);
+                // Revert optimistic balance on failure if needed
             })
             .finally(() => setIsProcessing(false));
     }
-  }, [pendingBet, burnAsset, clearPendingBet, isProcessing]);
+  }, [pendingBet, burnAsset, clearPendingBet, isProcessing, tokenPrice]);
 
   // --- Process Wins (Mint) ---
   useEffect(() => {
     if (pendingWin !== null && pendingWin > 0 && !isProcessing) {
         setIsProcessing(true);
-        mintAsset('credits', pendingWin)
+        // Convert USD Win to Tokens
+        const tokenAmount = pendingWin / tokenPrice;
+
+        mintAsset('tcross', tokenAmount)
             .then(() => {
                 clearPendingWin();
             })
@@ -58,7 +63,7 @@ const UIOverlay: React.FC = () => {
             })
             .finally(() => setIsProcessing(false));
     }
-  }, [pendingWin, mintAsset, clearPendingWin, isProcessing]);
+  }, [pendingWin, mintAsset, clearPendingWin, isProcessing, tokenPrice]);
 
 
   // Win Notification logic
@@ -81,23 +86,12 @@ const UIOverlay: React.FC = () => {
   const trend = currentPrice >= prevPrice ? 'up' : 'down';
   const trendColor = trend === 'up' ? '#00ff9d' : '#ff3b30';
 
-  const openShop = async () => {
-    if (!connected || !server) return;
-    try {
-      const url = await server.getCrossRampShopUrl("en");
-      // Open centered popup
-      const width = 1024;
-      const height = 768;
-      const left = (window.screen.width - width) / 2;
-      const top = (window.screen.height - height) / 2;
-      window.open(url, "CrossRampShop", `width=${width},height=${height},left=${left},top=${top}`);
-    } catch (error) {
-      console.error("Failed to open Shop:", error);
-    }
+  const handleConnect = () => {
+    if (connect) connect();
   };
 
   // Formatting: $0,000.00
-  const fmtPrice = (val: number) => {
+  const fmtUSD = (val: number) => {
     return val.toLocaleString('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -106,8 +100,8 @@ const UIOverlay: React.FC = () => {
     });
   };
 
-  // Formatting: 0.00 Credits
-  const fmtCredits = (val: number) => {
+  // Formatting: 0.00 Tokens
+  const fmtTokens = (val: number) => {
     return val.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -126,7 +120,7 @@ const UIOverlay: React.FC = () => {
             <span className="label text-[9px] tracking-widest text-cyan-400 font-bold mb-0.5">ETH-USDT SWAP</span>
             <div className="value-row flex items-center gap-2">
               <span className="value-lg text-xl font-bold font-mono tracking-wider text-white">
-                {fmtPrice(currentPrice)}
+                {fmtUSD(currentPrice)}
               </span>
               {trend === 'up' ? 
                 <TrendingUp size={14} color={trendColor} /> : 
@@ -142,56 +136,161 @@ const UIOverlay: React.FC = () => {
         <CheckCircle2 size={16} className="text-emerald-400" />
         <span className="text-gray-300 font-bold text-xs uppercase tracking-wide">You won</span>
         <span className="text-yellow-400 font-mono font-bold text-sm">
-          {fmtCredits(lastWinAmount)} CREDITS
+          {fmtUSD(lastWinAmount)}
+        </span>
+        <span className="text-xs text-gray-500 font-mono">
+          (+{fmtTokens(lastWinAmount / tokenPrice)} tCROSS)
         </span>
       </div>
 
-      {/* --- Bottom Left: Balance & Shop --- */}
+      {/* --- Bottom Left: Balance & Wallet --- */}
       <div className="widget-panel bottom-left glass-panel pointer-events-auto flex items-center gap-4">
-        <div className="panel-row flex items-center gap-3">
-          <div className="icon-box wallet neon-border flex items-center justify-center w-8 h-8 rounded bg-emerald-900/30 border border-emerald-500/30">
-            <Wallet size={16} color="#00ff9d" />
-          </div>
-          <div className="col flex flex-col">
-            <span className="label text-[9px] tracking-widest text-emerald-400 font-bold mb-0.5">CREDITS (USDT)</span>
-            <span className="value-md text-lg font-bold text-white font-mono tracking-wide">
-              {fmtCredits(balance)}
-            </span>
-          </div>
-        </div>
+        {!connected ? (
+          <button 
+            onClick={handleConnect}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md transition-colors font-bold tracking-wide uppercase text-xs"
+          >
+            <Wallet size={16} />
+            Connect Wallet
+          </button>
+        ) : (
+          <div className="flex items-center gap-4">
+            <div className="panel-row flex items-center gap-3">
+              <div className="relative">
+                <img 
+                    src={Assets.ui.icons.tcross.url} 
+                    alt="Token" 
+                    className="w-10 h-10 rounded-full border border-yellow-500/30 shadow-[0_0_10px_rgba(255,215,0,0.2)]"
+                />
+                <div className="absolute -bottom-1 -right-1 bg-black/80 rounded-full p-0.5 border border-white/10">
+                    <Coins size={10} className="text-yellow-400" />
+                </div>
+              </div>
+              <div className="col flex flex-col">
+                <span className="label text-[9px] tracking-widest text-yellow-400 font-bold mb-0.5">
+                    tCROSS BALANCE
+                </span>
+                <div className="flex flex-col leading-tight">
+                    <span className="value-md text-lg font-bold text-white font-mono tracking-wide">
+                    {fmtTokens(balance)}
+                    </span>
+                    <span className="text-[10px] text-gray-400 font-mono">
+                    ≈ {fmtUSD(balance * tokenPrice)}
+                    </span>
+                </div>
+              </div>
+            </div>
 
-        <div className="w-px h-8 bg-white/10 mx-1"></div>
-
-        <button 
-            onClick={openShop}
-            className="flex items-center gap-2 px-3 py-2 bg-indigo-600/80 hover:bg-indigo-500/80 text-white rounded-md transition-colors border border-indigo-400/30"
-        >
-            <ShoppingBag size={14} />
-            <span className="text-xs font-bold uppercase tracking-wide">Deposit / Shop</span>
-        </button>
+            {/* Help Button */}
+            <button 
+                onClick={() => setShowHelp(true)}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center border border-white/10 transition-colors group"
+            >
+                <img src={Assets.ui.icons.info.url} alt="Info" className="w-4 h-4 opacity-70 group-hover:opacity-100" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* --- Bottom Right: Bet Controls --- */}
       <div className="widget-panel bottom-right glass-panel pointer-events-auto">
         <div className="flex flex-col items-end gap-1">
-          <span className="label-center text-[9px] tracking-[0.2em] text-gray-400 mb-2 font-bold uppercase">BET SIZE</span>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] text-gray-500 font-mono">1 tCROSS = {fmtUSD(tokenPrice)}</span>
+            <span className="label-center text-[9px] tracking-[0.2em] text-gray-400 font-bold uppercase">BET SIZE (USD)</span>
+          </div>
           <div className="bet-grid grid grid-cols-3 gap-1.5">
-            {[1, 5, 10, 25, 50, 100].map(amt => (
-              <button 
-                key={amt}
-                className={`bet-btn px-4 py-2 text-xs font-mono font-bold rounded-md border transition-all duration-200 relative overflow-hidden group
-                  ${betAmount === amt 
-                    ? 'bg-yellow-400 text-black border-yellow-400 shadow-[0_0_10px_rgba(255,215,0,0.3)] scale-100 z-10' 
-                    : 'bg-white/5 text-gray-400 border-white/5 hover:border-white/20 hover:text-white hover:bg-white/10'
-                  }`}
-                onClick={() => setBetAmount(amt)}
-              >
-                <span className="relative z-10">{amt}</span>
-              </button>
-            ))}
+            {[1, 5, 10, 25, 50, 100].map(amt => {
+              const reqTokens = amt / tokenPrice;
+              const canAfford = balance >= reqTokens;
+              
+              return (
+                <button 
+                    key={amt}
+                    disabled={!canAfford}
+                    className={`bet-btn px-4 py-2 text-xs font-mono font-bold rounded-md border transition-all duration-200 relative overflow-hidden group
+                    ${betAmount === amt 
+                        ? 'bg-yellow-400 text-black border-yellow-400 shadow-[0_0_10px_rgba(255,215,0,0.3)] scale-100 z-10' 
+                        : canAfford
+                            ? 'bg-white/5 text-gray-400 border-white/5 hover:border-white/20 hover:text-white hover:bg-white/10'
+                            : 'bg-red-900/10 text-red-700/50 border-red-900/10 cursor-not-allowed opacity-50'
+                    }`}
+                    onClick={() => setBetAmount(amt)}
+                >
+                    <div className="flex flex-col items-center">
+                        <span className="relative z-10">${amt}</span>
+                        <span className="text-[8px] opacity-60 font-normal">{reqTokens} tCROSS</span>
+                    </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
+
+      {/* --- Help Popup --- */}
+      {showHelp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto p-4">
+            <div className="bg-[#1a1b26] border border-white/10 rounded-xl max-w-md w-full shadow-2xl overflow-hidden relative animate-in fade-in zoom-in duration-200">
+                {/* Header */}
+                <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
+                    <div className="flex items-center gap-2">
+                        <HelpCircle size={18} className="text-cyan-400" />
+                        <h3 className="text-white font-bold text-sm tracking-wide">HOW TO GET tCROSS</h3>
+                    </div>
+                    <button 
+                        onClick={() => setShowHelp(false)}
+                        className="text-gray-400 hover:text-white transition-colors"
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
+                
+                {/* Content */}
+                <div className="p-6 space-y-4">
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-900/20 border border-blue-500/20">
+                        <div className="mt-1 min-w-[24px] h-6 flex items-center justify-center rounded-full bg-blue-500/20 text-blue-400 font-bold text-xs">1</div>
+                        <div>
+                            <h4 className="text-gray-200 text-xs font-bold mb-1">Connect Wallet</h4>
+                            <p className="text-gray-400 text-xs leading-relaxed">
+                                Click the "Connect Wallet" button in the bottom left corner to link your CrossChain testnet wallet.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-purple-900/20 border border-purple-500/20">
+                        <div className="mt-1 min-w-[24px] h-6 flex items-center justify-center rounded-full bg-purple-500/20 text-purple-400 font-bold text-xs">2</div>
+                        <div>
+                            <h4 className="text-gray-200 text-xs font-bold mb-1">Use the Faucet</h4>
+                            <p className="text-gray-400 text-xs leading-relaxed">
+                                Visit the <span className="text-purple-300 underline cursor-pointer hover:text-purple-200">CrossChain Faucet</span> to claim free tCROSS testnet tokens.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-900/20 border border-emerald-500/20">
+                        <div className="mt-1 min-w-[24px] h-6 flex items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-xs">3</div>
+                        <div>
+                            <h4 className="text-gray-200 text-xs font-bold mb-1">Start Betting</h4>
+                            <p className="text-gray-400 text-xs leading-relaxed">
+                                Once you have tokens, your balance will update automatically. Select a dollar amount to bet!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 bg-black/20 text-center">
+                    <button 
+                        onClick={() => setShowHelp(false)}
+                        className="w-full py-2 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors"
+                    >
+                        GOT IT
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 };

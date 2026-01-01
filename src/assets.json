@@ -15,5 +15,17 @@
         "description": "Error or invalid action sound"
       }
     }
+  },
+  "ui": {
+    "icons": {
+      "tcross": {
+        "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/ui_icon-1767229817635.jpg",
+        "description": "tCROSS Token Icon"
+      },
+      "info": {
+        "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/ui_icon-1767229819480.jpg",
+        "description": "Info / Help Icon"
+      }
+    }
   }
 }
