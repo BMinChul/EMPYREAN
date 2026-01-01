@@ -267,7 +267,7 @@ const UIOverlay: React.FC = () => {
           <div className="bet-grid grid grid-cols-3 gap-1.5">
             {[1, 5, 10, 25, 50, 100].map(amt => {
               const reqTokens = amt / tokenPrice;
-              const canAfford = balance >= reqTokens;
+              const canAfford = displayBalance >= reqTokens;
               
               return (
                 <button 
