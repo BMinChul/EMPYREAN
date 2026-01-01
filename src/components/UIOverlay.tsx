@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useGameServer, useAsset } from '@agent8/gameserver';
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
-import { injected } from 'wagmi/connectors';
+import { usePrivy } from '@privy-io/react-auth';
 import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, AlertCircle, X, HelpCircle, Coins, LogOut, ShoppingBag, ArrowRightLeft, ExternalLink } from 'lucide-react';
 import Assets from '../assets.json';
 import LoginModal from './LoginModal';
@@ -18,10 +17,9 @@ const UIOverlay: React.FC = () => {
   const { connected, server, connect: connectServer, disconnect: disconnectServer } = useGameServer();
   const { assets, burnAsset, mintAsset } = useAsset();
   
-  // Wagmi Hooks for Real Wallet Connection
-  const { address, isConnected: isWalletConnected } = useAccount();
-  const { connect: connectWallet, isPending: isWalletConnecting } = useConnect();
-  const { disconnect: disconnectWallet } = useDisconnect();
+  // Privy Hooks for Authentication
+  const { authenticated, user, logout } = usePrivy();
+  const address = user?.wallet?.address;
   
   const [showWin, setShowWin] = useState(false);
   const [prevPrice, setPrevPrice] = useState(0);
@@ -32,7 +30,8 @@ const UIOverlay: React.FC = () => {
 
   // --- Auto-Connect GameServer (Backend) ---
   useEffect(() => {
-    // Always keep GameServer connected for game logic, regardless of Wallet state
+    // Connect to game server if not connected
+    // Note: Server authentication might need to be updated to support Privy explicitly in the future
     if (!connected && connectServer) {
         connectServer();
     }
@@ -59,7 +58,6 @@ const UIOverlay: React.FC = () => {
             })
             .catch(err => {
                 console.error("Bet failed:", err);
-                // Revert optimistic balance on failure if needed
             })
             .finally(() => setIsProcessing(false));
     }
@@ -108,10 +106,9 @@ const UIOverlay: React.FC = () => {
     setIsLoginModalOpen(true);
   };
 
-  const handleDisconnect = () => {
-    disconnectWallet();
-    // Optional: Also disconnect game server if you want full logout
-    // disconnectServer(); 
+  const handleDisconnect = async () => {
+    await logout();
+    // disconnectServer(); // Optional
   };
 
   const openShop = async () => {
@@ -124,16 +121,6 @@ const UIOverlay: React.FC = () => {
         console.error("Failed to open shop:", e);
     } finally {
         setIsOpeningShop(false);
-    }
-  };
-
-  const openForge = async () => {
-    if (!server) return;
-    try {
-        const url = await server.getCrossRampForgeUrl("en");
-        if (url) window.open(url, "CrossRampForge", "width=1200,height=800");
-    } catch (e) {
-        console.error("Failed to open forge:", e);
     }
   };
 
@@ -192,23 +179,13 @@ const UIOverlay: React.FC = () => {
 
       {/* --- Bottom Left: Balance & Wallet --- */}
       <div className="widget-panel bottom-left glass-panel pointer-events-auto flex items-center gap-4">
-        {!isWalletConnected ? (
+        {!authenticated ? (
           <button 
             onClick={handleConnect}
-            disabled={isWalletConnecting}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-md transition-all font-bold tracking-wide uppercase text-xs shadow-lg shadow-blue-500/20"
           >
-            {isWalletConnecting ? (
-                <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Connecting...
-                </>
-            ) : (
-                <>
-                    <Wallet size={16} />
-                    Connect Wallet
-                </>
-            )}
+            <Wallet size={16} />
+            Connect Wallet
           </button>
         ) : (
           <div className="flex items-center gap-4">
@@ -228,9 +205,6 @@ const UIOverlay: React.FC = () => {
                     <span className="label text-[9px] tracking-widest text-yellow-400 font-bold mb-0.5">
                         tCROSS BALANCE
                     </span>
-                    {/* <button onClick={openShop} disabled={isOpeningShop} className="text-[8px] px-1.5 py-0.5 rounded bg-blue-600/30 text-blue-300 hover:bg-blue-600 hover:text-white transition-colors border border-blue-500/30 flex items-center gap-1">
-                        {isOpeningShop ? 'LOADING...' : 'DEPOSIT'} <ExternalLink size={8} />
-                    </button> */}
                 </div>
                 <div className="flex flex-col leading-tight">
                     <span className="value-md text-lg font-bold text-white font-mono tracking-wide">
@@ -241,18 +215,6 @@ const UIOverlay: React.FC = () => {
                     </span>
                 </div>
               </div>
-            </div>
-
-            {/* Wallet Actions */}
-            <div className="flex items-center gap-2">
-                {/* <button 
-                    onClick={openForge}
-                    className="h-8 px-3 rounded bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 border border-purple-500/30 flex items-center gap-2 transition-all hover:shadow-[0_0_10px_rgba(168,85,247,0.2)]"
-                    title="Swap Tokens"
-                >
-                    <ArrowRightLeft size={14} />
-                    <span className="text-[10px] font-bold">SWAP</span>
-                </button> */}
             </div>
 
             <div className="w-px h-8 bg-white/10 mx-1" />
