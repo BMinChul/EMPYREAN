@@ -4,7 +4,7 @@ import { useGameServer, useAsset } from '@agent8/gameserver';
 import { useAppKit } from '@reown/appkit/react';
 import { useAccount, useDisconnect, useBalance, useSendTransaction } from 'wagmi';
 import { parseEther } from 'viem';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, HelpCircle, LogOut, X } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, HelpCircle, LogOut, X, AlertCircle } from 'lucide-react';
 import Assets from '../assets.json';
 import { crossTestnet } from '../wagmi';
 
@@ -12,7 +12,7 @@ const UIOverlay: React.FC = () => {
   const { 
     currentPrice, balance: storeBalance, betAmount, setBetAmount, 
     lastWinAmount, setLastWinAmount,
-    pendingBet, pendingWin, clearPendingBet, clearPendingWin, setBalance,
+    pendingBet, pendingWin, clearPendingBet, clearPendingWin, cancelPendingBet, setBalance,
     tokenPrice
   } = useGameStore();
   
@@ -34,6 +34,7 @@ const UIOverlay: React.FC = () => {
   }, [storeBalance]);
 
   const [showWin, setShowWin] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [prevPrice, setPrevPrice] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -75,11 +76,19 @@ const UIOverlay: React.FC = () => {
             })
             .catch(err => {
                 console.error("Bet failed:", err);
-                // Optionally restore balance here if optimistic update was wrong
+                cancelPendingBet(); // Refund and stop loop
+                
+                // Friendly error message
+                let msg = "Transaction Failed";
+                if (err.message?.includes("User rejected")) msg = "Bet Cancelled by User";
+                else if (err.message?.includes("insufficient funds")) msg = "Insufficient Funds";
+                
+                setErrorMessage(msg);
+                setTimeout(() => setErrorMessage(null), 3000);
             })
             .finally(() => setIsProcessing(false));
     }
-  }, [pendingBet, sendTransactionAsync, clearPendingBet, isProcessing, tokenPrice]);
+  }, [pendingBet, sendTransactionAsync, clearPendingBet, cancelPendingBet, isProcessing, tokenPrice]);
 
   // --- Process Wins (Mint) ---
   useEffect(() => {
@@ -182,6 +191,16 @@ const UIOverlay: React.FC = () => {
           (+{fmtTokens(lastWinAmount / tokenPrice)} tCROSS)
         </span>
       </div>
+
+      {/* --- Error Toast --- */}
+      {errorMessage && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-4">
+            <div className="glass-panel px-4 py-2 flex items-center gap-2 border-red-500/30 bg-red-900/40">
+                <AlertCircle size={16} className="text-red-400" />
+                <span className="text-red-200 font-bold text-xs tracking-wide">{errorMessage}</span>
+            </div>
+        </div>
+      )}
 
       {/* --- Bottom Left: Balance & Wallet --- */}
       <div className="widget-panel bottom-left glass-panel pointer-events-auto flex items-center gap-4">

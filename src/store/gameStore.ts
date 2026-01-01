@@ -23,6 +23,7 @@ interface GameState {
   // Actions called by React after processing
   clearPendingBet: () => void;
   clearPendingWin: () => void;
+  cancelPendingBet: () => void; // Restores balance if bet fails
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -65,4 +66,13 @@ export const useGameStore = create<GameState>((set) => ({
 
   clearPendingBet: () => set({ pendingBet: null }),
   clearPendingWin: () => set({ pendingWin: null }),
+  
+  cancelPendingBet: () => set((state) => {
+    if (!state.pendingBet) return {};
+    const refundTokens = state.pendingBet / state.tokenPrice;
+    return {
+        pendingBet: null,
+        balance: state.balance + refundTokens // Refund the optimistic deduction
+    };
+  }),
 }));

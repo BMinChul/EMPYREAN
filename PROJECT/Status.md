@@ -1,18 +1,20 @@
 # Status
 
 ## Active Work
-- **Gameplay Pacing Update**:
-    - **Grid Reduced**: 10 columns -> 6 columns.
-    - **Speed Increased**: Visible time window reduced from 100s -> 60s (results in faster scroll).
-    - **Head Position**: Moved from 25% -> 40% (Aligns with "Left 3 Waiting / Right 3 Betting" split).
-    - **Logic**: Betting multipliers and visibility checks adapted to new 6-col layout.
+- **Error Handling**:
+    - **Fix**: Implemented graceful handling for rejected/failed bet transactions.
+    - **Fix**: Added `cancelPendingBet` to `gameStore` to refund optimistic balance updates on error.
+    - **UI**: Added Error Toast notification for failed transactions (e.g., "Bet Cancelled by User").
+    - **Loop Prevention**: Fixed issue where failed bets would infinitely retry.
 
 ## Recent Activity
+- **Gameplay Pacing Update**:
+    - Grid Reduced to 6 columns.
+    - Time Window reduced to 60s (Faster scroll).
+    - Head Position moved to 40%.
 - **Native Token Integration**:
-    - **Update**: Fixed Balance Display to use `useBalance` (Native tCROSS).
-    - **Update**: Replaced `burnAsset` with `sendTransaction` (Native Burn).
-- **Authentication Migration**:
-    - Migrated to **Reown AppKit**.
+    - Fixed Balance Display to use `useBalance` (Native tCROSS).
+    - Replaced `burnAsset` with `sendTransaction` (Native Burn).
 
 ## Next Steps
 - [ ] **Winning Logic**: Verify if `mintAsset` works or needs replacement with a Treasury Payout system.
