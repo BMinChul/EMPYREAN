@@ -39,13 +39,16 @@ export class MainScene extends Phaser.Scene {
   private gridLabels: Phaser.GameObjects.Text[] = [];
 
   // --- Configuration ---
-  // The screen width represents exactly 100 seconds (10 cols * 10 sec)
-  private timeWindowSeconds: number = 100; 
+  // The screen width represents exactly 60 seconds (6 cols * 10 sec)
+  private timeWindowSeconds: number = 60; 
   private pixelsPerSecond: number = 0; // Calculated in create()
   
   // Price Scale: Vertical pixels per dollar
   private pixelPerDollar: number = 200; 
   private gridPriceInterval: number = 0.5; // Every $0.50
+  
+  // Grid
+  private gridCols: number = 6;
   
   // --- State ---
   private initialPrice: number | null = null;
@@ -264,10 +267,11 @@ export class MainScene extends Phaser.Scene {
     const viewportW = this.scale.width;
     const viewportH = this.scale.height;
     
-    const targetScrollX = this.headX - (viewportW * 0.25);
+    const targetScrollX = this.headX - (viewportW * 0.40);
     const targetScrollY = this.headY - (viewportH * 0.5);
 
     this.cameras.main.scrollX = targetScrollX;
+
     this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, targetScrollY, 0.2);
 
     // --- 3. History ---
@@ -352,10 +356,11 @@ export class MainScene extends Phaser.Scene {
   // Inverse Gaussian PDF Model (Inverse Probability)
   // Formula: Multiplier = BaseScale * sqrt(t) * exp( x^2 / (2 * sigma^2 * t) ) * (1 - HouseEdge)
   private calculateDynamicMultiplier(targetPrice: number, colIndex: number): number {
-      // 1. Time (t): (colIndex - 5) + 1.0
-      // Ensures betting zone starts from 1s to avoid division by zero.
-      // colIndex 5 -> t=1, colIndex 9 -> t=5
-      const t = Math.max(1.0, (colIndex - 5) + 1.0);
+      // 1. Time (t): Normalized distance from Head (at col 2.4)
+      // Betting starts at Col 3 (0.5 screen width). 
+      // Col 3 center = 3.5. Head = 2.4. Diff = 1.1
+      const headColPos = this.gridCols * 0.4; // 2.4
+      const t = Math.max(1.0, (colIndex - headColPos));
 
       // 2. Distance (x): Absolute difference between Target and Current
       const x = Math.abs(targetPrice - this.currentPrice);
@@ -382,16 +387,11 @@ export class MainScene extends Phaser.Scene {
   // Returns alpha 0.0 to 1.0 based on screen position (0.0 to 1.0)
   // Used for both visual rendering and betting restrictions
   private getTextFade(normalizedScreenX: number): number {
-      // Betting Zone starts at 50% (0.5)
-      // Fade transition: 0.5 (0%) -> 0.6 (80%) -> 0.625 (100%)
-      // Smoother gradient: (x - 0.5) * 6
-      // 0.50 -> 0.0
-      // 0.55 -> 0.3
-      // 0.57 -> 0.42 (Threshold for betting)
-      // 0.66 -> 1.0
+      // Betting Zone starts at 50% (0.5) - "Right 3 columns"
+      // Fade transition: 0.45 (Just after head) -> 0.55
       
-      if (normalizedScreenX < 0.5) return 0;
-      return Phaser.Math.Clamp((normalizedScreenX - 0.5) * 6, 0, 1);
+      if (normalizedScreenX < 0.45) return 0;
+      return Phaser.Math.Clamp((normalizedScreenX - 0.45) * 10, 0, 1);
   }
 
   private drawGridAndAxis() {
@@ -406,7 +406,7 @@ export class MainScene extends Phaser.Scene {
     const width = this.scale.width;
     const height = this.scale.height;
 
-    const colWidth = width / 10;
+    const colWidth = width / this.gridCols;
     
     const gridStartTime = Math.floor(scrollX / colWidth) * colWidth;
     const gridEndTime = scrollX + width;
@@ -454,7 +454,7 @@ export class MainScene extends Phaser.Scene {
         const x = c * colWidth;
         const screenX = x - scrollX;
         const normalizedScreenX = screenX / width;
-        const colIndexOnScreen = Math.floor(normalizedScreenX * 10); // 0-9
+        const colIndexOnScreen = Math.floor(normalizedScreenX * this.gridCols); 
 
         // Gradient Fade-in Logic using Helper
         const textFade = this.getTextFade(normalizedScreenX);
@@ -582,10 +582,10 @@ export class MainScene extends Phaser.Scene {
     }
 
     // 2. Snap to Grid
-    const colWidth = width / 10;
+    const colWidth = width / this.gridCols;
     const colIdx = Math.floor(pointer.worldX / colWidth);
     const cellX = (colIdx * colWidth) + (colWidth/2);
-    const colIndexOnScreen = Math.floor(normalizedClickX * 10);
+    const colIndexOnScreen = Math.floor(normalizedClickX * this.gridCols);
 
     const priceY = -(pointer.worldY / this.pixelPerDollar); 
     const rawPrice = this.initialPrice! + priceY;
