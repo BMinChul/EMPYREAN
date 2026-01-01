@@ -1,12 +1,11 @@
 # Status
 
 ## Active Work
-- **Completed**: Implemented tCROSS Token System.
-    - Added `GuidePopup` to explain token acquisition.
-    - Updated `UIOverlay` to display tCROSS balance and dynamic USD value.
-    - Integrated simulated `tokenPrice` fluctuation ($0.80 - $1.80).
-    - Refactored Betting/Winning logic to convert USD values to tCROSS tokens.
-    - Added "Swap" functionality via clicking the balance bar.
+- **Completed**: Fixed "Stuck on Loading" issue by implementing Simulation Mode fallback.
+    - Added `isSimulation` state to `MainScene`.
+    - Implemented `startSimulation()` with Random Walk logic.
+    - Added 3-second timeout: If OKX feed fails, game auto-starts in simulation mode.
+    - Updated `OKXService` to expose connection status.
 
 ## Recent Activity
 - **Fix**: Added `GameserverProvider` to `main.tsx` to resolve "Missing auth token" error in Shop.

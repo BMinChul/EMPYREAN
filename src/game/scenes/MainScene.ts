@@ -60,6 +60,11 @@ export class MainScene extends Phaser.Scene {
   private jitterOffset: number = 0;
   private jitterTimer: number = 0;
 
+  // Simulation Mode
+  private isSimulation: boolean = false;
+  private currentSimPrice: number = 3500; // Default ETH price
+  private simulationTimer: Phaser.Time.TimerEvent | null = null;
+
   // Visuals
   private headEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
   private goldEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
@@ -132,7 +137,24 @@ export class MainScene extends Phaser.Scene {
     this.okxService = new OKXService((price) => this.handleNewPrice(price));
     this.okxService.connect();
 
-    // 8. Input (Betting)
+    // 8. Connection Timeout / Simulation Fallback
+    this.time.delayedCall(3000, () => {
+        if (this.initialPrice === null) {
+            console.log("OKX Connection timed out or blocked - Starting Simulation Mode");
+            
+            const statusText = this.children.getByName('statusText') as Phaser.GameObjects.Text;
+            if (statusText) {
+                statusText.setText('CONNECTION FAILED - ENTERING SIMULATION MODE');
+                statusText.setColor('#ffaa00');
+            }
+
+            this.time.delayedCall(1000, () => {
+                this.startSimulation();
+            });
+        }
+    });
+
+    // 9. Input (Betting)
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       this.placeBet(pointer);
     });
@@ -254,6 +276,13 @@ export class MainScene extends Phaser.Scene {
 
   private handleNewPrice(price: number) {
     if (!this.sys.isActive()) return;
+    
+    // If we are already in simulation mode, ignore real data to prevent jumps
+    if (this.isSimulation && this.okxService && this.okxService['isConnected']) {
+        // Optional: We could switch back if we implemented smooth transition, 
+        // but for now stick to simulation to avoid glitches.
+        return; 
+    }
 
     if (this.initialPrice === null) {
       this.initialPrice = price;
@@ -265,6 +294,32 @@ export class MainScene extends Phaser.Scene {
 
     const priceDelta = price - this.initialPrice;
     this.targetHeadY = -(priceDelta * this.pixelPerDollar);
+  }
+
+  private startSimulation() {
+      this.isSimulation = true;
+      
+      // Initialize with default if needed
+      if (this.initialPrice === null) {
+          this.handleNewPrice(this.currentSimPrice);
+      }
+
+      // Start loop
+      this.time.addEvent({
+          delay: 500, // Update every 500ms
+          callback: this.updateSimulation,
+          callbackScope: this,
+          loop: true
+      });
+  }
+
+  private updateSimulation() {
+      // Random Walk Logic
+      const volatility = 2.0; // +/- $2.00
+      const change = (Math.random() - 0.5) * 2 * volatility;
+      
+      this.currentSimPrice += change;
+      this.handleNewPrice(this.currentSimPrice);
   }
 
   private drawChart() {

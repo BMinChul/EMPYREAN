@@ -1,7 +1,7 @@
 export class OKXService {
   private ws: WebSocket | null = null;
   private onPriceUpdate: (price: number) => void;
-  private isConnected = false;
+  public isConnected = false;
   private shouldReconnect = true;
 
   constructor(onPriceUpdate: (price: number) => void) {
