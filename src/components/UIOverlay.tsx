@@ -7,7 +7,7 @@ import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, AlertCircle, X,
 import Assets from '../assets.json';
 import LoginModal from './LoginModal';
 
-const TCROSS_ADDRESS = '0x0000000000000000000000000000000000000001';
+import { crossTestnet } from '../wagmi';
 
 const UIOverlay: React.FC = () => {
   const { 
@@ -27,7 +27,7 @@ const UIOverlay: React.FC = () => {
   // Wagmi Hook for real-time Blockchain Balance
   const { data: wagmiBalance } = useBalance({
     address: address as `0x${string}`,
-    token: TCROSS_ADDRESS,
+    chainId: crossTestnet.id,
     query: {
       enabled: !!address,
       refetchInterval: 5000,
