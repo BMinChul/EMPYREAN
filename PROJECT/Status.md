@@ -1,15 +1,16 @@
 # Status
 
 ## Active Work
-- **Token Address Integration**:
-    - **Update**: Configured `UIOverlay.tsx` to use the specific token address `0x0000000000000000000000000000000000000001` for the "Add to Wallet" functionality.
-    - **Context**: Documented the token address in `PROJECT/Context.md`.
+- **Native Token Integration**:
+    - **Update**: Removed "Add to Wallet" functionality for tCROSS in `UIOverlay.tsx`.
+    - **Reasoning**: tCROSS is the native gas token of the network, so it doesn't need to be added as an ERC20 token.
+    - **UI**: Balance display now treats tCROSS purely as the native asset.
 
 ## Recent Activity
+- **Token Address Integration**:
+    - Configured `UIOverlay.tsx` to handle tCROSS as native token.
 - **Token Balance Fix**:
-    - **Issue**: Token balance was showing as 0 because the UI was looking for asset key `'tcross'` while the server configuration (`.crossramp`) used `'credits'`.
-    - **Fix**: Updated `UIOverlay.tsx` to use `'credits'` asset key for balance synchronization, burning (betting), and minting (winning).
-    - **Result**: Game should now correctly display the balance from the game server.
+    - Updated `UIOverlay.tsx` to use `'credits'` asset key for balance synchronization.
 - **Authentication Migration**:
     - Migrated to **Reown AppKit (WalletConnect)**.
     - Replaced `PrivyProvider` with `WagmiProvider`.
