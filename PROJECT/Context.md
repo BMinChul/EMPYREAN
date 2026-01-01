@@ -14,6 +14,7 @@ Chart scrolls horizontally. Win if price line hits the betting box.
 
 ## User Context
 - **Betting**: Uses "**tCROSS**" tokens.
+- **Token Address**: `0x0000000000000000000000000000000000000001` (Precompile/System Contract).
 - **Wallet**: Users connect via **Reown AppKit (WalletConnect)** on **Cross testnet** (ID: 612044).
 - **Visuals**: "Euphoria" style (Deep Purple, Neon, Minimalist).
 

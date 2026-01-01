@@ -1,18 +1,18 @@
 # Status
 
 ## Active Work
+- **Token Address Integration**:
+    - **Update**: Configured `UIOverlay.tsx` to use the specific token address `0x0000000000000000000000000000000000000001` for the "Add to Wallet" functionality.
+    - **Context**: Documented the token address in `PROJECT/Context.md`.
+
+## Recent Activity
 - **Token Balance Fix**:
     - **Issue**: Token balance was showing as 0 because the UI was looking for asset key `'tcross'` while the server configuration (`.crossramp`) used `'credits'`.
     - **Fix**: Updated `UIOverlay.tsx` to use `'credits'` asset key for balance synchronization, burning (betting), and minting (winning).
     - **Result**: Game should now correctly display the balance from the game server.
-
-## Recent Activity
 - **Authentication Migration**:
     - Migrated to **Reown AppKit (WalletConnect)**.
     - Replaced `PrivyProvider` with `WagmiProvider`.
-- **Loading Screen/Crash Fix**:
-    - Implemented `ConfigError` component.
-- **Privy Removal**: Completely uninstalled `@privy-io` packages.
 
 ## Next Steps
 - [ ] **Verify**: Check if balance updates correctly on betting/winning.

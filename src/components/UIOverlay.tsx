@@ -137,6 +137,26 @@ const UIOverlay: React.FC = () => {
     });
   };
 
+  const addTokenToWallet = async () => {
+    if (!window.ethereum) return;
+    try {
+      await window.ethereum.request({
+        method: 'wallet_watchAsset',
+        params: {
+          type: 'ERC20',
+          options: {
+            address: '0x0000000000000000000000000000000000000001',
+            symbol: 'tCROSS',
+            decimals: 18,
+            image: Assets.ui.icons.tcross.url,
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Failed to add token:', error);
+    }
+  };
+
   return (
     <div className="ui-overlay pointer-events-none font-sans">
       {/* --- Top Left: Main Ticker --- */}
@@ -185,16 +205,20 @@ const UIOverlay: React.FC = () => {
         ) : (
           <div className="flex items-center gap-4">
             <div className="panel-row flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5">
-              <div className="relative group">
+              <button 
+                onClick={addTokenToWallet}
+                className="relative group cursor-pointer transition-transform hover:scale-105 active:scale-95"
+                title="Add tCROSS to Wallet"
+              >
                 <img 
                     src={Assets.ui.icons.tcross.url} 
                     alt="tCross Token" 
-                    className="w-10 h-10 rounded-full border border-yellow-500/30 shadow-[0_0_10px_rgba(255,215,0,0.2)] transition-transform group-hover:scale-105"
+                    className="w-10 h-10 rounded-full border border-yellow-500/30 shadow-[0_0_10px_rgba(255,215,0,0.2)]"
                 />
-                <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1 border border-white/20 shadow-lg">
+                <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1 border border-white/20 shadow-lg group-hover:bg-blue-500 transition-colors">
                     <ShoppingBag size={8} className="text-white" />
                 </div>
-              </div>
+              </button>
               <div className="col flex flex-col justify-center">
                 <div className="flex items-center gap-2">
                     <span className="label text-[10px] tracking-widest text-yellow-400 font-bold mb-0.5 uppercase">
