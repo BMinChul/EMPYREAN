@@ -2,7 +2,7 @@
 
 ## Project Overview
 Crypto Arcade: Real-time ETH price betting game ("Euphoria" Style).
-User bets on future price points using Blockchain Tokens (Testnet USDT).
+User bets on future price points using Blockchain Tokens (**tCROSS**).
 Chart scrolls horizontally. Win if price line hits the betting box.
 
 ## Tech Stack
@@ -13,8 +13,8 @@ Chart scrolls horizontally. Win if price line hits the betting box.
 - **Crossramp (Blockchain Layer)**: Asset management and Token swapping.
 
 ## User Context
-- **Betting**: Uses "Credits" pegged 1:1 to Testnet USDT.
-- **Wallet**: Users deposit USDT via Crossramp Shop to get Credits.
+- **Betting**: Uses "**tCROSS**" tokens.
+- **Wallet**: Users connect via Privy (MetaMask, Email, etc.) on **Cross testnet** (ID: 612044).
 - **Visuals**: "Euphoria" style (Deep Purple, Neon, Minimalist).
 
 ## Critical Memory

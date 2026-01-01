@@ -1,25 +1,26 @@
 # Status
 
 ## Active Work
-- **Bug Fixes**:
-    - **Fixed Wallet Connection**: 
-        - Corrected `src/wagmi.ts` to use valid CrossFi Testnet settings (ID: 4157, RPC: https://rpc.testnet.ms, Symbol: XFI).
-        - Previous configuration had outdated ID (612044) and RPC, causing connection failures.
-    - **UI Consistency**: 
-        - Updated `UIOverlay.tsx` to display **XFI** instead of **tCROSS** to match the network's native currency.
-    - **Fixed Vite Build Error**: 
-        - Reordered imports in `src/main.tsx` (imports must be top-level).
-        - Updated `index.html` script path to be relative (`src/main.tsx`).
+- **Network Configuration Fix**:
+    - **Updated Chain Details**: 
+        - Network: **Cross testnet**
+        - ID: **612044**
+        - RPC: `https://testnet.crosstoken.io:22001/`
+        - Symbol: **tCROSS**
+    - **UI Updates**: 
+        - Replaced all "XFI" labels with "**tCROSS**" in `UIOverlay.tsx` and Help modal.
+    - **Wallet Connection**:
+        - Corrected Chain ID should resolve Privy/MetaMask connection failures.
 
 ## Recent Activity
-- **Blockchain Integration**:
-    - **Fixed**: Real Chain ID update to `4157` (CrossFi Testnet).
-    - **Fixed**: UI labels updated to `XFI`.
-    - **Fixed**: Added robust `NaN` handling for balance display in `UIOverlay.tsx`.
+- **Bug Fixes**:
+    - Corrected `src/wagmi.ts` to use valid Cross testnet settings.
+    - Updated `UIOverlay.tsx` to display **tCROSS**.
+    - Fixed Vite Build Error (imports order).
 - **Privy Integration**:
-    - Replaced direct Wagmi connection with **Privy.io** for authentication.
+    - Replaced direct Wagmi connection with **Privy.io**.
 
 ## Next Steps
 - [ ] Monitor price feed stability.
+- [ ] Verify Wallet Connection with new Chain ID.
 - [ ] Add "Cash Out" button for active bets.
-- [ ] Verify Faucet link in Help modal.

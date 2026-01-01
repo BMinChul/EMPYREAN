@@ -200,7 +200,7 @@ const UIOverlay: React.FC = () => {
           {fmtUSD(lastWinAmount)}
         </span>
         <span className="text-xs text-gray-500 font-mono">
-          (+{fmtTokens(lastWinAmount / tokenPrice)} XFI)
+          (+{fmtTokens(lastWinAmount / tokenPrice)} tCROSS)
         </span>
       </div>
 
@@ -230,7 +230,7 @@ const UIOverlay: React.FC = () => {
               <div className="col flex flex-col justify-center">
                 <div className="flex items-center gap-2">
                     <span className="label text-[10px] tracking-widest text-yellow-400 font-bold mb-0.5 uppercase">
-                        XFI
+                        tCROSS
                     </span>
                 </div>
                 <div className="flex flex-col leading-tight">
@@ -273,7 +273,7 @@ const UIOverlay: React.FC = () => {
       <div className="widget-panel bottom-right glass-panel pointer-events-auto">
         <div className="flex flex-col items-end gap-1">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] text-gray-500 font-mono">1 XFI = {fmtUSD(tokenPrice)}</span>
+            <span className="text-[10px] text-gray-500 font-mono">1 tCROSS = {fmtUSD(tokenPrice)}</span>
             <span className="label-center text-[9px] tracking-[0.2em] text-gray-400 font-bold uppercase">BET SIZE (USD)</span>
           </div>
           <div className="bet-grid grid grid-cols-3 gap-1.5">
@@ -296,7 +296,7 @@ const UIOverlay: React.FC = () => {
                 >
                     <div className="flex flex-col items-center">
                         <span className="relative z-10">${amt}</span>
-                        <span className="text-[8px] opacity-60 font-normal">{reqTokens} XFI</span>
+                        <span className="text-[8px] opacity-60 font-normal">{reqTokens} tCROSS</span>
                     </div>
                 </button>
               );
@@ -313,7 +313,7 @@ const UIOverlay: React.FC = () => {
                 <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
                     <div className="flex items-center gap-2">
                         <HelpCircle size={18} className="text-cyan-400" />
-                        <h3 className="text-white font-bold text-sm tracking-wide">HOW TO GET XFI</h3>
+                        <h3 className="text-white font-bold text-sm tracking-wide">HOW TO GET tCROSS</h3>
                     </div>
                     <button 
                         onClick={() => setShowHelp(false)}
@@ -340,7 +340,7 @@ const UIOverlay: React.FC = () => {
                         <div>
                             <h4 className="text-gray-200 text-xs font-bold mb-1">Use the Faucet</h4>
                             <p className="text-gray-400 text-xs leading-relaxed">
-                                Visit the <span className="text-purple-300 underline cursor-pointer hover:text-purple-200">CrossChain Faucet</span> to claim free XFI testnet tokens.
+                                Visit the <span className="text-purple-300 underline cursor-pointer hover:text-purple-200">CrossChain Faucet</span> to claim free tCROSS testnet tokens.
                             </p>
                         </div>
                     </div>
