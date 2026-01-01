@@ -25,7 +25,7 @@ const UIOverlay: React.FC = () => {
   const address = user?.wallet?.address;
   
   // Wagmi Hook for real-time Blockchain Balance
-  const { data: wagmiBalance } = useBalance({
+  const { data: wagmiBalance, isLoading: isBalanceLoading } = useBalance({
     address: address as `0x${string}`,
     chainId: crossTestnet.id,
     query: {
@@ -34,10 +34,14 @@ const UIOverlay: React.FC = () => {
     }
   });
 
-  // Prefer Wagmi balance if available, otherwise fall back to store/server balance
-  const displayBalance = wagmiBalance 
-    ? parseFloat(wagmiBalance.formatted) 
-    : storeBalance;
+  // Safe Balance Calculation with NaN check
+  const displayBalance = React.useMemo(() => {
+    if (wagmiBalance) {
+        const val = parseFloat(wagmiBalance.formatted);
+        return isNaN(val) ? 0 : val;
+    }
+    return isNaN(storeBalance) ? 0 : storeBalance;
+  }, [wagmiBalance, storeBalance]);
 
   const [showWin, setShowWin] = useState(false);
   const [prevPrice, setPrevPrice] = useState(0);
@@ -144,6 +148,7 @@ const UIOverlay: React.FC = () => {
 
   // Formatting: $0,000.00
   const fmtUSD = (val: number) => {
+    if (isNaN(val)) return '$0.00';
     return val.toLocaleString('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -154,6 +159,7 @@ const UIOverlay: React.FC = () => {
 
   // Formatting: 0.00 Tokens
   const fmtTokens = (val: number) => {
+    if (isNaN(val)) return '0.00';
     return val.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
