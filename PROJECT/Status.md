@@ -2,9 +2,10 @@
 
 ## Active Work
 - **Blockchain Integration**:
-    - Configured "Crosschain Testnet" in `wagmi.ts` with RPC `https://testnet.crosstoken.io:22001`.
-    - Added `WagmiProvider` to `main.tsx` for real-time blockchain hooks.
-    - Updated `UIOverlay.tsx` to fetch **tCross** token balance directly from the chain using `useBalance`.
+    - **Fixed**: Corrected Chain ID to `612044` (Crosschain Testnet).
+    - **Fixed**: Updated `useBalance` to fetch native `tCROSS` coin (removed incorrect token address).
+    - **Fixed**: Added `crossTestnet` to `PrivyProvider` supported chains to ensure correct network connection.
+    - Updated `UIOverlay.tsx` to fetch **tCross** token balance directly from the chain using `useBalance` with `chainId`.
 - **UI Refinement**:
     - Updated Balance Widget to display "tCross" (strict casing).
     - Layout adjusted: Icon | Label -> Balance -> USD Value.

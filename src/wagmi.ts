@@ -3,8 +3,8 @@ import { mainnet, sepolia } from 'wagmi/chains'
 import { injected } from 'wagmi/connectors'
 import { defineChain } from 'viem'
 
-const crossTestnet = defineChain({
-  id: 4157, // Placeholder ID for Crosschain Testnet (CrossFi)
+export const crossTestnet = defineChain({
+  id: 612044, // Crosschain Testnet
   name: 'Crosschain Testnet',
   nativeCurrency: { name: 'tCross', symbol: 'tCROSS', decimals: 18 },
   rpcUrls: {

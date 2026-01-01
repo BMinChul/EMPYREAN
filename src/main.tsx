@@ -11,7 +11,7 @@ const queryClient = new QueryClient();
 const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID || "clp2j5x6e00cfmc0fp7x7j7x7"; // Example placeholder
 
 import { WagmiProvider } from 'wagmi';
-import { config } from './wagmi';
+import { config, crossTestnet } from './wagmi';
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -19,6 +19,8 @@ createRoot(document.getElementById("root")!).render(
       appId={PRIVY_APP_ID}
       config={{
         loginMethods: ['email', 'wallet', 'google', 'twitter', 'discord'],
+        defaultChain: crossTestnet,
+        supportedChains: [crossTestnet],
         appearance: {
           theme: 'dark',
           accentColor: '#676FFF',
