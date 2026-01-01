@@ -13,7 +13,7 @@
 - **Refactor**: Migrated `UIOverlay.tsx` from `useAccount` (wagmi) to `usePrivy` (privy).
 
 ## Next Steps
-- [ ] **Important**: Update `VITE_PRIVY_APP_ID` in `.env` with a valid Privy App ID.
-- [ ] Verify `useGameServer` compatibility with Privy's wallet provider (might need bridging).
+- [ ] **Critical**: Set `VITE_PRIVY_APP_ID` in `.env` (User to obtain from Privy Dashboard or try platform ID).
+- [ ] Verify `useGameServer` compatibility with Privy's wallet provider.
 - [ ] Implement dynamic token price fetching.
 - [ ] Add "Cash Out" button for active bets.
