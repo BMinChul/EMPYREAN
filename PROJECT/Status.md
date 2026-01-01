@@ -1,17 +1,18 @@
 # Status
 
 ## Active Work
-- **Privy Configuration**:
-    - **Issue**: Users reporting "missing_or_empty_authorization_header" error.
-    - **Root Cause**: Client domain not whitelisted in Privy Dashboard, causing SDK handshake failure.
-    - **Fix**: Updated `LoginModal` to explicitly show the current domain and provide a "Copy" button for easy whitelisting.
-- **Console Error Fixes**:
-    - Verified `WagmiProvider` and `PrivyProvider` hierarchy (Correct).
+- **Loading Screen/Crash Fix**:
+    - **Issue**: Application was crashing or showing infinite loading when `VITE_PRIVY_APP_ID` was missing.
+    - **Fix**: Implemented `ConfigError` component to catch missing configuration in `main.tsx` and prevent `PrivyProvider` crash.
+    - **Fix**: Updated `MainScene.ts` to ensuring "WAITING FOR OKX FEED..." text is reliably removed even in simulation mode.
 
 ## Recent Activity
+- **Privy Configuration**:
+    - **Issue**: Users reporting "missing_or_empty_authorization_header" error.
+    - **Fix**: Updated `LoginModal` to explicitly show the current domain and provide a "Copy" button for easy whitelisting.
 - **UI Update**: Enhanced `LoginModal.tsx` with detailed "Configuration Required" state when Privy fails to initialize (timeout > 5s).
-- **Documentation**: Clarified that "Signing requests" errors in client-side apps are typically due to CORS/Domain restrictions, not actual manual signing needs.
 
 ## Next Steps
-- [ ] **User Action**: Open App -> Click Connect -> Wait for Warning -> Copy Domain -> Add to Privy Dashboard.
-- [ ] **Verify**: Reload app and check if "Initializing Privy..." completes successfully.
+- [ ] **Verify**: Reload app without `.env` to see new `ConfigError` screen.
+- [ ] **Verify**: Add `.env` and check if "Initializing Privy..." completes successfully.
+- [ ] **User Action**: If seeing `ConfigError`, follow instructions to add `VITE_PRIVY_APP_ID`.

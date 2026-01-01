@@ -38,20 +38,29 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const handleCrossxLogin = () => {
-    if (!ready) return;
+    if (!ready) {
+      console.warn("Privy not ready yet");
+      return;
+    }
     // Standard login flow (creates/uses embedded wallet)
     login(); 
   };
 
   const handleMetaMaskLogin = () => {
-    if (!ready) return;
+    if (!ready) {
+      console.warn("Privy not ready yet");
+      return;
+    }
     // Wallet-specific login flow
     // Tapping specifically for external wallets
     login({ loginMethods: ['wallet'] });
   };
 
   const handleSocialLogin = () => {
-    if (!ready) return;
+    if (!ready) {
+      console.warn("Privy not ready yet");
+      return;
+    }
     // Email/Social login flow
     login({ loginMethods: ['email', 'google', 'twitter', 'discord'] });
   };
