@@ -11,8 +11,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const { login, ready, authenticated } = usePrivy();
   const [showTimeout, setShowTimeout] = useState(false);
 
+  const [currentDomain, setCurrentDomain] = useState("");
+
   // Reset timeout when modal opens
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrentDomain(window.location.origin);
+    }
+    
     if (isOpen) {
       setShowTimeout(false);
       const timer = setTimeout(() => {
@@ -80,9 +86,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                     <strong>Action Required:</strong><br/>
                     Go to <a href="https://dashboard.privy.io" target="_blank" className="text-emerald-400 hover:underline">Privy Dashboard</a> &rarr; Settings &rarr; Basics &rarr; Allowed Domains.
                     <br/>
-                    Add your current domain (e.g., <code>https://*.verse8.io</code>).
+                    Add this domain:
+                    <div className="mt-2 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded text-xs font-mono text-emerald-300 break-all select-all cursor-pointer hover:bg-emerald-500/20" title="Click to select" onClick={(e) => { (e.target as HTMLDivElement).click(); }}>
+                      {currentDomain}
+                    </div>
                   </p>
-                  <div className="mt-4 p-2 bg-white/5 rounded text-[10px] font-mono text-gray-500 select-all">
+                  <div className="mt-2 p-2 bg-white/5 rounded text-[10px] font-mono text-gray-500 select-all">
                      App ID: {import.meta.env.VITE_PRIVY_APP_ID || "MISSING"}
                   </div>
                 </div>
