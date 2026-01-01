@@ -6,7 +6,7 @@ import App from "./App.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <GameServerProvider>
+    <GameServerProvider autoLogin={true}>
       <App />
     </GameServerProvider>
   </StrictMode>

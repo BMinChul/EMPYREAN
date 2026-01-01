@@ -8,7 +8,7 @@ const FORGE_URL = "https://faucet.crossramp.io"; // Default Forge/Faucet URL
 
 const UIOverlay: React.FC = () => {
   const { currentPrice, balance, betAmount, setBetAmount, lastWinAmount, setLastWinAmount, setBalance } = useGameStore();
-  const { connected, server } = useGameServer();
+  const { connected, server, loading } = useGameServer();
   const { assets } = useAsset();
   const [showWin, setShowWin] = useState(false);
   const [prevPrice, setPrevPrice] = useState(0);
@@ -31,12 +31,22 @@ const UIOverlay: React.FC = () => {
 
   // Crossramp Shop
   const openShop = async () => {
-    if (!connected || !server) return;
+    if (!connected || !server || loading) return;
+    
     try {
+      // Ensure we have a token before trying to get the URL
+      // Some versions of the SDK might not expose getAccessToken directly, 
+      // but checking connected is usually enough.
+      // We wrap in try-catch to handle "Missing auth token" gracefully.
+      
       const url = await server.getCrossRampShopUrl("en");
-      window.open(url, "CrossRampShop", "width=1024,height=768");
+      if (url) {
+        window.open(url, "CrossRampShop", "width=1024,height=768");
+      }
     } catch (error) {
       console.error("Failed to open Shop:", error);
+      // Optional: Try to force login if method exists, or just alert user
+      // if (server.login) server.login();
     }
   };
 
@@ -156,21 +166,24 @@ const UIOverlay: React.FC = () => {
         </div>
 
         {/* Balance / Shop Button */}
-        <div className="widget-panel glass-panel cursor-pointer hover:bg-white/5 transition-colors" onClick={openShop}>
+        <div 
+          className={`widget-panel glass-panel cursor-pointer transition-colors ${connected && !loading ? 'hover:bg-white/5' : 'opacity-50 cursor-not-allowed'}`} 
+          onClick={connected && !loading ? openShop : undefined}
+        >
           <div className="panel-row flex items-center gap-3">
-            <div className="icon-box wallet neon-border flex items-center justify-center w-8 h-8 rounded bg-emerald-900/30 border border-emerald-500/30">
-              <Wallet size={16} color="#00ff9d" />
+            <div className={`icon-box wallet neon-border flex items-center justify-center w-8 h-8 rounded ${connected ? 'bg-emerald-900/30 border-emerald-500/30' : 'bg-gray-800 border-gray-600'}`}>
+              <Wallet size={16} color={connected ? "#00ff9d" : "#888"} />
             </div>
             <div className="col flex flex-col">
               <div className="flex items-center gap-1">
-                <span className="label text-[9px] tracking-widest text-emerald-400 font-bold mb-0.5">BALANCE</span>
-                <div className="bg-emerald-500/20 px-1 rounded text-[8px] text-emerald-300">Wallet</div>
+                <span className={`label text-[9px] tracking-widest font-bold mb-0.5 ${connected ? 'text-emerald-400' : 'text-gray-500'}`}>BALANCE</span>
+                {connected && <div className="bg-emerald-500/20 px-1 rounded text-[8px] text-emerald-300">Wallet</div>}
               </div>
               <span className="value-md text-lg font-bold text-white font-mono tracking-wide">
-                {fmtBalance(balance)}
+                {loading ? '...' : fmtBalance(balance)}
               </span>
             </div>
-            <ShoppingBag size={14} className="text-emerald-400/50 ml-1" />
+            {connected && !loading && <ShoppingBag size={14} className="text-emerald-400/50 ml-1" />}
           </div>
         </div>
       </div>
