@@ -1,17 +1,17 @@
 # Status
 
 ## Active Work
-- **Privy Configuration Fix**:
-    - **Integration Update**: Switched `WagmiProvider` to `@privy-io/wagmi` for correct wallet linking.
-    - **Domain Helper**: Updated `LoginModal` to display the exact `window.location.origin` for easier configuration.
+- **Privy Configuration**:
+    - **Issue**: Users reporting "missing_or_empty_authorization_header" error.
+    - **Root Cause**: Client domain not whitelisted in Privy Dashboard, causing SDK handshake failure.
+    - **Fix**: Updated `LoginModal` to explicitly show the current domain and provide a "Copy" button for easy whitelisting.
 - **Console Error Fixes**:
-    - Resolved circular dependency potential by aligning provider stack.
+    - Verified `WagmiProvider` and `PrivyProvider` hierarchy (Correct).
 
 ## Recent Activity
-- **Package Added**: Installed `@privy-io/wagmi`.
-- **Code Change**: Updated `src/main.tsx` to use Privy's Wagmi wrapper.
-- **UI Update**: `LoginModal.tsx` now shows the user exactly what domain to whitelist.
+- **UI Update**: Enhanced `LoginModal.tsx` with detailed "Configuration Required" state when Privy fails to initialize (timeout > 5s).
+- **Documentation**: Clarified that "Signing requests" errors in client-side apps are typically due to CORS/Domain restrictions, not actual manual signing needs.
 
 ## Next Steps
-- [ ] **User Action**: Copy the domain shown in the Login Modal and add it to Privy Dashboard.
-- [ ] **Verify**: Reload app and try connecting wallet.
+- [ ] **User Action**: Open App -> Click Connect -> Wait for Warning -> Copy Domain -> Add to Privy Dashboard.
+- [ ] **Verify**: Reload app and check if "Initializing Privy..." completes successfully.

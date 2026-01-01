@@ -75,24 +75,58 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         <div className="p-6 space-y-3">
           
           {!ready ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-400">
+            <div className="flex flex-col items-center justify-center py-8 gap-4 text-gray-400">
               {showTimeout ? (
-                <div className="flex flex-col items-center text-center px-4 animate-in fade-in">
-                  <AlertTriangle className="text-yellow-500 mb-2" size={32} />
-                  <p className="text-yellow-500 font-bold mb-1">Initialization Slow</p>
-                  <p className="text-xs text-gray-400 max-w-[250px]">
-                    The Privy App ID might be restricted to specific domains.
-                    <br/><br/>
-                    <strong>Action Required:</strong><br/>
-                    Go to <a href="https://dashboard.privy.io" target="_blank" className="text-emerald-400 hover:underline">Privy Dashboard</a> &rarr; Settings &rarr; Basics &rarr; Allowed Domains.
-                    <br/>
-                    Add this domain:
-                    <div className="mt-2 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded text-xs font-mono text-emerald-300 break-all select-all cursor-pointer hover:bg-emerald-500/20" title="Click to select" onClick={(e) => { (e.target as HTMLDivElement).click(); }}>
-                      {currentDomain}
+                <div className="flex flex-col items-center text-center px-4 animate-in fade-in w-full">
+                  <div className="p-3 bg-yellow-500/10 rounded-full mb-3 ring-1 ring-yellow-500/50">
+                    <AlertTriangle className="text-yellow-500" size={32} />
+                  </div>
+                  
+                  <h3 className="text-white font-bold text-lg mb-2">Configuration Required</h3>
+                  
+                  <div className="text-left w-full bg-white/5 rounded-lg p-4 border border-white/10 space-y-3">
+                    <p className="text-xs text-gray-300 leading-relaxed">
+                      This error usually means the <strong>Privy App ID</strong> is missing or this domain is not whitelisted.
+                    </p>
+                    
+                    <div className="space-y-1">
+                      <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Step 1: Copy Domain</p>
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(currentDomain);
+                          // Visual feedback could be added here
+                        }}
+                        className="w-full flex items-center justify-between p-2 bg-emerald-900/20 border border-emerald-500/30 rounded hover:bg-emerald-900/40 hover:border-emerald-500/50 transition-all group cursor-pointer"
+                      >
+                        <code className="text-xs text-emerald-400 font-mono break-all">{currentDomain}</code>
+                        <span className="text-[10px] text-emerald-600 font-bold uppercase group-hover:text-emerald-400">Copy</span>
+                      </button>
                     </div>
-                  </p>
-                  <div className="mt-2 p-2 bg-white/5 rounded text-[10px] font-mono text-gray-500 select-all">
-                     App ID: {import.meta.env.VITE_PRIVY_APP_ID || "MISSING"}
+
+                    <div className="space-y-1">
+                      <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Step 2: Add to Dashboard</p>
+                      <a 
+                        href="https://dashboard.privy.io/apps" 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="block w-full text-center py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded transition-colors"
+                      >
+                        Go to Privy Dashboard &rarr; Settings &rarr; Basics
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-col gap-1 w-full">
+                    <span className="text-[10px] text-gray-600 font-mono text-center">App ID Status</span>
+                    <div className={`text-[10px] font-mono text-center p-1 rounded border ${
+                      import.meta.env.VITE_PRIVY_APP_ID 
+                        ? 'bg-green-500/10 text-green-400 border-green-500/20' 
+                        : 'bg-red-500/10 text-red-400 border-red-500/20'
+                    }`}>
+                      {import.meta.env.VITE_PRIVY_APP_ID 
+                        ? `Loaded: ${import.meta.env.VITE_PRIVY_APP_ID.slice(0,6)}...` 
+                        : 'MISSING IN .ENV'}
+                    </div>
                   </div>
                 </div>
               ) : (
