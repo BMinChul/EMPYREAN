@@ -39,8 +39,8 @@ export class MainScene extends Phaser.Scene {
   private gridLabels: Phaser.GameObjects.Text[] = [];
 
   // --- Configuration ---
-  // The screen width represents exactly 100 seconds (10 cols * 10 sec)
-  private timeWindowSeconds: number = 100; 
+  // The screen width represents exactly 60 seconds (6 cols * 10 sec)
+  private timeWindowSeconds: number = 60; 
   private pixelsPerSecond: number = 0; // Calculated in create()
   
   // Price Scale: Vertical pixels per dollar
@@ -264,7 +264,7 @@ export class MainScene extends Phaser.Scene {
     const viewportW = this.scale.width;
     const viewportH = this.scale.height;
     
-    const targetScrollX = this.headX - (viewportW * 0.25);
+    const targetScrollX = this.headX - (viewportW * 0.5);
     const targetScrollY = this.headY - (viewportH * 0.5);
 
     this.cameras.main.scrollX = targetScrollX;
@@ -352,10 +352,10 @@ export class MainScene extends Phaser.Scene {
   // Inverse Gaussian PDF Model (Inverse Probability)
   // Formula: Multiplier = BaseScale * sqrt(t) * exp( x^2 / (2 * sigma^2 * t) ) * (1 - HouseEdge)
   private calculateDynamicMultiplier(targetPrice: number, colIndex: number): number {
-      // 1. Time (t): (colIndex - 5) + 1.0
+      // 1. Time (t): (colIndex - 3) + 1.0
       // Ensures betting zone starts from 1s to avoid division by zero.
-      // colIndex 5 -> t=1, colIndex 9 -> t=5
-      const t = Math.max(1.0, (colIndex - 5) + 1.0);
+      // colIndex 3 -> t=1, colIndex 5 -> t=3
+      const t = Math.max(1.0, (colIndex - 3) + 1.0);
 
       // 2. Distance (x): Absolute difference between Target and Current
       const x = Math.abs(targetPrice - this.currentPrice);
@@ -406,7 +406,7 @@ export class MainScene extends Phaser.Scene {
     const width = this.scale.width;
     const height = this.scale.height;
 
-    const colWidth = width / 10;
+    const colWidth = width / 6;
     
     const gridStartTime = Math.floor(scrollX / colWidth) * colWidth;
     const gridEndTime = scrollX + width;
@@ -454,7 +454,7 @@ export class MainScene extends Phaser.Scene {
         const x = c * colWidth;
         const screenX = x - scrollX;
         const normalizedScreenX = screenX / width;
-        const colIndexOnScreen = Math.floor(normalizedScreenX * 10); // 0-9
+        const colIndexOnScreen = Math.floor(normalizedScreenX * 6); // 0-5
 
         // Gradient Fade-in Logic using Helper
         const textFade = this.getTextFade(normalizedScreenX);
@@ -582,10 +582,10 @@ export class MainScene extends Phaser.Scene {
     }
 
     // 2. Snap to Grid
-    const colWidth = width / 10;
+    const colWidth = width / 6;
     const colIdx = Math.floor(pointer.worldX / colWidth);
     const cellX = (colIdx * colWidth) + (colWidth/2);
-    const colIndexOnScreen = Math.floor(normalizedClickX * 10);
+    const colIndexOnScreen = Math.floor(normalizedClickX * 6);
 
     const priceY = -(pointer.worldY / this.pixelPerDollar); 
     const rawPrice = this.initialPrice! + priceY;

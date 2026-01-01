@@ -10,8 +10,8 @@ export const createGame = (parent: string) => {
 
   const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: 1024,
+    height: 576,
     parent: parent,
     physics: {
       default: "arcade",
@@ -22,7 +22,7 @@ export const createGame = (parent: string) => {
     },
     scene: [MainScene],
     scale: {
-      mode: Phaser.Scale.RESIZE,
+      mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
   };
