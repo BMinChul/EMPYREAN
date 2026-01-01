@@ -1,20 +1,20 @@
 # Status
 
 ## Active Work
-- **Authentication Migration**:
-    - **Issue**: Privy was causing continuous configuration errors and timeouts.
-    - **Fix**: Migrated to **Reown AppKit (WalletConnect)** for broader wallet support (OKX, MetaMask, etc.) and stability.
-    - **Implementation**:
-        - Replaced `PrivyProvider` with `WagmiProvider` + `wagmiAdapter`.
-        - Updated `UIOverlay.tsx` to use `useAppKit` for connection.
-        - Removed `LoginModal.tsx` in favor of AppKit's native modal.
+- **Token Balance Fix**:
+    - **Issue**: Token balance was showing as 0 because the UI was looking for asset key `'tcross'` while the server configuration (`.crossramp`) used `'credits'`.
+    - **Fix**: Updated `UIOverlay.tsx` to use `'credits'` asset key for balance synchronization, burning (betting), and minting (winning).
+    - **Result**: Game should now correctly display the balance from the game server.
 
 ## Recent Activity
+- **Authentication Migration**:
+    - Migrated to **Reown AppKit (WalletConnect)**.
+    - Replaced `PrivyProvider` with `WagmiProvider`.
 - **Loading Screen/Crash Fix**:
-    - Implemented `ConfigError` component to catch missing `VITE_REOWN_PROJECT_ID`.
+    - Implemented `ConfigError` component.
 - **Privy Removal**: Completely uninstalled `@privy-io` packages.
 
 ## Next Steps
-- [ ] **Verify**: User needs to set `VITE_REOWN_PROJECT_ID` in `.env` (currently using a fallback/test ID).
+- [ ] **Verify**: Check if balance updates correctly on betting/winning.
 - [ ] **Testing**: Test connection with OKX Wallet and MetaMask on Cross Testnet.
 - [ ] **Game Loop**: Ensure `burnAsset`/`mintAsset` works correctly with the new `wagmi` signer.
