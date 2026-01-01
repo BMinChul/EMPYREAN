@@ -4,11 +4,11 @@ import { injected } from 'wagmi/connectors'
 import { defineChain } from 'viem'
 
 export const crossTestnet = defineChain({
-  id: 612044, // Crosschain Testnet
-  name: 'Crosschain Testnet',
-  nativeCurrency: { name: 'tCross', symbol: 'tCROSS', decimals: 18 },
+  id: 612044,
+  name: 'Cross testnet',
+  nativeCurrency: { name: 'tCROSS', symbol: 'tCROSS', decimals: 18 },
   rpcUrls: {
-    default: { http: ['https://testnet.crosstoken.io:22001'] },
+    default: { http: ['https://testnet.crosstoken.io:22001/'] },
   },
 })
 

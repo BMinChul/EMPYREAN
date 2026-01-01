@@ -30,7 +30,7 @@ const UIOverlay: React.FC = () => {
     chainId: crossTestnet.id,
     query: {
       enabled: !!address,
-      refetchInterval: 5000,
+      refetchInterval: 10000, // Reduced frequency to prevent rate limits
     }
   });
 
@@ -63,9 +63,12 @@ const UIOverlay: React.FC = () => {
   useEffect(() => {
     // Sync tCROSS balance (using 'tcross' key)
     if (assets && typeof assets['tcross'] === 'number') {
-      setBalance(assets['tcross']);
+      // Prevent infinite loop: only update if different
+      if (storeBalance !== assets['tcross']) {
+          setBalance(assets['tcross']);
+      }
     }
-  }, [assets, setBalance]);
+  }, [assets, setBalance, storeBalance]);
 
   // --- Process Bets (Burn) ---
   useEffect(() => {
@@ -227,7 +230,7 @@ const UIOverlay: React.FC = () => {
               <div className="col flex flex-col justify-center">
                 <div className="flex items-center gap-2">
                     <span className="label text-[10px] tracking-widest text-yellow-400 font-bold mb-0.5 uppercase">
-                        tCross
+                        tCROSS
                     </span>
                 </div>
                 <div className="flex flex-col leading-tight">
@@ -249,6 +252,9 @@ const UIOverlay: React.FC = () => {
                 <span className="text-[10px] text-cyan-400 font-mono flex items-center gap-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_5px_#22d3ee]" />
                     {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Unknown'}
+                </span>
+                <span className="text-[8px] text-gray-600 font-mono">
+                    {crossTestnet.name}
                 </span>
             </div>
             
@@ -290,7 +296,7 @@ const UIOverlay: React.FC = () => {
                 >
                     <div className="flex flex-col items-center">
                         <span className="relative z-10">${amt}</span>
-                        <span className="text-[8px] opacity-60 font-normal">{reqTokens} tCross</span>
+                        <span className="text-[8px] opacity-60 font-normal">{reqTokens} tCROSS</span>
                     </div>
                 </button>
               );
