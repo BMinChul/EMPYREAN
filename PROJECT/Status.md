@@ -1,18 +1,19 @@
 # Status
 
 ## Active Work
-- **Token Balance Fix**:
-    - **Issue**: Token balance was showing as 0 because the UI was looking for asset key `'tcross'` while the server configuration (`.crossramp`) used `'credits'`.
-    - **Fix**: Updated `UIOverlay.tsx` to use `'credits'` asset key for balance synchronization, burning (betting), and minting (winning).
-    - **Result**: Game should now correctly display the balance from the game server.
+- **Native Token Integration**:
+    - **Update**: Removed "Add to Wallet" functionality for tCROSS in `UIOverlay.tsx`.
+    - **Reasoning**: tCROSS is the native gas token of the network, so it doesn't need to be added as an ERC20 token.
+    - **UI**: Balance display now treats tCROSS purely as the native asset.
 
 ## Recent Activity
+- **Token Address Integration**:
+    - Configured `UIOverlay.tsx` to handle tCROSS as native token.
+- **Token Balance Fix**:
+    - Updated `UIOverlay.tsx` to use `'credits'` asset key for balance synchronization.
 - **Authentication Migration**:
     - Migrated to **Reown AppKit (WalletConnect)**.
     - Replaced `PrivyProvider` with `WagmiProvider`.
-- **Loading Screen/Crash Fix**:
-    - Implemented `ConfigError` component.
-- **Privy Removal**: Completely uninstalled `@privy-io` packages.
 
 ## Next Steps
 - [ ] **Verify**: Check if balance updates correctly on betting/winning.

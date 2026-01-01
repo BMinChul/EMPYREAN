@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { useGameServer, useAsset } from '@agent8/gameserver';
 import { useAppKit } from '@reown/appkit/react';
 import { useAccount, useDisconnect } from 'wagmi';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, HelpCircle, ShoppingBag, LogOut, X } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, HelpCircle, LogOut, X } from 'lucide-react';
 import Assets from '../assets.json';
 import { crossTestnet } from '../wagmi';
 
@@ -185,15 +185,15 @@ const UIOverlay: React.FC = () => {
         ) : (
           <div className="flex items-center gap-4">
             <div className="panel-row flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5">
-              <div className="relative group">
+              <div 
+                className="relative group transition-transform hover:scale-105"
+                title="tCROSS Token"
+              >
                 <img 
                     src={Assets.ui.icons.tcross.url} 
                     alt="tCross Token" 
-                    className="w-10 h-10 rounded-full border border-yellow-500/30 shadow-[0_0_10px_rgba(255,215,0,0.2)] transition-transform group-hover:scale-105"
+                    className="w-10 h-10 rounded-full border border-yellow-500/30 shadow-[0_0_10px_rgba(255,215,0,0.2)]"
                 />
-                <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1 border border-white/20 shadow-lg">
-                    <ShoppingBag size={8} className="text-white" />
-                </div>
               </div>
               <div className="col flex flex-col justify-center">
                 <div className="flex items-center gap-2">
