@@ -9,6 +9,7 @@
     - Added "Swap" functionality via clicking the balance bar.
 
 ## Recent Activity
+- **Fix**: Added `GameserverProvider` to `main.tsx` to resolve "Missing auth token" error in Shop.
 - **Blockchain**: Switched logic to treat "Credits" asset as "tCROSS".
 - **UI**: Added Info button `(!)` and improved Wallet/Balance visibility.
 - **Store**: Added `requestBet` and `requestWin` actions with currency conversion.
