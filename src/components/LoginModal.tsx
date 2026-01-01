@@ -75,10 +75,15 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                   <AlertTriangle className="text-yellow-500 mb-2" size={32} />
                   <p className="text-yellow-500 font-bold mb-1">Initialization Slow</p>
                   <p className="text-xs text-gray-400 max-w-[250px]">
-                    Checking connection... If this persists, please verify your network or App ID configuration.
+                    The Privy App ID might be restricted to specific domains.
+                    <br/><br/>
+                    <strong>Action Required:</strong><br/>
+                    Go to <a href="https://dashboard.privy.io" target="_blank" className="text-emerald-400 hover:underline">Privy Dashboard</a> &rarr; Settings &rarr; Basics &rarr; Allowed Domains.
+                    <br/>
+                    Add your current domain (e.g., <code>https://*.verse8.io</code>).
                   </p>
                   <div className="mt-4 p-2 bg-white/5 rounded text-[10px] font-mono text-gray-500 select-all">
-                     App ID check required
+                     App ID: {import.meta.env.VITE_PRIVY_APP_ID || "MISSING"}
                   </div>
                 </div>
               ) : (
