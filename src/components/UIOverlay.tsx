@@ -4,7 +4,7 @@ import { useGameServer, useAsset } from '@agent8/gameserver';
 import { useAppKit } from '@reown/appkit/react';
 import { useAccount, useDisconnect, useBalance, useSendTransaction } from 'wagmi';
 import { parseEther } from 'viem';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, HelpCircle, LogOut, X, AlertCircle } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, HelpCircle, LogOut, X, AlertCircle, Zap } from 'lucide-react';
 import Assets from '../assets.json';
 import { crossTestnet } from '../wagmi';
 
@@ -13,7 +13,7 @@ const UIOverlay: React.FC = () => {
     currentPrice, balance: storeBalance, betAmount, setBetAmount, 
     lastWinAmount, setLastWinAmount,
     pendingBet, pendingWin, confirmBet, clearPendingWin, cancelBet, setBalance,
-    tokenPrice
+    tokenPrice, autoBet, setAutoBet
   } = useGameStore();
   
   const { connected, server, connect: connectServer } = useGameServer();
@@ -59,36 +59,43 @@ const UIOverlay: React.FC = () => {
   }, [balanceData, setBalance, storeBalance]);
 
   // --- Process Bets (Native Burn) ---
-  useEffect(() => {
-    if (pendingBet && !isProcessing) {
-        setIsProcessing(true);
-        // Convert USD Bet to Tokens
-        const tokenAmount = pendingBet.amount / tokenPrice;
-        const tokenAmountStr = tokenAmount.toFixed(18); // Avoid scientific notation
-        
-        // Burn to Dead Address (Native tCROSS)
-        sendTransactionAsync({
-          to: '0x000000000000000000000000000000000000dEaD',
-          value: parseEther(tokenAmountStr) 
+  const processBet = React.useCallback(() => {
+    if (!pendingBet || isProcessing) return;
+    
+    setIsProcessing(true);
+    // Convert USD Bet to Tokens
+    const tokenAmount = pendingBet.amount / tokenPrice;
+    const tokenAmountStr = tokenAmount.toFixed(18); // Avoid scientific notation
+    
+    // Burn to Dead Address (Native tCROSS)
+    sendTransactionAsync({
+      to: '0x000000000000000000000000000000000000dEaD',
+      value: parseEther(tokenAmountStr) 
+    })
+        .then(() => {
+            confirmBet(); // Confirms transaction, triggers Box in Scene
         })
-            .then(() => {
-                confirmBet(); // Confirms transaction, triggers Box in Scene
-            })
-            .catch(err => {
-                console.error("Bet failed:", err);
-                cancelBet(); // Refund and stop loop
-                
-                // Friendly error message
-                let msg = "Transaction Failed";
-                if (err.message?.includes("User rejected")) msg = "Bet Cancelled by User";
-                else if (err.message?.includes("insufficient funds")) msg = "Insufficient Funds";
-                
-                setErrorMessage(msg);
-                setTimeout(() => setErrorMessage(null), 3000);
-            })
-            .finally(() => setIsProcessing(false));
+        .catch(err => {
+            console.error("Bet failed:", err);
+            cancelBet(); // Refund and stop loop
+            
+            // Friendly error message
+            let msg = "Transaction Failed";
+            if (err.message?.includes("User rejected")) msg = "Bet Cancelled by User";
+            else if (err.message?.includes("insufficient funds")) msg = "Insufficient Funds";
+            
+            setErrorMessage(msg);
+            setTimeout(() => setErrorMessage(null), 3000);
+        })
+        .finally(() => setIsProcessing(false));
+  }, [pendingBet, isProcessing, tokenPrice, sendTransactionAsync, confirmBet, cancelBet]);
+
+  useEffect(() => {
+    // Only auto-process if AutoBet is ON
+    if (pendingBet && autoBet && !isProcessing) {
+        processBet();
     }
-  }, [pendingBet, sendTransactionAsync, confirmBet, cancelBet, isProcessing, tokenPrice]);
+  }, [pendingBet, autoBet, isProcessing, processBet]);
 
   // --- Process Wins (Mint) ---
   useEffect(() => {
@@ -202,6 +209,27 @@ const UIOverlay: React.FC = () => {
         </div>
       )}
 
+      {/* --- Manual Confirm Button (When AutoBet is OFF) --- */}
+      {pendingBet && !autoBet && !isProcessing && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 animate-in zoom-in duration-200 pointer-events-auto">
+             <button 
+                onClick={processBet}
+                className="bg-yellow-400 text-black font-bold px-8 py-4 rounded-lg shadow-[0_0_20px_rgba(255,215,0,0.5)] hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+            >
+                <Zap size={20} className="fill-black" />
+                CONFIRM BET
+            </button>
+            <div className="text-center mt-2">
+                <button 
+                    onClick={cancelBet}
+                    className="text-white/60 text-xs hover:text-white underline"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+      )}
+
       {/* --- Bottom Left: Balance & Wallet --- */}
       <div className="widget-panel bottom-left glass-panel pointer-events-auto flex items-center gap-4">
         {!isConnected ? (
@@ -270,12 +298,30 @@ const UIOverlay: React.FC = () => {
       {/* --- Bottom Right: Bet Controls --- */}
       <div className="widget-panel bottom-right glass-panel pointer-events-auto">
         <div className="flex flex-col items-end gap-1">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] text-gray-500 font-mono">1 tCROSS = {fmtUSD(tokenPrice)}</span>
-            <span className="label-center text-[9px] tracking-[0.2em] text-gray-400 font-bold uppercase">BET SIZE (USD)</span>
+          <div className="flex items-center gap-4 mb-2">
+            {/* Auto Bet Toggle */}
+            <label className="flex items-center gap-2 cursor-pointer group">
+                <div className={`w-3 h-3 rounded-full border border-white/30 transition-colors ${autoBet ? 'bg-yellow-400 border-yellow-400 shadow-[0_0_5px_rgba(255,215,0,0.5)]' : 'bg-transparent'}`} />
+                <input 
+                    type="checkbox" 
+                    checked={autoBet} 
+                    onChange={(e) => setAutoBet(e.target.checked)} 
+                    className="hidden" 
+                />
+                <span className={`text-[9px] font-bold uppercase tracking-wider transition-colors ${autoBet ? 'text-yellow-400' : 'text-gray-500 group-hover:text-gray-400'}`}>
+                    Auto Tx
+                </span>
+            </label>
+
+            <div className="h-3 w-px bg-white/10" />
+
+            <div className="flex items-center gap-2">
+                <span className="text-[10px] text-gray-500 font-mono">1 tCROSS = {fmtUSD(tokenPrice)}</span>
+                <span className="label-center text-[9px] tracking-[0.2em] text-gray-400 font-bold uppercase">BET SIZE (USD)</span>
+            </div>
           </div>
           <div className="bet-grid grid grid-cols-3 gap-1.5">
-            {[1, 5, 10, 25, 50, 100].map(amt => {
+            {[0.01, 0.05, 0.10, 0.50, 1.00, 5.00].map(amt => {
               const reqTokens = amt / tokenPrice;
               const canAfford = displayBalance >= reqTokens;
               
@@ -293,8 +339,8 @@ const UIOverlay: React.FC = () => {
                     onClick={() => setBetAmount(amt)}
                 >
                     <div className="flex flex-col items-center">
-                        <span className="relative z-10">${amt}</span>
-                        <span className="text-[8px] opacity-60 font-normal">{reqTokens} tCROSS</span>
+                        <span className="relative z-10">${amt.toFixed(2)}</span>
+                        <span className="text-[8px] opacity-60 font-normal">{reqTokens.toLocaleString(undefined, { maximumFractionDigits: 1 })} tCROSS</span>
                     </div>
                 </button>
               );

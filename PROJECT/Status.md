@@ -2,10 +2,10 @@
 
 ## Active Work
 - **Betting Flow Logic**:
-    - **Update**: Changed betting logic to "Confirm-then-Show".
-    - **Visuals**: Added "Ghost Box" (Grey "SIG?") state while waiting for wallet signature.
-    - **Logic**: Real Betting Box (Yellow) only spawns *after* transaction confirmation.
-    - **Refund**: Failed/Rejected transactions now clear the Ghost Box and refund the balance.
+    - **Update**: Changed betting logic to support "Auto Transaction" toggle.
+    - **Bet Sizes**: Updated standard bet sizes to micro-transactions ($0.01 - $5.00) to support 0.1 tCROSS bets.
+    - **Auto-Tx**: Added Checkbox to toggle between "One-Click Wallet Popup" and "Confirm Button -> Wallet Popup".
+    - **Manual Confirm**: Added a central "CONFIRM BET" button for safer manual betting.
 
 ## Recent Activity
 - **Error Handling**:
@@ -17,6 +17,6 @@
     - Time Window reduced to 60s.
 
 ## Next Steps
-- [ ] **Winning Logic**: Verify if `mintAsset` works or needs replacement with a Treasury Payout system.
-- [ ] **Testing**: Verify pacing feel with real users.
+- [ ] **Winning Logic**: Verify if `mintAsset` works correctly for payouts.
+- [ ] **Testing**: Test the "Auto Tx" flow with real wallet interactions.
 - [ ] **Game Loop**: Ensure `sendTransaction` works correctly with the new `wagmi` signer.

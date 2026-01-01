@@ -23,7 +23,8 @@ interface GameState {
   pendingBet: BetRequest | null; // The bet currently waiting for TX approval
   lastConfirmedBet: BetRequest | null; // The bet that just succeeded (Signal to Scene)
   
-  pendingWin: number | null; // In USD
+  autoBet: boolean;
+  setAutoBet: (enabled: boolean) => void;
 
   setCurrentPrice: (price: number) => void;
   setBalance: (amount: number) => void;
@@ -46,12 +47,15 @@ export const useGameStore = create<GameState>((set) => ({
   currentPrice: 0,
   balance: 0, 
   tokenPrice: 0.10, // Fixed price for tCROSS (1 Token = $0.10)
-  betAmount: 1,
+  betAmount: 0.01, // Default to 0.1 tCROSS ($0.01)
   lastWinAmount: 0,
+  autoBet: false,
   
   pendingBet: null,
   lastConfirmedBet: null,
   pendingWin: null,
+
+  setAutoBet: (enabled) => set({ autoBet: enabled }),
 
   setCurrentPrice: (price) => set({ currentPrice: price }),
   setBalance: (amount) => set({ balance: amount }),
