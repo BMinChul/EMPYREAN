@@ -138,6 +138,10 @@ export class MainScene extends Phaser.Scene {
         if (this.initialPrice === null) {
             console.warn("OKX Feed Timeout - Starting Simulation Mode");
             
+            // Remove waiting text
+            const statusText = this.children.getByName('statusText');
+            if (statusText) statusText.destroy();
+            
             // Start with a default price
             const startPrice = 3000;
             this.handleNewPrice(startPrice);
@@ -291,7 +295,9 @@ export class MainScene extends Phaser.Scene {
 
     if (this.initialPrice === null) {
       this.initialPrice = price;
-      this.children.getByName('statusText')?.destroy();
+      // Ensure text is destroyed
+      const statusText = this.children.getByName('statusText');
+      if (statusText) statusText.destroy();
     }
     
     this.currentPrice = price;
