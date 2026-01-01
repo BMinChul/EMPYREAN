@@ -2,13 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useGameServer, useAsset } from '@agent8/gameserver';
 import { usePrivy } from '@privy-io/react-auth';
+import { useBalance } from 'wagmi';
 import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, AlertCircle, X, HelpCircle, Coins, LogOut, ShoppingBag, ArrowRightLeft, ExternalLink } from 'lucide-react';
 import Assets from '../assets.json';
 import LoginModal from './LoginModal';
 
+const TCROSS_ADDRESS = '0x0000000000000000000000000000000000000001';
+
 const UIOverlay: React.FC = () => {
   const { 
-    currentPrice, balance, betAmount, setBetAmount, 
+    currentPrice, balance: storeBalance, betAmount, setBetAmount, 
     lastWinAmount, setLastWinAmount,
     pendingBet, pendingWin, clearPendingBet, clearPendingWin, setBalance,
     tokenPrice
@@ -21,6 +24,21 @@ const UIOverlay: React.FC = () => {
   const { authenticated, user, logout } = usePrivy();
   const address = user?.wallet?.address;
   
+  // Wagmi Hook for real-time Blockchain Balance
+  const { data: wagmiBalance } = useBalance({
+    address: address as `0x${string}`,
+    token: TCROSS_ADDRESS,
+    query: {
+      enabled: !!address,
+      refetchInterval: 5000,
+    }
+  });
+
+  // Prefer Wagmi balance if available, otherwise fall back to store/server balance
+  const displayBalance = wagmiBalance 
+    ? parseFloat(wagmiBalance.formatted) 
+    : storeBalance;
+
   const [showWin, setShowWin] = useState(false);
   const [prevPrice, setPrevPrice] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -193,25 +211,25 @@ const UIOverlay: React.FC = () => {
               <div className="relative group">
                 <img 
                     src={Assets.ui.icons.tcross.url} 
-                    alt="Token" 
+                    alt="tCross Token" 
                     className="w-10 h-10 rounded-full border border-yellow-500/30 shadow-[0_0_10px_rgba(255,215,0,0.2)] transition-transform group-hover:scale-105"
                 />
                 <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1 border border-white/20 shadow-lg">
                     <ShoppingBag size={8} className="text-white" />
                 </div>
               </div>
-              <div className="col flex flex-col">
+              <div className="col flex flex-col justify-center">
                 <div className="flex items-center gap-2">
-                    <span className="label text-[9px] tracking-widest text-yellow-400 font-bold mb-0.5">
-                        tCROSS BALANCE
+                    <span className="label text-[10px] tracking-widest text-yellow-400 font-bold mb-0.5 uppercase">
+                        tCross
                     </span>
                 </div>
                 <div className="flex flex-col leading-tight">
                     <span className="value-md text-lg font-bold text-white font-mono tracking-wide">
-                    {fmtTokens(balance)}
+                    {fmtTokens(displayBalance)}
                     </span>
-                    <span className="text-[10px] text-gray-400 font-mono">
-                    ≈ {fmtUSD(balance * tokenPrice)}
+                    <span className="text-[10px] text-gray-400 font-mono mt-0.5">
+                    ≈ {fmtUSD(displayBalance * tokenPrice)}
                     </span>
                 </div>
               </div>
@@ -266,7 +284,7 @@ const UIOverlay: React.FC = () => {
                 >
                     <div className="flex flex-col items-center">
                         <span className="relative z-10">${amt}</span>
-                        <span className="text-[8px] opacity-60 font-normal">{reqTokens} tCROSS</span>
+                        <span className="text-[8px] opacity-60 font-normal">{reqTokens} tCross</span>
                     </div>
                 </button>
               );
