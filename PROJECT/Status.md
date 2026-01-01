@@ -5,6 +5,7 @@
     - **Fixed**: Corrected Chain ID to `612044` (Crosschain Testnet).
     - **Fixed**: Updated `useBalance` to fetch native `tCROSS` coin (removed incorrect token address).
     - **Fixed**: Added `crossTestnet` to `PrivyProvider` supported chains to ensure correct network connection.
+    - **Fixed**: Added robust `NaN` handling for balance display in `UIOverlay.tsx` to prevent "=$NaN" errors when data is loading or undefined.
     - Updated `UIOverlay.tsx` to fetch **tCross** token balance directly from the chain using `useBalance` with `chainId`.
 - **UI Refinement**:
     - Updated Balance Widget to display "tCross" (strict casing).
