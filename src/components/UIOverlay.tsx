@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useGameServer, useAsset } from '@agent8/gameserver';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, AlertCircle, X, HelpCircle, Coins } from 'lucide-react';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { injected } from 'wagmi/connectors';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, AlertCircle, X, HelpCircle, Coins, LogOut, ShoppingBag, ArrowRightLeft, ExternalLink } from 'lucide-react';
 import Assets from '../assets.json';
+import LoginModal from './LoginModal';
 
 const UIOverlay: React.FC = () => {
   const { 
@@ -12,13 +15,28 @@ const UIOverlay: React.FC = () => {
     tokenPrice
   } = useGameStore();
   
-  const { connected, server, connect } = useGameServer();
+  const { connected, server, connect: connectServer, disconnect: disconnectServer } = useGameServer();
   const { assets, burnAsset, mintAsset } = useAsset();
+  
+  // Wagmi Hooks for Real Wallet Connection
+  const { address, isConnected: isWalletConnected } = useAccount();
+  const { connect: connectWallet, isPending: isWalletConnecting } = useConnect();
+  const { disconnect: disconnectWallet } = useDisconnect();
   
   const [showWin, setShowWin] = useState(false);
   const [prevPrice, setPrevPrice] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isOpeningShop, setIsOpeningShop] = useState(false);
+
+  // --- Auto-Connect GameServer (Backend) ---
+  useEffect(() => {
+    // Always keep GameServer connected for game logic, regardless of Wallet state
+    if (!connected && connectServer) {
+        connectServer();
+    }
+  }, [connected, connectServer]);
 
   // --- Asset Synchronization ---
   useEffect(() => {
@@ -87,7 +105,36 @@ const UIOverlay: React.FC = () => {
   const trendColor = trend === 'up' ? '#00ff9d' : '#ff3b30';
 
   const handleConnect = () => {
-    if (connect) connect();
+    setIsLoginModalOpen(true);
+  };
+
+  const handleDisconnect = () => {
+    disconnectWallet();
+    // Optional: Also disconnect game server if you want full logout
+    // disconnectServer(); 
+  };
+
+  const openShop = async () => {
+    if (!server) return;
+    setIsOpeningShop(true);
+    try {
+        const url = await server.getCrossRampShopUrl("en");
+        if (url) window.open(url, "CrossRampShop", "width=1200,height=800");
+    } catch (e) {
+        console.error("Failed to open shop:", e);
+    } finally {
+        setIsOpeningShop(false);
+    }
+  };
+
+  const openForge = async () => {
+    if (!server) return;
+    try {
+        const url = await server.getCrossRampForgeUrl("en");
+        if (url) window.open(url, "CrossRampForge", "width=1200,height=800");
+    } catch (e) {
+        console.error("Failed to open forge:", e);
+    }
   };
 
   // Formatting: $0,000.00
@@ -145,31 +192,46 @@ const UIOverlay: React.FC = () => {
 
       {/* --- Bottom Left: Balance & Wallet --- */}
       <div className="widget-panel bottom-left glass-panel pointer-events-auto flex items-center gap-4">
-        {!connected ? (
+        {!isWalletConnected ? (
           <button 
             onClick={handleConnect}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md transition-colors font-bold tracking-wide uppercase text-xs"
+            disabled={isWalletConnecting}
+            className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-md transition-all font-bold tracking-wide uppercase text-xs shadow-lg shadow-blue-500/20"
           >
-            <Wallet size={16} />
-            Connect Wallet
+            {isWalletConnecting ? (
+                <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Connecting...
+                </>
+            ) : (
+                <>
+                    <Wallet size={16} />
+                    Connect Wallet
+                </>
+            )}
           </button>
         ) : (
           <div className="flex items-center gap-4">
-            <div className="panel-row flex items-center gap-3">
-              <div className="relative">
+            <div className="panel-row flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5">
+              <div className="relative group">
                 <img 
                     src={Assets.ui.icons.tcross.url} 
                     alt="Token" 
-                    className="w-10 h-10 rounded-full border border-yellow-500/30 shadow-[0_0_10px_rgba(255,215,0,0.2)]"
+                    className="w-10 h-10 rounded-full border border-yellow-500/30 shadow-[0_0_10px_rgba(255,215,0,0.2)] transition-transform group-hover:scale-105"
                 />
-                <div className="absolute -bottom-1 -right-1 bg-black/80 rounded-full p-0.5 border border-white/10">
-                    <Coins size={10} className="text-yellow-400" />
+                <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1 border border-white/20 shadow-lg">
+                    <ShoppingBag size={8} className="text-white" />
                 </div>
               </div>
               <div className="col flex flex-col">
-                <span className="label text-[9px] tracking-widest text-yellow-400 font-bold mb-0.5">
-                    tCROSS BALANCE
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className="label text-[9px] tracking-widest text-yellow-400 font-bold mb-0.5">
+                        tCROSS BALANCE
+                    </span>
+                    {/* <button onClick={openShop} disabled={isOpeningShop} className="text-[8px] px-1.5 py-0.5 rounded bg-blue-600/30 text-blue-300 hover:bg-blue-600 hover:text-white transition-colors border border-blue-500/30 flex items-center gap-1">
+                        {isOpeningShop ? 'LOADING...' : 'DEPOSIT'} <ExternalLink size={8} />
+                    </button> */}
+                </div>
                 <div className="flex flex-col leading-tight">
                     <span className="value-md text-lg font-bold text-white font-mono tracking-wide">
                     {fmtTokens(balance)}
@@ -181,12 +243,35 @@ const UIOverlay: React.FC = () => {
               </div>
             </div>
 
-            {/* Help Button */}
+            {/* Wallet Actions */}
+            <div className="flex items-center gap-2">
+                {/* <button 
+                    onClick={openForge}
+                    className="h-8 px-3 rounded bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 border border-purple-500/30 flex items-center gap-2 transition-all hover:shadow-[0_0_10px_rgba(168,85,247,0.2)]"
+                    title="Swap Tokens"
+                >
+                    <ArrowRightLeft size={14} />
+                    <span className="text-[10px] font-bold">SWAP</span>
+                </button> */}
+            </div>
+
+            <div className="w-px h-8 bg-white/10 mx-1" />
+
+            {/* Account Info & Disconnect */}
+            <div className="flex flex-col items-end mr-2">
+                <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">Connected Wallet</span>
+                <span className="text-[10px] text-cyan-400 font-mono flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_5px_#22d3ee]" />
+                    {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Unknown'}
+                </span>
+            </div>
+            
             <button 
-                onClick={() => setShowHelp(true)}
-                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center border border-white/10 transition-colors group"
+                onClick={handleDisconnect}
+                className="w-8 h-8 rounded-full bg-red-900/20 hover:bg-red-900/40 flex items-center justify-center border border-red-500/20 transition-colors group"
+                title="Disconnect Wallet"
             >
-                <img src={Assets.ui.icons.info.url} alt="Info" className="w-4 h-4 opacity-70 group-hover:opacity-100" />
+                <LogOut size={14} className="text-red-400 opacity-70 group-hover:opacity-100" />
             </button>
           </div>
         )}
@@ -291,6 +376,12 @@ const UIOverlay: React.FC = () => {
             </div>
         </div>
       )}
+
+      {/* --- Login Modal --- */}
+      <LoginModal 
+        isOpen={isLoginModalOpen} 
+        onClose={() => setIsLoginModalOpen(false)} 
+      />
     </div>
   );
 };

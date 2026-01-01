@@ -1,22 +1,24 @@
 # Status
 
 ## Active Work
-- **Completed**: 
-    - Integrated Cross SDK for wallet connection (`useGameServer`).
-    - Implemented `tCROSS` token balance display with USD valuation.
-    - Added Help Popup with guide on getting tCROSS tokens.
-    - Refactored Betting Logic:
-        - Bets are placed in USD ($1-$100).
-        - Converted to `tCROSS` at current token price ($0.10 static for testnet).
-        - Wins are calculated in USD and minted as `tCROSS`.
-    - Assets: Added tCROSS and Info icons.
+- **Wallet Integration**:
+    - Replaced GameServer embedded wallet (random/guest) with **Wagmi/Viem Direct Wallet Connection** (MetaMask, etc.).
+    - GameServer now auto-connects in background for logic/assets.
+    - UI "Connect Wallet" button now triggers real Web3 wallet connection.
+    - Displaying real wallet address (0x...) instead of Session ID.
+- **UI Adjustments**: 
+    - **Hidden**: "Deposit" (Shop) and "Swap" (Forge) buttons temporarily hidden.
+    - **Wallet**: Real player direct wallet connection implemented.
 
 ## Recent Activity
+- **Infrastructure**: Installed `wagmi`, `viem`, `@tanstack/react-query`.
+- **Code**: Created `wagmi.ts`, updated `main.tsx` providers, refactored `UIOverlay.tsx`.
+- **UI**: Modified `UIOverlay.tsx` to comment out Deposit/Swap buttons and disable Shop click on token icon.
 - **Blockchain**: Switched asset key from `credits` to `tcross`.
-- **UI**: Added "Connect Wallet" state handling in `UIOverlay`.
 
 ## Next Steps
 - [ ] Implement dynamic token price fetching (if API available).
 - [ ] Add "Cash Out" button for active bets.
 - [ ] Implement Leaderboard for biggest single win.
 - [ ] Add background music (Ambient/Cyberpunk).
+- [ ] Re-enable Deposit/Swap when "real" wallet connection flow is finalized or requested.
