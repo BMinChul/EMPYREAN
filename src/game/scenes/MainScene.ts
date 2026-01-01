@@ -132,7 +132,41 @@ export class MainScene extends Phaser.Scene {
     this.okxService = new OKXService((price) => this.handleNewPrice(price));
     this.okxService.connect();
 
-    // 8. Input (Betting)
+    // 8. Connection Fallback (Simulation Mode)
+    // If no data received within 4 seconds, start simulation to allow gameplay
+    this.time.delayedCall(4000, () => {
+        if (this.initialPrice === null) {
+            console.warn("OKX Feed Timeout - Starting Simulation Mode");
+            
+            // Start with a default price
+            const startPrice = 3000;
+            this.handleNewPrice(startPrice);
+            
+            // Create a simulation loop
+            this.time.addEvent({
+                delay: 500, // Update every 500ms
+                loop: true,
+                callback: () => {
+                    // Random walk logic: +/- $5.00 variance
+                    const volatility = 5;
+                    const change = (Math.random() - 0.5) * volatility;
+                    const newPrice = this.currentPrice + change;
+                    this.handleNewPrice(newPrice);
+                }
+            });
+
+            // Show a small notification that we are in simulation mode
+            const width = this.scale.width;
+            const height = this.scale.height;
+            this.add.text(width - 10, height - 30, '⚠️ SIMULATION MODE', {
+                fontFamily: 'monospace',
+                fontSize: '10px',
+                color: '#ffaa00'
+            }).setOrigin(1, 1).setScrollFactor(0).setDepth(1000);
+        }
+    });
+
+    // 9. Input (Betting)
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       this.placeBet(pointer);
     });
