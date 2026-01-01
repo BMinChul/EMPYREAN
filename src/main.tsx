@@ -10,6 +10,9 @@ const queryClient = new QueryClient();
 // Use environment variable for App ID, or a placeholder if missing
 const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID || "clp2j5x6e00cfmc0fp7x7j7x7"; // Example placeholder
 
+import { WagmiProvider } from 'wagmi';
+import { config } from './wagmi';
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <PrivyProvider
@@ -27,7 +30,9 @@ createRoot(document.getElementById("root")!).render(
       }}
     >
       <QueryClientProvider client={queryClient}>
-        <App />
+        <WagmiProvider config={config}>
+          <App />
+        </WagmiProvider>
       </QueryClientProvider>
     </PrivyProvider>
   </StrictMode>

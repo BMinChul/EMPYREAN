@@ -1,19 +1,23 @@
 # Status
 
 ## Active Work
-- **Privy Integration**:
-    - Replaced direct Wagmi connection with **Privy.io** for authentication.
-    - Implemented new "Connect Wallet" modal with 3 distinct options (CROSSx, MetaMask, Social).
-    - Updated `UIOverlay` to use Privy hooks (`usePrivy`) for auth state.
-    - Added `PrivyProvider` in `main.tsx`.
+- **Blockchain Integration**:
+    - Configured "Crosschain Testnet" in `wagmi.ts` with RPC `https://testnet.crosstoken.io:22001`.
+    - Added `WagmiProvider` to `main.tsx` for real-time blockchain hooks.
+    - Updated `UIOverlay.tsx` to fetch **tCross** token balance directly from the chain using `useBalance`.
+- **UI Refinement**:
+    - Updated Balance Widget to display "tCross" (strict casing).
+    - Layout adjusted: Icon | Label -> Balance -> USD Value.
+    - Bet buttons updated to match "tCross" casing.
 
 ## Recent Activity
-- **Infrastructure**: Installed `@privy-io/react-auth`.
-- **UI**: Completely redesigned `LoginModal.tsx` to match "CROSSx" reference image (Dark Glassmorphism).
-- **Refactor**: Migrated `UIOverlay.tsx` from `useAccount` (wagmi) to `usePrivy` (privy).
+- **Privy Integration**:
+    - Replaced direct Wagmi connection with **Privy.io** for authentication.
+    - Implemented new "Connect Wallet" modal.
+    - Updated `UIOverlay` to use Privy hooks (`usePrivy`) for auth state.
 
 ## Next Steps
-- [ ] **Critical**: Set `VITE_PRIVY_APP_ID` in `.env` (User to obtain from Privy Dashboard or try platform ID).
+- [ ] **Critical**: Set `VITE_PRIVY_APP_ID` in `.env`.
 - [ ] Verify `useGameServer` compatibility with Privy's wallet provider.
-- [ ] Implement dynamic token price fetching.
+- [ ] Implement dynamic token price fetching (currently using store value).
 - [ ] Add "Cash Out" button for active bets.
