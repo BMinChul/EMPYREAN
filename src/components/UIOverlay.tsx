@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useGameServer, useAsset } from '@agent8/gameserver';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { injected } from 'wagmi/connectors';
 import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, AlertCircle, X, HelpCircle, Coins, LogOut, ShoppingBag, ArrowRightLeft, ExternalLink } from 'lucide-react';
 import Assets from '../assets.json';
 
@@ -12,15 +14,27 @@ const UIOverlay: React.FC = () => {
     tokenPrice
   } = useGameStore();
   
-  const { connected, server, connect, disconnect } = useGameServer();
+  const { connected, server, connect: connectServer, disconnect: disconnectServer } = useGameServer();
   const { assets, burnAsset, mintAsset } = useAsset();
+  
+  // Wagmi Hooks for Real Wallet Connection
+  const { address, isConnected: isWalletConnected } = useAccount();
+  const { connect: connectWallet, isPending: isWalletConnecting } = useConnect();
+  const { disconnect: disconnectWallet } = useDisconnect();
   
   const [showWin, setShowWin] = useState(false);
   const [prevPrice, setPrevPrice] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
   const [isOpeningShop, setIsOpeningShop] = useState(false);
+
+  // --- Auto-Connect GameServer (Backend) ---
+  useEffect(() => {
+    // Always keep GameServer connected for game logic, regardless of Wallet state
+    if (!connected && connectServer) {
+        connectServer();
+    }
+  }, [connected, connectServer]);
 
   // --- Asset Synchronization ---
   useEffect(() => {
@@ -88,21 +102,14 @@ const UIOverlay: React.FC = () => {
   const trend = currentPrice >= prevPrice ? 'up' : 'down';
   const trendColor = trend === 'up' ? '#00ff9d' : '#ff3b30';
 
-  const handleConnect = async () => {
-    if (connect) {
-        setIsConnecting(true);
-        // Simulate a brief connection delay for better UX
-        setTimeout(() => {
-            connect();
-            setIsConnecting(false);
-        }, 800);
-    }
+  const handleConnect = () => {
+    connectWallet({ connector: injected() });
   };
 
   const handleDisconnect = () => {
-    if (disconnect) {
-        disconnect();
-    }
+    disconnectWallet();
+    // Optional: Also disconnect game server if you want full logout
+    // disconnectServer(); 
   };
 
   const openShop = async () => {
@@ -183,13 +190,13 @@ const UIOverlay: React.FC = () => {
 
       {/* --- Bottom Left: Balance & Wallet --- */}
       <div className="widget-panel bottom-left glass-panel pointer-events-auto flex items-center gap-4">
-        {!connected ? (
+        {!isWalletConnected ? (
           <button 
             onClick={handleConnect}
-            disabled={isConnecting}
+            disabled={isWalletConnecting}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-md transition-all font-bold tracking-wide uppercase text-xs shadow-lg shadow-blue-500/20"
           >
-            {isConnecting ? (
+            {isWalletConnecting ? (
                 <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     Connecting...
@@ -250,10 +257,10 @@ const UIOverlay: React.FC = () => {
 
             {/* Account Info & Disconnect */}
             <div className="flex flex-col items-end mr-2">
-                <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">Session ID</span>
+                <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">Connected Wallet</span>
                 <span className="text-[10px] text-cyan-400 font-mono flex items-center gap-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_5px_#22d3ee]" />
-                    {server?.account ? `${server.account.slice(0, 6)}...${server.account.slice(-4)}` : 'Guest'}
+                    {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Unknown'}
                 </span>
             </div>
             
