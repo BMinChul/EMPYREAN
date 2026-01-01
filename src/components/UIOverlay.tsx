@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useGameServer, useAsset } from '@agent8/gameserver';
 import { usePrivy } from '@privy-io/react-auth';
-import { useBalance } from 'wagmi';
 import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, AlertCircle, X, HelpCircle, Coins, LogOut, ShoppingBag, ArrowRightLeft, ExternalLink } from 'lucide-react';
 import Assets from '../assets.json';
 import LoginModal from './LoginModal';
@@ -23,25 +22,11 @@ const UIOverlay: React.FC = () => {
   // Privy Hooks for Authentication
   const { authenticated, user, logout } = usePrivy();
   const address = user?.wallet?.address;
-  
-  // Wagmi Hook for real-time Blockchain Balance
-  const { data: wagmiBalance, isLoading: isBalanceLoading } = useBalance({
-    address: address as `0x${string}`,
-    chainId: crossTestnet.id,
-    query: {
-      enabled: !!address,
-      refetchInterval: 10000, // Reduced frequency to prevent rate limits
-    }
-  });
 
-  // Safe Balance Calculation with NaN check
+  // Safe Balance Calculation (Use Store/Server Balance only)
   const displayBalance = React.useMemo(() => {
-    if (wagmiBalance) {
-        const val = parseFloat(wagmiBalance.formatted);
-        return isNaN(val) ? 0 : val;
-    }
     return isNaN(storeBalance) ? 0 : storeBalance;
-  }, [wagmiBalance, storeBalance]);
+  }, [storeBalance]);
 
   const [showWin, setShowWin] = useState(false);
   const [prevPrice, setPrevPrice] = useState(0);
