@@ -204,7 +204,7 @@ const UIOverlay: React.FC = () => {
         ) : (
           <div className="flex items-center gap-4">
             <div className="panel-row flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5">
-              <div className="relative group cursor-pointer" onClick={openShop}>
+              <div className="relative group">
                 <img 
                     src={Assets.ui.icons.tcross.url} 
                     alt="Token" 
@@ -219,9 +219,9 @@ const UIOverlay: React.FC = () => {
                     <span className="label text-[9px] tracking-widest text-yellow-400 font-bold mb-0.5">
                         tCROSS BALANCE
                     </span>
-                    <button onClick={openShop} disabled={isOpeningShop} className="text-[8px] px-1.5 py-0.5 rounded bg-blue-600/30 text-blue-300 hover:bg-blue-600 hover:text-white transition-colors border border-blue-500/30 flex items-center gap-1">
+                    {/* <button onClick={openShop} disabled={isOpeningShop} className="text-[8px] px-1.5 py-0.5 rounded bg-blue-600/30 text-blue-300 hover:bg-blue-600 hover:text-white transition-colors border border-blue-500/30 flex items-center gap-1">
                         {isOpeningShop ? 'LOADING...' : 'DEPOSIT'} <ExternalLink size={8} />
-                    </button>
+                    </button> */}
                 </div>
                 <div className="flex flex-col leading-tight">
                     <span className="value-md text-lg font-bold text-white font-mono tracking-wide">
@@ -236,14 +236,14 @@ const UIOverlay: React.FC = () => {
 
             {/* Wallet Actions */}
             <div className="flex items-center gap-2">
-                <button 
+                {/* <button 
                     onClick={openForge}
                     className="h-8 px-3 rounded bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 border border-purple-500/30 flex items-center gap-2 transition-all hover:shadow-[0_0_10px_rgba(168,85,247,0.2)]"
                     title="Swap Tokens"
                 >
                     <ArrowRightLeft size={14} />
                     <span className="text-[10px] font-bold">SWAP</span>
-                </button>
+                </button> */}
             </div>
 
             <div className="w-px h-8 bg-white/10 mx-1" />
