@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useGameServer, useAsset } from '@agent8/gameserver';
 import { useAppKit } from '@reown/appkit/react';
-import { useAccount, useDisconnect } from 'wagmi';
+import { useAccount, useDisconnect, useBalance, useSendTransaction } from 'wagmi';
+import { parseEther } from 'viem';
 import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, HelpCircle, LogOut, X } from 'lucide-react';
 import Assets from '../assets.json';
 import { crossTestnet } from '../wagmi';
@@ -22,6 +23,10 @@ const UIOverlay: React.FC = () => {
   const { open } = useAppKit();
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+  
+  // Native Token Balance (tCROSS)
+  const { data: balanceData } = useBalance({ address });
+  const { sendTransactionAsync } = useSendTransaction();
 
   // Safe Balance Calculation (Use Store/Server Balance only)
   const displayBalance = React.useMemo(() => {
@@ -43,32 +48,38 @@ const UIOverlay: React.FC = () => {
 
   // --- Asset Synchronization ---
   useEffect(() => {
-    // Sync tCROSS balance (using 'credits' key from .crossramp)
-    if (assets && typeof assets['credits'] === 'number') {
-      // Prevent infinite loop: only update if different
-      if (storeBalance !== assets['credits']) {
-          setBalance(assets['credits']);
+    // Sync tCROSS balance (Native Token)
+    if (balanceData) {
+      const nativeBal = Number(balanceData.formatted);
+      if (storeBalance !== nativeBal) {
+          setBalance(nativeBal);
       }
     }
-  }, [assets, setBalance, storeBalance]);
+  }, [balanceData, setBalance, storeBalance]);
 
-  // --- Process Bets (Burn) ---
+  // --- Process Bets (Native Burn) ---
   useEffect(() => {
     if (pendingBet !== null && pendingBet > 0 && !isProcessing) {
         setIsProcessing(true);
         // Convert USD Bet to Tokens
         const tokenAmount = pendingBet / tokenPrice;
+        const tokenAmountStr = tokenAmount.toFixed(18); // Avoid scientific notation
         
-        burnAsset('credits', tokenAmount)
+        // Burn to Dead Address (Native tCROSS)
+        sendTransactionAsync({
+          to: '0x000000000000000000000000000000000000dEaD',
+          value: parseEther(tokenAmountStr) 
+        })
             .then(() => {
                 clearPendingBet();
             })
             .catch(err => {
                 console.error("Bet failed:", err);
+                // Optionally restore balance here if optimistic update was wrong
             })
             .finally(() => setIsProcessing(false));
     }
-  }, [pendingBet, burnAsset, clearPendingBet, isProcessing, tokenPrice]);
+  }, [pendingBet, sendTransactionAsync, clearPendingBet, isProcessing, tokenPrice]);
 
   // --- Process Wins (Mint) ---
   useEffect(() => {

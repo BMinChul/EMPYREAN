@@ -2,20 +2,20 @@
 
 ## Active Work
 - **Native Token Integration**:
-    - **Update**: Removed "Add to Wallet" functionality for tCROSS in `UIOverlay.tsx`.
-    - **Reasoning**: tCROSS is the native gas token of the network, so it doesn't need to be added as an ERC20 token.
-    - **UI**: Balance display now treats tCROSS purely as the native asset.
+    - **Update**: Fixed Balance Display to use `useBalance` (Native tCROSS) instead of `assets['credits']`.
+    - **Update**: Replaced `burnAsset` with `sendTransaction` (Native Burn to 0x...dEaD) for betting.
+    - **Reasoning**: User reported "Balance 0" while having tCROSS. The game was incorrectly looking for a 'credits' asset.
 
 ## Recent Activity
-- **Token Address Integration**:
-    - Configured `UIOverlay.tsx` to handle tCROSS as native token.
 - **Token Balance Fix**:
-    - Updated `UIOverlay.tsx` to use `'credits'` asset key for balance synchronization.
+    - `UIOverlay.tsx` now syncs with `wagmi` native balance.
+- **Betting Logic**:
+    - `UIOverlay.tsx` now performs a real blockchain transaction for betting.
 - **Authentication Migration**:
     - Migrated to **Reown AppKit (WalletConnect)**.
     - Replaced `PrivyProvider` with `WagmiProvider`.
 
 ## Next Steps
-- [ ] **Verify**: Check if balance updates correctly on betting/winning.
+- [ ] **Winning Logic**: Verify if `mintAsset` works or needs replacement with a Treasury Payout system (currently simulation).
 - [ ] **Testing**: Test connection with OKX Wallet and MetaMask on Cross Testnet.
-- [ ] **Game Loop**: Ensure `burnAsset`/`mintAsset` works correctly with the new `wagmi` signer.
+- [ ] **Game Loop**: Ensure `sendTransaction` works correctly with the new `wagmi` signer.
