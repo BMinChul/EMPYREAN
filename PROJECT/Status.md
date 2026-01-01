@@ -2,6 +2,7 @@
 
 ## Active Work
 - **Completed**: 
+    - Enhanced Wallet Connection UI: Added Account ID display and Disconnect button to verify real session state.
     - Integrated Cross SDK for wallet connection (`useGameServer`).
     - Implemented `tCROSS` token balance display with USD valuation.
     - Added Help Popup with guide on getting tCROSS tokens.

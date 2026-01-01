@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useGameServer, useAsset } from '@agent8/gameserver';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, AlertCircle, X, HelpCircle, Coins } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, AlertCircle, X, HelpCircle, Coins, LogOut } from 'lucide-react';
 import Assets from '../assets.json';
 
 const UIOverlay: React.FC = () => {
@@ -12,7 +12,7 @@ const UIOverlay: React.FC = () => {
     tokenPrice
   } = useGameStore();
   
-  const { connected, server, connect } = useGameServer();
+  const { connected, server, connect, disconnect } = useGameServer();
   const { assets, burnAsset, mintAsset } = useAsset();
   
   const [showWin, setShowWin] = useState(false);
@@ -87,7 +87,15 @@ const UIOverlay: React.FC = () => {
   const trendColor = trend === 'up' ? '#00ff9d' : '#ff3b30';
 
   const handleConnect = () => {
-    if (connect) connect();
+    if (connect) {
+        connect();
+    }
+  };
+
+  const handleDisconnect = () => {
+    if (disconnect) {
+        disconnect();
+    }
   };
 
   // Formatting: $0,000.00
@@ -185,8 +193,25 @@ const UIOverlay: React.FC = () => {
             <button 
                 onClick={() => setShowHelp(true)}
                 className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center border border-white/10 transition-colors group"
+                title="Help"
             >
                 <img src={Assets.ui.icons.info.url} alt="Info" className="w-4 h-4 opacity-70 group-hover:opacity-100" />
+            </button>
+
+            {/* Account Info & Disconnect */}
+            <div className="flex flex-col items-end mr-2">
+                <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">Account</span>
+                <span className="text-[10px] text-cyan-400 font-mono">
+                    {server?.account ? `${server.account.slice(0, 6)}...${server.account.slice(-4)}` : 'Guest'}
+                </span>
+            </div>
+            
+            <button 
+                onClick={handleDisconnect}
+                className="w-8 h-8 rounded-full bg-red-900/20 hover:bg-red-900/40 flex items-center justify-center border border-red-500/20 transition-colors group"
+                title="Disconnect Wallet"
+            >
+                <LogOut size={14} className="text-red-400 opacity-70 group-hover:opacity-100" />
             </button>
           </div>
         )}
