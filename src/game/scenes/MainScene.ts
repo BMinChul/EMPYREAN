@@ -569,7 +569,7 @@ export class MainScene extends Phaser.Scene {
     const multi = this.calculateDynamicMultiplier(cellCenterPrice, colIndexOnScreen);
 
     // 4. Create Box
-    store.updateBalance(-store.betAmount);
+    store.requestBet(store.betAmount);
     this.sound.play('sfx_place', { volume: 0.5 });
 
     const container = this.add.container(cellX, cellY);
@@ -703,7 +703,7 @@ export class MainScene extends Phaser.Scene {
     this.goldEmitter.explode(30);
     
     const store = useGameStore.getState();
-    store.updateBalance(winVal);
+    store.requestWin(winVal);
     store.setLastWinAmount(winVal);
 
     this.tweens.add({

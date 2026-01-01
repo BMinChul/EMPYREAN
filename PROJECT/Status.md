@@ -1,16 +1,16 @@
 # Status
 
 ## Active Work
-- **Build Optimization**: Configured `vite.config.ts` to split chunks (Phaser, React, Vendor).
-- **Completed**: Implemented Inverse Gaussian PDF Model for multiplier calculation.
-    - Formula: `Multiplier = BaseScale * sqrt(t) * exp( x^2 / (2 * sigma^2 * t) ) * (1 - HouseEdge)`
-    - Constants: Sigma=0.7, BaseScale=0.85, HouseEdge=0.05.
-    - UI: Ensured grid multipliers perfectly match betting box multipliers.
+- **Completed**: Implemented Crosschain USDT Betting (Crossramp Integration).
+    - Deployed "Euphoria Token" (EUPH) and "Credits" (CRED) to testnet.
+    - Added "Deposit / Shop" button for token swapping.
+    - Synced game balance with server-side `useAsset` hook.
+    - Updated betting logic to Burn/Mint assets on server.
 
 ## Recent Activity
-- **Build Fix**: Resolved "Large Chunk" warning by implementing `manualChunks` in Vite config.
-- **Visual Refinements**: Implemented dual-layer chart rendering and "Euphoira" style polish.
-- **Code Fixes**: Resolved syntax errors and grid multiplier logic.
+- **Blockchain**: Integrated `@agent8/gameserver` asset management.
+- **UI**: Added Wallet connection and Balance display in `UIOverlay`.
+- **Game Logic**: Refactored `MainScene` to use `gameStore` bridge for asset operations.
 
 ## Next Steps
 - [ ] Add "Cash Out" button for active bets.
