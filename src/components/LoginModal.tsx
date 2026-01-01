@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { X, ChevronRight, Zap, Loader2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, ChevronRight, Zap, Loader2, AlertTriangle } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 
 interface LoginModalProps {
@@ -9,6 +9,18 @@ interface LoginModalProps {
 
 const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const { login, ready, authenticated } = usePrivy();
+  const [showTimeout, setShowTimeout] = useState(false);
+
+  // Reset timeout when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setShowTimeout(false);
+      const timer = setTimeout(() => {
+        if (!ready) setShowTimeout(true);
+      }, 5000); // Show warning if not ready after 5s
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, ready]);
 
   // Auto-close when authenticated
   useEffect(() => {
@@ -58,8 +70,23 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           
           {!ready ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-400">
-              <Loader2 className="animate-spin text-emerald-500" size={32} />
-              <p className="text-sm font-mono">Initializing Privy...</p>
+              {showTimeout ? (
+                <div className="flex flex-col items-center text-center px-4 animate-in fade-in">
+                  <AlertTriangle className="text-yellow-500 mb-2" size={32} />
+                  <p className="text-yellow-500 font-bold mb-1">Initialization Slow</p>
+                  <p className="text-xs text-gray-400 max-w-[250px]">
+                    Checking connection... If this persists, please verify your network or App ID configuration.
+                  </p>
+                  <div className="mt-4 p-2 bg-white/5 rounded text-[10px] font-mono text-gray-500 select-all">
+                     App ID check required
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Loader2 className="animate-spin text-emerald-500" size={32} />
+                  <p className="text-sm font-mono">Initializing Privy...</p>
+                </>
+              )}
             </div>
           ) : (
             <>

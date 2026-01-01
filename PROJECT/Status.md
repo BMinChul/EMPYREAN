@@ -1,24 +1,21 @@
 # Status
 
 ## Active Work
-- **Wallet Connection Fix**:
-    - **Issue**: Users reported "No reaction" when clicking MetaMask.
-    - **Fix**: 
-        - Modified `LoginModal.tsx` to wait for Privy `ready` state.
-        - Added Loading Spinner if Privy is initializing.
-        - Removed premature `onClose()` calls from login handlers.
-        - Added auto-close effect when `authenticated` becomes true.
-    - **Result**: Buttons now ensure Privy is ready before triggering, and modal stays open during interaction.
+- **Privy Initialization Debugging**:
+    - **Issue**: User reported stuck on "Initializing Privy...".
+    - **Enhancement**:
+        - Added console log in `main.tsx` to verify loaded App ID.
+        - Added 5-second timeout in `LoginModal.tsx` to show a warning if initialization stalls.
+        - Warning suggests checking network or App ID configuration.
 
 ## Recent Activity
-- **Network Configuration Fix**:
-    - Updated to **Cross testnet** (ID: 612044).
-    - Updated UI to show **tCROSS**.
-- **Privy Integration**:
-    - Replaced direct Wagmi with Privy.
-    - Fixed silent failure in Login Modal.
+- **Wallet Connection Fix**:
+    - Modified `LoginModal.tsx` to handle `ready` state correctly.
+    - Added loading spinner and prevented premature closing.
+- **Network Configuration**:
+    - Confirmed Cross testnet setup in `wagmi.ts`.
 
 ## Next Steps
-- [ ] Monitor user feedback on "Initializing..." spinner (if it hangs, App ID is invalid).
-- [ ] Verify actual wallet connection on mobile/desktop.
-- [ ] Add "Cash Out" button for active bets.
+- [ ] User to verify App ID in console logs.
+- [ ] User to check if `.env` changes were applied (restart server).
+- [ ] Verify actual wallet connection flow once initialization passes.
