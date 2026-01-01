@@ -5,6 +5,7 @@ import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { injected } from 'wagmi/connectors';
 import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, AlertCircle, X, HelpCircle, Coins, LogOut, ShoppingBag, ArrowRightLeft, ExternalLink } from 'lucide-react';
 import Assets from '../assets.json';
+import LoginModal from './LoginModal';
 
 const UIOverlay: React.FC = () => {
   const { 
@@ -26,6 +27,7 @@ const UIOverlay: React.FC = () => {
   const [prevPrice, setPrevPrice] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isOpeningShop, setIsOpeningShop] = useState(false);
 
   // --- Auto-Connect GameServer (Backend) ---
@@ -103,7 +105,7 @@ const UIOverlay: React.FC = () => {
   const trendColor = trend === 'up' ? '#00ff9d' : '#ff3b30';
 
   const handleConnect = () => {
-    connectWallet({ connector: injected() });
+    setIsLoginModalOpen(true);
   };
 
   const handleDisconnect = () => {
@@ -374,6 +376,12 @@ const UIOverlay: React.FC = () => {
             </div>
         </div>
       )}
+
+      {/* --- Login Modal --- */}
+      <LoginModal 
+        isOpen={isLoginModalOpen} 
+        onClose={() => setIsLoginModalOpen(false)} 
+      />
     </div>
   );
 };
