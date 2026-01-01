@@ -6,6 +6,10 @@ export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
     exclude: ["lucide-react"],
+    include: ["react", "react-dom", "@privy-io/react-auth", "@tanstack/react-query", "phaser", "zustand"],
+  },
+  server: {
+    host: true,
   },
   base: "./",
   build: {
