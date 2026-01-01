@@ -12,7 +12,7 @@ const UIOverlay: React.FC = () => {
   const { 
     currentPrice, balance: storeBalance, betAmount, setBetAmount, 
     lastWinAmount, setLastWinAmount,
-    pendingBet, pendingWin, clearPendingBet, clearPendingWin, cancelPendingBet, setBalance,
+    pendingBet, pendingWin, confirmBet, clearPendingWin, cancelBet, setBalance,
     tokenPrice
   } = useGameStore();
   
@@ -60,10 +60,10 @@ const UIOverlay: React.FC = () => {
 
   // --- Process Bets (Native Burn) ---
   useEffect(() => {
-    if (pendingBet !== null && pendingBet > 0 && !isProcessing) {
+    if (pendingBet && !isProcessing) {
         setIsProcessing(true);
         // Convert USD Bet to Tokens
-        const tokenAmount = pendingBet / tokenPrice;
+        const tokenAmount = pendingBet.amount / tokenPrice;
         const tokenAmountStr = tokenAmount.toFixed(18); // Avoid scientific notation
         
         // Burn to Dead Address (Native tCROSS)
@@ -72,11 +72,11 @@ const UIOverlay: React.FC = () => {
           value: parseEther(tokenAmountStr) 
         })
             .then(() => {
-                clearPendingBet();
+                confirmBet(); // Confirms transaction, triggers Box in Scene
             })
             .catch(err => {
                 console.error("Bet failed:", err);
-                cancelPendingBet(); // Refund and stop loop
+                cancelBet(); // Refund and stop loop
                 
                 // Friendly error message
                 let msg = "Transaction Failed";
@@ -88,7 +88,7 @@ const UIOverlay: React.FC = () => {
             })
             .finally(() => setIsProcessing(false));
     }
-  }, [pendingBet, sendTransactionAsync, clearPendingBet, cancelPendingBet, isProcessing, tokenPrice]);
+  }, [pendingBet, sendTransactionAsync, confirmBet, cancelBet, isProcessing, tokenPrice]);
 
   // --- Process Wins (Mint) ---
   useEffect(() => {

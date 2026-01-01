@@ -1,20 +1,20 @@
 # Status
 
 ## Active Work
-- **Error Handling**:
-    - **Fix**: Implemented graceful handling for rejected/failed bet transactions.
-    - **Fix**: Added `cancelPendingBet` to `gameStore` to refund optimistic balance updates on error.
-    - **UI**: Added Error Toast notification for failed transactions (e.g., "Bet Cancelled by User").
-    - **Loop Prevention**: Fixed issue where failed bets would infinitely retry.
+- **Betting Flow Logic**:
+    - **Update**: Changed betting logic to "Confirm-then-Show".
+    - **Visuals**: Added "Ghost Box" (Grey "SIG?") state while waiting for wallet signature.
+    - **Logic**: Real Betting Box (Yellow) only spawns *after* transaction confirmation.
+    - **Refund**: Failed/Rejected transactions now clear the Ghost Box and refund the balance.
 
 ## Recent Activity
-- **Gameplay Pacing Update**:
+- **Error Handling**:
+    - Graceful handling of rejected/failed bet transactions.
+    - Added `cancelBet` to `gameStore` to refund optimistic balance updates.
+    - Added Error Toast notification for failed transactions.
+- **Gameplay Pacing**:
     - Grid Reduced to 6 columns.
-    - Time Window reduced to 60s (Faster scroll).
-    - Head Position moved to 40%.
-- **Native Token Integration**:
-    - Fixed Balance Display to use `useBalance` (Native tCROSS).
-    - Replaced `burnAsset` with `sendTransaction` (Native Burn).
+    - Time Window reduced to 60s.
 
 ## Next Steps
 - [ ] **Winning Logic**: Verify if `mintAsset` works or needs replacement with a Treasury Payout system.
