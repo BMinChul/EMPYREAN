@@ -43,11 +43,11 @@ const UIOverlay: React.FC = () => {
 
   // --- Asset Synchronization ---
   useEffect(() => {
-    // Sync tCROSS balance (using 'tcross' key)
-    if (assets && typeof assets['tcross'] === 'number') {
+    // Sync tCROSS balance (using 'credits' key from .crossramp)
+    if (assets && typeof assets['credits'] === 'number') {
       // Prevent infinite loop: only update if different
-      if (storeBalance !== assets['tcross']) {
-          setBalance(assets['tcross']);
+      if (storeBalance !== assets['credits']) {
+          setBalance(assets['credits']);
       }
     }
   }, [assets, setBalance, storeBalance]);
@@ -59,7 +59,7 @@ const UIOverlay: React.FC = () => {
         // Convert USD Bet to Tokens
         const tokenAmount = pendingBet / tokenPrice;
         
-        burnAsset('tcross', tokenAmount)
+        burnAsset('credits', tokenAmount)
             .then(() => {
                 clearPendingBet();
             })
@@ -77,7 +77,7 @@ const UIOverlay: React.FC = () => {
         // Convert USD Win to Tokens
         const tokenAmount = pendingWin / tokenPrice;
 
-        mintAsset('tcross', tokenAmount)
+        mintAsset('credits', tokenAmount)
             .then(() => {
                 clearPendingWin();
             })
