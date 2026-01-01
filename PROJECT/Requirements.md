@@ -3,7 +3,7 @@
 ## Core Gameplay
 - Real-time ETH/USDT Perpetual Futures feed (OKX WebSocket).
 - **Betting System (Blockchain)**:
-    - Currency: "Credits" (1:1 with Testnet USDT).
+    - Currency: "**tCROSS**" (Native Token of Cross testnet).
     - **Authentication**: **Privy.io** (Email, Social, Wallet).
     - **Deposit/Withdraw**: Via Shop (future integration).
 - **Grid System**: 10 columns, multipliers based on probability.
