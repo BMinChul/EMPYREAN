@@ -1,6 +1,5 @@
 import { http, createConfig } from 'wagmi'
 import { mainnet, sepolia } from 'wagmi/chains'
-import { injected } from 'wagmi/connectors'
 import { defineChain } from 'viem'
 
 export const crossTestnet = defineChain({
@@ -17,9 +16,7 @@ export const crossTestnet = defineChain({
 
 export const config = createConfig({
   chains: [crossTestnet, mainnet, sepolia],
-  connectors: [
-    injected(),
-  ],
+  connectors: [],
   transports: {
     [crossTestnet.id]: http(),
     [mainnet.id]: http(),
