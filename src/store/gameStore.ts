@@ -29,7 +29,7 @@ export const useGameStore = create<GameState>((set) => ({
   currentPrice: 0,
   balance: 0, 
   tokenPrice: 0.10, // Fixed price for tCROSS (1 Token = $0.10)
-  betAmount: 1,
+  betAmount: 0.1,
   lastWinAmount: 0,
   
   pendingBet: null,

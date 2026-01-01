@@ -74,8 +74,12 @@ const UIOverlay: React.FC = () => {
                 clearPendingBet();
             })
             .catch(err => {
-                console.error("Bet failed:", err);
-                // Optionally restore balance here if optimistic update was wrong
+                if (err.message.includes('User rejected')) {
+                    console.log("Bet cancelled by user");
+                } else {
+                    console.error("Bet failed:", err);
+                }
+                // Return funds to balance if optimistic update was used (optional)
             })
             .finally(() => setIsProcessing(false));
     }
@@ -256,7 +260,7 @@ const UIOverlay: React.FC = () => {
             <span className="label-center text-[9px] tracking-[0.2em] text-gray-400 font-bold uppercase">BET SIZE (USD)</span>
           </div>
           <div className="bet-grid grid grid-cols-3 gap-1.5">
-            {[1, 5, 10, 25, 50, 100].map(amt => {
+            {[0.1, 0.5, 1, 5, 10, 25].map(amt => {
               const reqTokens = amt / tokenPrice;
               const canAfford = displayBalance >= reqTokens;
               
