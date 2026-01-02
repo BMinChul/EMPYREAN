@@ -24,6 +24,10 @@ interface GameState {
   pendingBet: BetRequest | null; // The bet currently waiting for TX approval
   lastConfirmedBet: BetRequest | null; // The bet that just succeeded (Signal to Scene)
   
+  // UI Signals
+  connectionError: boolean;
+  setConnectionError: (show: boolean) => void;
+
   autoBet: boolean;
   setAutoBet: (enabled: boolean) => void;
 
@@ -62,8 +66,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   pendingBet: null,
   lastConfirmedBet: null,
   pendingWin: null,
+  connectionError: false,
 
   setAutoBet: (enabled) => set({ autoBet: enabled }),
+  setConnectionError: (show) => set({ connectionError: show }),
 
   setCurrentPrice: (price) => set({ currentPrice: price }),
   setBalance: (amount) => set({ balance: amount }),

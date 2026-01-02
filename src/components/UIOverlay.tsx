@@ -14,7 +14,8 @@ const UIOverlay: React.FC = () => {
     currentPrice, balance: storeBalance, betAmount, setBetAmount, 
     lastWinAmount, setLastWinAmount,
     pendingBet, confirmBet, cancelBet, setBalance,
-    autoBet, setUserAddress
+    autoBet, setUserAddress,
+    connectionError, setConnectionError
   } = useGameStore();
   
   // WalletConnect / Reown Hooks
@@ -123,6 +124,20 @@ const UIOverlay: React.FC = () => {
     }
   }, [pendingBet, autoBet, isProcessing, processBet]);
 
+
+  // Handle Connection Error Signal from Phaser
+  useEffect(() => {
+    if (connectionError) {
+        setErrorMessage("Please Connect Wallet to Bet");
+        open({ view: 'Connect' });
+        
+        // Reset signal immediately
+        setConnectionError(false);
+
+        // Clear error message after 3s
+        setTimeout(() => setErrorMessage(null), 3000);
+    }
+  }, [connectionError, setConnectionError, open]);
 
   // Win Notification logic
   useEffect(() => {
