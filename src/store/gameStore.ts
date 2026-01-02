@@ -42,6 +42,8 @@ interface GameState {
   cancelBet: () => void; // Clears pending, refunds optimistic update
   clearLastConfirmedBet: () => void; // Called by Scene after rendering the real box
 
+  clearPendingBet: () => void; // Explicit cleanup for errors
+
   clearPendingWin: () => void;
 
   // Server Integration Actions
@@ -95,6 +97,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   // Called by Phaser after it renders the confirmed box
   clearLastConfirmedBet: () => set({ lastConfirmedBet: null }),
+
+  clearPendingBet: () => set((state) => {
+    if (!state.pendingBet) return {};
+    return {
+        pendingBet: null,
+        balance: state.balance + state.pendingBet.amount // Refund balance
+    };
+  }),
 
   requestWin: (amount) => set((state) => {
       return { 
