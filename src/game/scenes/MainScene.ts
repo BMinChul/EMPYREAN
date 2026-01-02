@@ -44,6 +44,7 @@ export class MainScene extends Phaser.Scene {
   private timeLabels: Phaser.GameObjects.Text[] = []; // Only for Time
 
   // --- Configuration ---
+  private readonly API_URL = 'https://gene-fragmental-addisyn.ngrok-free.dev';
   private timeWindowSeconds: number = 60; 
   private pixelsPerSecond: number = 0; 
   private pixelPerDollar: number = 200; 
@@ -226,6 +227,49 @@ export class MainScene extends Phaser.Scene {
 
     // --- Sync Logic ---
     this.checkBettingState();
+    
+    // --- Late Confirmation Prevention (Exploit Protection) ---
+    // If the head passes a pending box before it confirms, INVALIDATE IT.
+    if (this.pendingBoxes.size > 0) {
+        const toRemove: string[] = [];
+        this.pendingBoxes.forEach((container, id) => {
+             const boxWidth = 80; // Approximate
+             // If Head has passed the center of the pending box
+             if (this.headX > (container.x + boxWidth/2)) {
+                 // 1. Visual Invalidation
+                 const bg = container.list[0] as Phaser.GameObjects.Graphics;
+                 if (bg) {
+                     bg.clear();
+                     bg.fillStyle(0xff0000, 0.5); // RED for Invalid
+                     bg.fillRoundedRect(-boxWidth/2, -20, boxWidth, 40, 8);
+                     bg.strokeRoundedRect(-boxWidth/2, -20, boxWidth, 40, 8);
+                 }
+                 
+                 const txt = container.list[1] as Phaser.GameObjects.Text;
+                 if (txt) txt.setText('EXPIRED');
+
+                 // 2. Destroy after brief delay
+                 this.tweens.add({
+                     targets: container,
+                     alpha: 0,
+                     scale: 0.8,
+                     duration: 300,
+                     delay: 500,
+                     onComplete: () => container.destroy()
+                 });
+                 
+                 toRemove.push(id);
+                 
+                 // 3. Unlock Store if this was the pending bet
+                 const store = useGameStore.getState();
+                 if (store.pendingBet && store.pendingBet.id === id) {
+                     store.clearPendingBet(); // Clears lock, refunds (if needed)
+                 }
+             }
+        });
+        
+        toRemove.forEach(id => this.pendingBoxes.delete(id));
+    }
 
     // --- Movement Logic ---
     this.headX += this.pixelsPerSecond * dt;
@@ -279,24 +323,28 @@ export class MainScene extends Phaser.Scene {
               this.createConfirmedBox(req, pendingContainer);
               this.pendingBoxes.delete(req.id);
           } else {
-              // Fallback if visual missing (rare): Create new
+              // Fallback if visual missing (rare or restored)
               this.createConfirmedBox(req, null);
           }
           
           store.clearLastConfirmedBet();
       }
 
-      // 2. Check for Cancellation
+      // 2. Check for Cancellation or Expiration Clean-up
       // If we have pending boxes locally, but store has NO pending bet AND NO confirmed bet
-      // It means the pending bet was rejected/cancelled in UI
+      // It means the pending bet was rejected/cancelled in UI OR Expired via update() loop
       if (this.pendingBoxes.size > 0 && !store.pendingBet && !store.lastConfirmedBet) {
           const toRemove: string[] = [];
 
           this.pendingBoxes.forEach((container, id) => {
               // SKIP if this bet is still initializing (waiting for API)
               if (this.initializingBets.has(id)) return;
-
-              // Destroy cancelled/orphaned bets
+              
+              // Only remove if it hasn't been marked as EXPIRED (handled in update)
+              // We check if it's still "normal" pending
+              const bg = container.list[0] as Phaser.GameObjects.Graphics;
+              // If we wanted to check color, we could, but generally if it's here and not in store, it's dead.
+              
               this.tweens.add({
                   targets: container,
                   scale: 0,
@@ -474,7 +522,7 @@ export class MainScene extends Phaser.Scene {
                 const cellCenterPrice = p + (this.gridPriceInterval / 2);
                 const dynamicMulti = this.calculateDynamicMultiplier(cellCenterPrice, colIndexOnScreen);
                 
-                // NEW: Hide multiplier if cell is occupied by Pending or Active bet
+                // Hide multiplier if cell is occupied
                 if (this.isOccupied(cellCenterX, cellCenterY)) {
                     continue;
                 }
@@ -527,16 +575,17 @@ export class MainScene extends Phaser.Scene {
   private async placeBet(pointer: Phaser.Input.Pointer) {
     if (!this.initialPrice) return;
     
-    // 0. Wallet Connection Check (NEW)
+    // 0. Wallet Connection Check
     const store = useGameStore.getState();
     if (!store.userAddress) {
         this.sound.play('sfx_error', { volume: 0.2 });
-        store.setConnectionError(true); // Signal React to open Connect Modal
+        store.setConnectionError(true); 
         return;
     }
 
-    // 1. Check pending (Limit 1 at a time)
+    // 1. GLOBAL LOCK (Strict Sequential Betting)
     if (store.pendingBet || this.initializingBets.size > 0) {
+        // Strict block: No new bets while one is processing
         return; 
     }
 
@@ -552,19 +601,9 @@ export class MainScene extends Phaser.Scene {
     }
 
     // 3. Balance Check
-    // store.betAmount is in CROSS, so we check directly against balance
     const tokenCost = store.betAmount; 
-    console.log("Current Balance in Store:", store.balance, "Required:", tokenCost);
 
-    /* TEMPORARILY DISABLED FOR TESTING
-    if (store.balance < (tokenCost + 0.005)) {
-        this.sound.play('sfx_error');
-        console.warn("Insufficient balance");
-        return;
-    }
-    */
-
-    // 4. Coordinates Calculation
+    // 4. Coordinates & Snap logic
     const colWidth = width / this.gridCols;
     const colIdx = Math.floor(pointer.worldX / colWidth);
     const cellX = (colIdx * colWidth) + (colWidth/2);
@@ -582,13 +621,18 @@ export class MainScene extends Phaser.Scene {
         return;
     }
 
-    // 6. Setup Bet Data
+    // 6. Setup Bet Data & Snapshot
     const multi = this.calculateDynamicMultiplier(cellCenterPrice, colIndexOnScreen);
     const boxW = colWidth - 8; 
     const boxH = (this.gridPriceInterval * this.pixelPerDollar) - 8;
     const betId = Date.now().toString();
 
-    // 7. Visual Feedback: Create "Pending" Ghost Box (IMMEDIATE)
+    // 7. Calculate Expiry Snapshot
+    const dist = cellX - this.headX;
+    const timeToReach = dist / this.pixelsPerSecond;
+    const expiryTimestamp = Date.now() + (timeToReach * 1000);
+
+    // 8. Visual Feedback: Create "Pending" Ghost Box
     const container = this.add.container(cellX, cellY);
     
     const bg = this.add.graphics();
@@ -601,8 +645,6 @@ export class MainScene extends Phaser.Scene {
          fontFamily: 'monospace', fontSize: '10px', color: '#cccccc'
     }).setOrigin(0.5);
 
-    // Add Multiplier to Pending Box for better UX
-    // CENTERED as requested
     const txtMulti = this.add.text(0, 0, `${multi.toFixed(2)}x`, {
         fontFamily: 'monospace', fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0.5);
@@ -610,23 +652,23 @@ export class MainScene extends Phaser.Scene {
     container.add([bg, txt, txtMulti]);
     this.pendingBoxes.set(betId, container);
 
-    // 8. Server Communication & Wallet Signature
+    // 9. Server Communication & Store Lock
     try {
         this.initializingBets.add(betId); // Mark as initializing
 
-        const apiUrl = 'https://gene-fragmental-addisyn.ngrok-free.dev'; // Hardcoded as requested
         const userAddress = store.userAddress || "0xTestUser";
 
-        // A. Call Server API (Non-blocking for Preview)
+        // A. Call Server API (Validation Snapshot)
         try {
-            const response = await fetch(`${apiUrl}/api/place-bet`, {
+            const response = await fetch(`${this.API_URL}/api/place-bet`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     betId: betId,
                     userAddress: userAddress,
                     betAmount: store.betAmount,
-                    multiplier: multi
+                    multiplier: multi,
+                    expiryTimestamp: Math.floor(expiryTimestamp) // Send Validation Data
                 })
             });
 
@@ -637,8 +679,7 @@ export class MainScene extends Phaser.Scene {
             console.warn("Backend unreachable (Network Error). Proceeding in Offline/Preview Mode.");
         }
 
-        // B. Server Success (or Fallback) -> Proceed to Store/Wallet Logic
-        // This sets 'store.pendingBet = true', locking the UI
+        // B. Lock Store & Request Wallet Signature
         store.requestBet({
             id: betId,
             amount: store.betAmount,
@@ -655,22 +696,16 @@ export class MainScene extends Phaser.Scene {
     } catch (err) {
         console.error("❌ Bet Registration Logic Error:", err);
         
-        this.initializingBets.delete(betId); // Clear initializing flag so cleanup can happen
+        this.initializingBets.delete(betId);
         
-        // C. Error Handling: ROLLBACK EVERYTHING
-        
-        // 1. Remove Visual Box
+        // C. Error Handling: ROLLBACK
         this.pendingBoxes.delete(betId);
         container.destroy(); 
 
-        // 2. Unlock Store State (Crucial!)
         if (store.clearPendingBet) {
             store.clearPendingBet(); 
-        } else {
-            console.warn("⚠️ store.clearPendingBet method is missing!");
         }
         
-        // 3. Visual Feedback for Error
         this.sound.play('sfx_error');
     }
   }
@@ -715,7 +750,6 @@ export class MainScene extends Phaser.Scene {
           fontFamily: 'monospace', fontSize: '12px', color: '#000000', fontStyle: 'bold'
       }).setOrigin(0.5);
 
-      // --- NEW: SCAN Link ---
       if (req.txHash) {
           const scanLink = this.add.text(0, -boxH/2 + 8, '🔗 SCAN', {
               fontFamily: 'monospace', fontSize: '10px', color: '#0000ff'
@@ -750,8 +784,7 @@ export class MainScene extends Phaser.Scene {
           hit: false, boxWidth: boxW, boxHeight: boxH, basePrice: req.basePrice
       });
 
-      // Register with Backend
-      useGameStore.getState().registerServerBet(req);
+      // No need to call registerServerBet here again as placeBet handled it
   }
 
   private checkCollisions() {
@@ -792,10 +825,9 @@ export class MainScene extends Phaser.Scene {
   private async requestPayout(betId: string) {
     const store = useGameStore.getState();
     const userAddress = store.userAddress || "0xTestUser";
-    const apiUrl = 'https://gene-fragmental-addisyn.ngrok-free.dev';
-
+    
     try {
-        await fetch(`${apiUrl}/api/payout`, {
+        await fetch(`${this.API_URL}/api/payout`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -840,7 +872,6 @@ export class MainScene extends Phaser.Scene {
     
     // Server Payout
     const store = useGameStore.getState();
-    // Replaced store.claimServerPayout with direct call
     this.requestPayout(box.id);
 
     store.requestWin(winVal);
