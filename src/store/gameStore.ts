@@ -55,7 +55,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   betAmount: 1, // Default to 1 CROSS
   lastWinAmount: 0,
   userAddress: null,
-  autoBet: false,
+  autoBet: true,
   
   pendingBet: null,
   lastConfirmedBet: null,

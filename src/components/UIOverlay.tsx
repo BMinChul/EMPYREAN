@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { useAppKit } from '@reown/appkit/react';
 import { useAccount, useDisconnect, useBalance, useSendTransaction } from 'wagmi';
 import { parseEther } from 'viem';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut, ExternalLink } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut } from 'lucide-react';
 import Assets from '../assets.json';
 import { crossTestnet } from '../wagmi';
 
@@ -14,7 +14,7 @@ const UIOverlay: React.FC = () => {
     currentPrice, balance: storeBalance, betAmount, setBetAmount, 
     lastWinAmount, setLastWinAmount,
     pendingBet, confirmBet, cancelBet, setBalance,
-    autoBet, setAutoBet, setUserAddress
+    autoBet, setUserAddress
   } = useGameStore();
   
   // WalletConnect / Reown Hooks
@@ -88,7 +88,7 @@ const UIOverlay: React.FC = () => {
   }, [pendingBet, isProcessing, sendTransactionAsync, confirmBet, cancelBet]);
 
   useEffect(() => {
-    // Only auto-process if AutoBet is ON
+    // Always auto-process since autoBet is true
     if (pendingBet && autoBet && !isProcessing) {
         processBet();
     }
@@ -158,16 +158,19 @@ const UIOverlay: React.FC = () => {
 
   return (
     <div className="ui-overlay pointer-events-none font-sans">
-      {/* --- Top Left: Main Ticker --- */}
-      <div className="widget-panel top-left glass-panel">
-        <div className="panel-row flex items-center gap-3">
-          <div className="icon-box neon-border flex items-center justify-center w-8 h-8 rounded bg-black/40 border border-white/10">
+      
+      {/* --- Top Container: Price & Bet Selector --- */}
+      <div className="fixed top-6 left-6 flex items-start gap-3 z-30">
+        
+        {/* Price Widget */}
+        <div className="glass-panel pointer-events-auto flex items-center gap-3 px-4 py-2 min-h-[52px] shadow-lg shadow-black/40">
+          <div className="icon-box neon-border flex items-center justify-center w-8 h-8 rounded bg-black/40 border border-white/10 shrink-0">
             <Target size={16} color="#fff" />
           </div>
-          <div className="col flex flex-col">
-            <span className="label text-[9px] tracking-widest text-cyan-400 font-bold mb-0.5">ETH-USDT SWAP</span>
-            <div className="value-row flex items-center gap-2">
-              <span className="value-lg text-xl font-bold font-mono tracking-wider text-white">
+          <div className="flex flex-col">
+            <span className="text-[9px] tracking-widest text-cyan-400 font-bold mb-0.5 whitespace-nowrap">ETH-USDT SWAP</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-bold font-mono tracking-wider text-white leading-none">
                 {fmtUSD(currentPrice)}
               </span>
               {trend === 'up' ? 
@@ -177,6 +180,44 @@ const UIOverlay: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Bet Selector Widget (Matching Style) */}
+        <div className="relative pointer-events-auto" ref={dropdownRef}>
+            <button 
+                onClick={() => setIsBetDropdownOpen(!isBetDropdownOpen)}
+                className="glass-panel flex items-center justify-between gap-4 px-4 py-2 min-h-[52px] min-w-[150px] hover:border-white/20 transition-all active:scale-95 shadow-lg shadow-black/40 group"
+            >
+                <div className="flex flex-col items-start">
+                    <span className="text-[9px] tracking-widest text-gray-400 font-bold mb-0.5 uppercase group-hover:text-yellow-400 transition-colors">BET AMOUNT</span>
+                    <span className="text-lg font-bold font-mono text-yellow-400 tracking-wide leading-none">
+                        {betAmount} CR
+                    </span>
+                </div>
+                {isBetDropdownOpen ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+            </button>
+
+            {/* Dropdown Menu */}
+            {isBetDropdownOpen && (
+                <div className="absolute top-full mt-2 left-0 w-full bg-[#1a1b26]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden z-40 animate-in fade-in slide-in-from-top-2">
+                    {betOptions.map((opt) => (
+                        <button
+                            key={opt}
+                            onClick={() => {
+                                setBetAmount(opt);
+                                setIsBetDropdownOpen(false);
+                            }}
+                            className={`w-full px-4 py-3 text-left font-mono font-bold transition-all flex items-center justify-between border-b border-white/5 last:border-0
+                                ${betAmount === opt ? 'bg-yellow-400/20 text-yellow-400' : 'text-gray-400 hover:bg-white/10 hover:text-white hover:pl-5'}
+                            `}
+                        >
+                            <span>{opt} CR</span>
+                            {betAmount === opt && <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 shadow-[0_0_8px_rgba(255,215,0,0.8)]" />}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+
       </div>
 
       {/* --- Top Center: Win Notification Bar --- */}
@@ -198,7 +239,7 @@ const UIOverlay: React.FC = () => {
         </div>
       )}
 
-      {/* --- Manual Confirm Button (When AutoBet is OFF) --- */}
+      {/* --- Manual Confirm Button (Fallback) --- */}
       {pendingBet && !autoBet && !isProcessing && (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 animate-in zoom-in duration-200 pointer-events-auto">
              <button 
@@ -281,66 +322,6 @@ const UIOverlay: React.FC = () => {
         )}
       </div>
 
-      {/* --- Bottom Right: Bet Controls --- */}
-      <div className="widget-panel bottom-right glass-panel pointer-events-auto">
-        <div className="flex flex-col items-end gap-1">
-          <div className="flex items-center gap-4 mb-2">
-            {/* Auto Bet Toggle */}
-            <label className="flex items-center gap-2 cursor-pointer group">
-                <div className={`w-3 h-3 rounded-full border border-white/30 transition-colors ${autoBet ? 'bg-yellow-400 border-yellow-400 shadow-[0_0_5px_rgba(255,215,0,0.5)]' : 'bg-transparent'}`} />
-                <input 
-                    type="checkbox" 
-                    checked={autoBet} 
-                    onChange={(e) => setAutoBet(e.target.checked)} 
-                    className="hidden" 
-                />
-                <span className={`text-[9px] font-bold uppercase tracking-wider transition-colors ${autoBet ? 'text-yellow-400' : 'text-gray-500 group-hover:text-gray-400'}`}>
-                    Auto Tx
-                </span>
-            </label>
-
-            <div className="h-3 w-px bg-white/10" />
-
-            <span className="label-center text-[9px] tracking-[0.2em] text-gray-400 font-bold uppercase">BET SIZE</span>
-          </div>
-
-          {/* New Bet Selector Dropdown */}
-          <div className="relative" ref={dropdownRef}>
-              <button 
-                  onClick={() => setIsBetDropdownOpen(!isBetDropdownOpen)}
-                  className="w-48 h-12 flex items-center justify-between px-4 bg-white/5 border border-white/10 rounded hover:bg-white/10 hover:border-white/20 transition-all group"
-              >
-                  <div className="flex flex-col items-start">
-                      <span className="text-lg font-bold font-mono text-yellow-400 tracking-wide">
-                          {betAmount} CROSS
-                      </span>
-                  </div>
-                  {isBetDropdownOpen ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
-              </button>
-
-              {/* Dropdown Menu */}
-              {isBetDropdownOpen && (
-                  <div className="absolute bottom-full mb-2 right-0 w-48 bg-[#1a1b26] border border-white/10 rounded shadow-xl overflow-hidden z-20 animate-in fade-in slide-in-from-bottom-2">
-                      {betOptions.map((opt) => (
-                          <button
-                              key={opt}
-                              onClick={() => {
-                                  setBetAmount(opt);
-                                  setIsBetDropdownOpen(false);
-                              }}
-                              className={`w-full px-4 py-3 text-left font-mono font-bold transition-colors flex items-center justify-between
-                                  ${betAmount === opt ? 'bg-yellow-400/10 text-yellow-400' : 'text-gray-400 hover:bg-white/5 hover:text-white'}
-                              `}
-                          >
-                              <span>{opt} CROSS</span>
-                              {betAmount === opt && <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />}
-                          </button>
-                      ))}
-                  </div>
-              )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

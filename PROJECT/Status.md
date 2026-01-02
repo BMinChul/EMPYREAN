@@ -1,20 +1,21 @@
 # Status
 
 ## Active Work
-- **Backend Integration (Complete)**:
-    - Implemented `registerServerBet` in `gameStore` to sync confirmed bets with the server.
-    - Implemented `claimServerPayout` in `gameStore` for secure win claims (sending only `betId`).
-    - Updated `MainScene` to trigger these actions at the correct game states.
+- **UI Refactoring (Complete)**:
+    - Moved **Bet Amount Selector** to Top-Left (next to Price Ticker).
+    - Unified styling for Top-Left widgets (Glassmorphism, compact).
+    - Removed Bottom-Right control panel.
+    - **Auto TX**: Permanently enabled (`autoBet: true` in store), removed toggle UI.
 
 ## Recent Activity
-- **MainScene.ts**: Integrated backend API calls into `createConfirmedBox` and `handleWin`.
-- **gameStore.ts**: Added `registerServerBet` and `claimServerPayout` actions.
-- **Betting Logic**:
-    - Switched from ERC-20 to **Native CROSS Token** betting.
-    - Implemented **Direct Wallet Transfer** to House Wallet.
-    - Added "Pending" (Grey) -> "Confirmed" (Yellow) visual states.
+- **gameStore.ts**: Set `autoBet` default to `true`.
+- **UIOverlay.tsx**: 
+    - Rebuilt top-left layout to host Price + Bet Selector.
+    - Removed manual "Auto TX" checkbox.
+    - Validated `pointer-events` to ensure game interaction remains blocked only by UI elements, not the overlay container.
+- **MainScene.ts**: Integrated backend API calls into `createConfirmedBox` and `handleWin` (Previous task).
 
 ## Next Steps
-- [ ] **Testing**: Verify full flow on Cross Testnet with the backend running.
-- [ ] **Backend**: Ensure `/api/place-bet` and `/api/payout` are handling requests correctly.
+- [ ] **Testing**: Verify Bet Selector dropdown works correctly in new position.
+- [ ] **Testing**: Ensure "Auto TX" flow works smoothly without manual intervention.
 - [ ] **Polish**: Add visual feedback if the backend server is unreachable.

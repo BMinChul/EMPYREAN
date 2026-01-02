@@ -4,8 +4,9 @@
 - Real-time ETH/USDT Perpetual Futures feed (OKX WebSocket).
 - **Betting System (Blockchain)**:
     - Currency: "**CROSS**" (Native Token of Cross Testnet).
-    - **Flow**: User signs transaction -> House Wallet.
+    - **Flow**: User clicks grid -> Auto Sign Transaction -> House Wallet.
     - **Payout**: Automated Backend Airdrop on Win.
+    - **Auto TX**: Always ON (No manual toggle).
 - **Grid System**: 6 columns (Faster Pacing).
     - Left 3 cols: History/Waiting.
     - Right 3 cols: Future/Betting.
@@ -14,6 +15,9 @@
 - **Chart**: Thick Light Purple line with Bloom.
 - **Background**: Deep Magenta/Purple.
 - **UI**: Glassmorphism panels, Neon accents.
+- **Top Left Layout**:
+    - [Price Ticker] [Bet Amount Selector]
+    - Compact, unified height.
 - **Bet Box**:
     - **Pending**: Grey (Alpha 0.5), Text "SIGN...".
     - **Active**: Yellow (#fffacd), Text "Amount CR", Multiplier, "🔗 SCAN" Link.
