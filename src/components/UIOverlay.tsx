@@ -114,7 +114,13 @@ const UIOverlay: React.FC = () => {
         .then(async (hash) => {
             if (publicClient) {
                 // Wait for Block Confirmation (Receipt)
-                await publicClient.waitForTransactionReceipt({ hash });
+                await publicClient.waitForTransactionReceipt({ 
+                    hash,
+                    confirmations: 1, 
+                    pollingInterval: 1_000,
+                    retryCount: 10,
+                    timeout: 30_000
+                });
             }
             
             // Check for Orphaned Transaction (Bet expired while mining)
