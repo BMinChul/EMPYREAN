@@ -543,24 +543,34 @@ const UIOverlay: React.FC = () => {
                           </div>
                       ) : (
                           <div className="space-y-2">
-                              {userStats.history[activeHistoryTab].map((item: any, idx: number) => (
-                                  <div key={idx} className="flex items-center justify-between p-3 rounded bg-white/5 border border-white/5 hover:border-white/20 transition-colors">
+                              {userStats.history[activeHistoryTab].map((item: any, idx: number) => {
+                                  const isPaid = item.status === 'paid';
+                                  return (
+                                  <div key={idx} className={`flex items-center justify-between p-3 rounded border transition-colors ${
+                                      isPaid 
+                                      ? 'bg-yellow-400 border-yellow-400 text-black' 
+                                      : 'bg-white/5 border-white/5 hover:border-white/20'
+                                  }`}>
                                       <div className="flex flex-col gap-1">
-                                          <span className="text-[10px] text-gray-400 font-mono flex items-center gap-1">
+                                          <span className={`text-[10px] font-mono flex items-center gap-1 ${isPaid ? 'text-black/70' : 'text-gray-400'}`}>
                                               {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                               {item.txHash && (
                                                   <a 
                                                       href={`https://testnet.crossscan.io/tx/${item.txHash}`} 
                                                       target="_blank" 
                                                       rel="noreferrer"
-                                                      className="ml-2 text-[9px] text-blue-400 hover:text-blue-300 underline decoration-blue-400/30 hover:decoration-blue-300"
+                                                      className={`ml-2 text-[9px] underline ${
+                                                          isPaid 
+                                                          ? 'text-black/70 hover:text-black decoration-black/30 hover:decoration-black' 
+                                                          : 'text-blue-400 hover:text-blue-300 decoration-blue-400/30 hover:decoration-blue-300'
+                                                      }`}
                                                       onClick={(e) => e.stopPropagation()}
                                                   >
                                                       {item.txHash.slice(0, 6)}...
                                                   </a>
                                               )}
                                           </span>
-                                          <span className="text-xs font-bold text-white font-mono">
+                                          <span className={`text-xs font-bold font-mono ${isPaid ? 'text-black' : 'text-white'}`}>
                                               {item.betAmount} CROSS
                                           </span>
                                       </div>
@@ -578,6 +588,10 @@ const UIOverlay: React.FC = () => {
                                               <span className="text-[10px] text-orange-400 font-mono uppercase tracking-wide">
                                                   REFUNDED
                                               </span>
+                                          ) : isPaid ? (
+                                              <span className="text-xs font-bold text-black font-mono uppercase tracking-wide">
+                                                  **WON**
+                                              </span>
                                           ) : (
                                               <span className="text-[10px] text-gray-400 font-mono">
                                                   {item.multiplier}x PENDING
@@ -585,7 +599,8 @@ const UIOverlay: React.FC = () => {
                                           )}
                                       </div>
                                   </div>
-                              ))}
+                                  );
+                              })}
                           </div>
                       )}
                   </div>

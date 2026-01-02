@@ -165,7 +165,8 @@ export const useGameStore = create<GameState>((set, get) => ({
                   betId: bet.id,
                   userAddress: userAddress,
                   betAmount: bet.amount,
-                  multiplier: bet.multiplier
+                  multiplier: bet.multiplier,
+                  txHash: bet.txHash
               })
           });
       } catch (err) {
