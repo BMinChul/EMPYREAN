@@ -1,16 +1,16 @@
 # Status
 
 ## Active Work
-- **UX Improvement**: Added wallet connection check before placing bets.
-    - If user is not connected, clicking the grid now prompts "Please Connect Wallet to Bet" and opens the connection modal.
-    - Prevents `ConnectorNotConnectedError` and failed transaction alerts.
+- **Completed**: Secure Betting System Implementation (Anti-Cheat & Validation).
 
 ## Recent Activity
-- **Bug Fix**: Fixed wallet balance display issue.
-- **Preview Stability Fix**: Added offline fallback and simulation mode.
-- **UI Refinements**: Improved pending/confirmed bet box visuals.
+- **Backend**: Created `server.js` with In-Memory Bet Storage and strict Multiplier Validation.
+- **Frontend**: Implemented "Global Lock" in `MainScene.ts` (Sequential Betting).
+- **Security**: Added "Late Confirmation" prevention (Invalidates bets if Head passes Pending Box).
+- **Store**: Updated `gameStore.ts` to enforce strict state transitions and lock releases.
+- **Config**: Updated API endpoints to point to local secure server (`http://localhost:3001`).
 
 ## Next Steps
-- [ ] **Testing**: Verify wallet connection prompt works as expected.
-- [ ] **Testing**: Verify full betting flow with actual tCROSS tokens.
-- [ ] **Cleanup**: Remove temporary debugging logs if any.
+- [ ] **Testing**: Run `node server.js` and verify full betting flow with local validation.
+- [ ] **Integration**: Connect with actual Blockchain Smart Contract for mainnet deployment.
+- [ ] **UI**: Add visual indicator for "Server Connected" status.

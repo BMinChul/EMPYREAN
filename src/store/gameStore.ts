@@ -87,10 +87,14 @@ export const useGameStore = create<GameState>((set, get) => ({
   }),
 
   // Called by React when Transaction is successful
-  confirmBet: (txHash) => set((state) => ({
-      lastConfirmedBet: { ...state.pendingBet!, txHash }, // Signal success to Scene
-      pendingBet: null // Clear pending status
-  })),
+  confirmBet: (txHash) => set((state) => {
+      if (!state.pendingBet) return {};
+      // Strict: Only confirm if pending exists
+      return {
+          lastConfirmedBet: { ...state.pendingBet, txHash }, // Signal success to Scene
+          pendingBet: null // Clear pending status (Releases Lock)
+      };
+  }),
 
   // Called by React when Transaction fails/rejected
   cancelBet: () => set((state) => {
@@ -106,9 +110,10 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   clearPendingBet: () => set((state) => {
     if (!state.pendingBet) return {};
+    // Refund logic is handled here
     return {
-        pendingBet: null,
-        balance: state.balance + state.pendingBet.amount // Refund balance
+        pendingBet: null, // Releases Global Lock
+        balance: state.balance + state.pendingBet.amount 
     };
   }),
 
@@ -125,7 +130,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!userAddress) return;
       
       try {
-          await fetch('https://gene-fragmental-addisyn.ngrok-free.dev/api/place-bet', {
+          await fetch('http://localhost:3001/api/place-bet', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -145,7 +150,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!userAddress) return;
 
       try {
-          await fetch('https://gene-fragmental-addisyn.ngrok-free.dev/api/payout', {
+          await fetch('http://localhost:3001/api/payout', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

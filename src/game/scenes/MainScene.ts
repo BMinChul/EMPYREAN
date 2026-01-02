@@ -226,6 +226,49 @@ export class MainScene extends Phaser.Scene {
 
     // --- Sync Logic ---
     this.checkBettingState();
+    
+    // --- Late Confirmation Prevention (Exploit Protection) ---
+    // If the head passes a pending box before it confirms, INVALIDATE IT.
+    if (this.pendingBoxes.size > 0) {
+        const toRemove: string[] = [];
+        this.pendingBoxes.forEach((container, id) => {
+             const boxWidth = 80; // approximate or retrieve from container data if stored
+             // If Head has passed the center of the pending box
+             if (this.headX > (container.x + boxWidth/2)) {
+                 // 1. Visual Invalidation
+                 const bg = container.list[0] as Phaser.GameObjects.Graphics;
+                 if (bg) {
+                     bg.clear();
+                     bg.fillStyle(0xff0000, 0.5); // RED for Invalid
+                     bg.fillRoundedRect(-boxWidth/2, -20, boxWidth, 40, 8);
+                     bg.strokeRoundedRect(-boxWidth/2, -20, boxWidth, 40, 8);
+                 }
+                 
+                 const txt = container.list[1] as Phaser.GameObjects.Text;
+                 if (txt) txt.setText('INVALID');
+
+                 // 2. Destroy after brief delay
+                 this.tweens.add({
+                     targets: container,
+                     alpha: 0,
+                     scale: 0.8,
+                     duration: 300,
+                     delay: 500,
+                     onComplete: () => container.destroy()
+                 });
+                 
+                 toRemove.push(id);
+                 
+                 // 3. Unlock Store if this was the pending bet
+                 const store = useGameStore.getState();
+                 if (store.pendingBet && store.pendingBet.id === id) {
+                     store.clearPendingBet();
+                 }
+             }
+        });
+        
+        toRemove.forEach(id => this.pendingBoxes.delete(id));
+    }
 
     // --- Movement Logic ---
     this.headX += this.pixelsPerSecond * dt;
@@ -535,8 +578,9 @@ export class MainScene extends Phaser.Scene {
         return;
     }
 
-    // 1. Check pending (Limit 1 at a time)
+    // 1. Check pending (Global Lock - Strict Sequential Betting)
     if (store.pendingBet || this.initializingBets.size > 0) {
+        // IGNORE ALL CLICKS while a bet is pending
         return; 
     }
 
@@ -614,7 +658,7 @@ export class MainScene extends Phaser.Scene {
     try {
         this.initializingBets.add(betId); // Mark as initializing
 
-        const apiUrl = 'https://gene-fragmental-addisyn.ngrok-free.dev'; // Hardcoded as requested
+        const apiUrl = 'http://localhost:3001'; // Point to local Secure Server
         const userAddress = store.userAddress || "0xTestUser";
 
         // A. Call Server API (Non-blocking for Preview)
@@ -792,7 +836,7 @@ export class MainScene extends Phaser.Scene {
   private async requestPayout(betId: string) {
     const store = useGameStore.getState();
     const userAddress = store.userAddress || "0xTestUser";
-    const apiUrl = 'https://gene-fragmental-addisyn.ngrok-free.dev';
+    const apiUrl = 'http://localhost:3001';
 
     try {
         await fetch(`${apiUrl}/api/payout`, {
