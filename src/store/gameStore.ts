@@ -42,7 +42,7 @@ interface GameState {
   requestWin: (amount: number) => void; // amount in CROSS
   
   // Actions called by React after processing
-  confirmBet: (txHash: string, betId: string) => void; // Moves pending -> confirmed (Requires ID check)
+  confirmBet: (betId: string, txHash: string) => void; // Moves pending -> confirmed (Requires ID check)
   cancelBet: () => void; // Clears pending, refunds optimistic update
   clearLastConfirmedBet: () => void; // Called by Scene after rendering the real box
 
@@ -88,7 +88,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   }),
 
   // Called by React when Transaction is successful
-  confirmBet: (txHash, betId) => set((state) => {
+  confirmBet: (betId, txHash) => set((state) => {
       if (!state.pendingBet) return {};
       
       // CRITICAL SECURITY FIX: Ghost Bet Prevention
