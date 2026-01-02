@@ -95,7 +95,7 @@ const UIOverlay: React.FC = () => {
                 // Wait for Block Confirmation (Receipt)
                 await publicClient.waitForTransactionReceipt({ hash });
             }
-            confirmBet(hash, betId); // Confirms transaction ONLY after mining (Passes ID for verification)
+            confirmBet(betId, hash); // Confirms transaction ONLY after mining (Passes ID for verification)
         })
         .catch(err => {
             const errorMessageStr = err?.message || "";
