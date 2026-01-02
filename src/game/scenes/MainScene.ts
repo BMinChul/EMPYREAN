@@ -89,6 +89,9 @@ export class MainScene extends Phaser.Scene {
 
   create() {
     this.cameras.main.setBackgroundColor('#1a0b2e'); 
+    
+    // Prevent audio from stopping when window loses focus (e.g. Wallet Popup)
+    this.sound.pauseOnBlur = false;
 
     // Play Background Music
     if (!this.sound.get('bgm_main')) {
