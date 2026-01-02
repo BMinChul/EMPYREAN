@@ -1,9 +1,12 @@
 # Status
 
 ## Active Work
-- **Resolved Transaction Timeout**: Updated `UIOverlay.tsx` to extend `waitForTransactionReceipt` timeout to 120 seconds (was 30s) to accommodate slow testnet block times.
-- **Added Transaction Feedback**: Implemented a "Confirming..." / "Please Sign..." visual indicator (Blue Spinner) so users know the app is working during the long wait time.
-- **Refund Logic Update**: Passed `txHash` to `cancelBet` and `claimServerPayout` to ensure valid refunds are processed by the server when transactions fail or time out.
+- **Resolved "Late Transaction" Scenario**: Updated `UIOverlay.tsx` logic to intelligently handle bets that confirm on-chain after the game round has closed.
+- **Optimized Timeout**: Reduced `waitForTransactionReceipt` timeout from 120s to **45s** to match game pacing better.
+- **Automatic Refund Feedback**: 
+    - Added logic to check `expiryTimestamp` immediately after transaction confirmation.
+    - If transaction is late (`now > expiry`), automatically triggers `cancelBet` (Refund) and shows a clear toast message: "Round ended during transaction. Refunding...".
+    - Handled Timeout Errors by assuming the transaction *might* eventually confirm, thus triggering a safety refund check.
 
 ## Recent Activity
 - **Bug Fix**: Resolved `ReferenceError: registerServerBet is not defined`.
