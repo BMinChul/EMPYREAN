@@ -494,7 +494,7 @@ const UIOverlay: React.FC = () => {
       {/* --- Leaderboard Modal --- */}
       {isLeaderboardOpen && (
           <div 
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 pointer-events-auto"
               onClick={() => setIsLeaderboardOpen(false)}
           >
               <div 
@@ -566,7 +566,7 @@ const UIOverlay: React.FC = () => {
       {/* --- Guide Modal --- */}
       {isGuideOpen && (
           <div 
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 pointer-events-auto"
               onClick={() => setIsGuideOpen(false)}
           >
               <div 
@@ -643,7 +643,7 @@ const UIOverlay: React.FC = () => {
       {/* --- History Modal --- */}
       {isHistoryOpen && (
           <div 
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 pointer-events-auto"
               onClick={() => setIsHistoryOpen(false)}
           >
               <div 

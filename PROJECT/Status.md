@@ -9,6 +9,7 @@
     - Handled Timeout Errors by assuming the transaction *might* eventually confirm, thus triggering a safety refund check.
 
 ## Recent Activity
+- **Fixed Modal Interaction**: Added `pointer-events-auto` to modal backdrops (Leaderboard, Guide, History) so "Close on Click" works correctly.
 - **Bug Fix**: Resolved `ReferenceError: registerServerBet is not defined`.
 - **UI Styling Fixes**:  
     - Increased `Trophy` and `HelpCircle` icon sizes.
