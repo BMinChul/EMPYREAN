@@ -1,24 +1,20 @@
 # Status
 
 ## Active Work
-- **Betting Logic Overhaul (Complete)**:
+- **Backend Integration (Complete)**:
+    - Implemented `registerServerBet` in `gameStore` to sync confirmed bets with the server.
+    - Implemented `claimServerPayout` in `gameStore` for secure win claims (sending only `betId`).
+    - Updated `MainScene` to trigger these actions at the correct game states.
+
+## Recent Activity
+- **MainScene.ts**: Integrated backend API calls into `createConfirmedBox` and `handleWin`.
+- **gameStore.ts**: Added `registerServerBet` and `claimServerPayout` actions.
+- **Betting Logic**:
     - Switched from ERC-20 to **Native CROSS Token** betting.
     - Implemented **Direct Wallet Transfer** to House Wallet.
     - Added "Pending" (Grey) -> "Confirmed" (Yellow) visual states.
-    - Added "🔗 SCAN" link to confirmed betting boxes.
-- **Payout System (Complete)**:
-    - Removed client-side minting.
-    - Implemented **Backend API Call** on Win (`/api/payout`).
-- **UI/UX Refactor (Complete)**:
-    - **Bet Selector**: Replaced buttons with a **Dropdown** (0.1, 0.5, 1, 5, 10 CROSS).
-    - **Balance**: Updated to show Native CROSS Balance.
-
-## Recent Activity
-- **MainScene.ts**: Updated `placeBet` logic, added `createConfirmedBox` with explorer link, added `handleWin` API integration.
-- **UIOverlay.tsx**: Rewrote widget panels for new designs, implemented `wagmi` sendTransaction for native tokens.
-- **gameStore.ts**: Refactored to support CROSS tokens and store `userAddress` / `txHash`.
 
 ## Next Steps
-- [ ] **Testing**: Verify transaction flow on Cross Testnet.
-- [ ] **Backend**: Ensure the backend API is reachable and processing payouts correctly.
-- [ ] **Polish**: Add more sound effects for "Pending" vs "Confirmed" states.
+- [ ] **Testing**: Verify full flow on Cross Testnet with the backend running.
+- [ ] **Backend**: Ensure `/api/place-bet` and `/api/payout` are handling requests correctly.
+- [ ] **Polish**: Add visual feedback if the backend server is unreachable.
