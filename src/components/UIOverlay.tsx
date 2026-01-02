@@ -140,7 +140,7 @@ const UIOverlay: React.FC = () => {
                 console.warn("⚠️ Orphaned Transaction detected (Bet Expired). Requesting refund for:", betId);
                 
                 // Trigger server refund manually since UI box is gone
-                await currentStoreState.claimServerPayout(betId, true);
+                await currentStoreState.claimServerPayout(betId, true, hash);
             } else {
                 // Scenario A: Normal -> Confirm locally
                 confirmBet(betId, hash); 
@@ -166,7 +166,7 @@ const UIOverlay: React.FC = () => {
 
             // Ghost Refund Check: Only trigger server refund logic (via cancelBet) if we have a hash
             if (txHash) {
-                cancelBet(); // Hash exists = Money might have moved -> Refund needed
+                cancelBet(txHash); // Hash exists = Money might have moved -> Refund needed
             } else {
                 clearPendingBet(); // No hash = No money moved -> Just clear local state
             }
