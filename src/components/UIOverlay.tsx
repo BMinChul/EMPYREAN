@@ -553,7 +553,7 @@ const UIOverlay: React.FC = () => {
                                   }`}>
                                       <div className="flex flex-col gap-1">
                                           <span className={`text-[10px] font-mono flex items-center gap-1 ${isPaid ? 'text-black/70' : 'text-gray-400'}`}>
-                                              {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                              {new Date(item.createdAt).toISOString().slice(0, 19).replace('T', ' ')}
                                               {item.txHash && (
                                                   <a 
                                                       href={`https://testnet.crossscan.io/tx/${item.txHash}`} 
@@ -588,13 +588,17 @@ const UIOverlay: React.FC = () => {
                                               <span className="text-[10px] text-orange-400 font-mono uppercase tracking-wide">
                                                   REFUNDED
                                               </span>
-                                          ) : isPaid ? (
+                                          ) : item.status === 'refunded' ? (
+                                              <span className="text-[10px] text-orange-400 font-mono uppercase tracking-wide">
+                                                  REFUNDED
+                                              </span>
+                                          ) : item.status === 'paid' ? (
                                               <span className="text-xs font-bold text-black font-mono uppercase tracking-wide">
-                                                  **WON**
+                                                  WON
                                               </span>
                                           ) : (
                                               <span className="text-[10px] text-gray-400 font-mono">
-                                                  {item.multiplier}x PENDING
+                                                  PENDING
                                               </span>
                                           )}
                                       </div>
