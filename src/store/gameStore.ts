@@ -43,9 +43,13 @@ interface GameState {
   clearLastConfirmedBet: () => void; // Called by Scene after rendering the real box
 
   clearPendingWin: () => void;
+
+  // Server Integration Actions
+  registerServerBet: (bet: BetRequest) => Promise<void>;
+  claimServerPayout: (betId: string) => Promise<void>;
 }
 
-export const useGameStore = create<GameState>((set) => ({
+export const useGameStore = create<GameState>((set, get) => ({
   currentPrice: 0,
   balance: 0, 
   betAmount: 1, // Default to 1 CROSS
@@ -99,4 +103,42 @@ export const useGameStore = create<GameState>((set) => ({
   }),
 
   clearPendingWin: () => set({ }), // No longer used for client-side minting, server handles it
+
+  registerServerBet: async (bet) => {
+      const { userAddress } = get();
+      if (!userAddress) return;
+      
+      try {
+          await fetch('https://gene-fragmental-addisyn.ngrok-free.dev/api/place-bet', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  betId: bet.id,
+                  userAddress: userAddress,
+                  betAmount: bet.amount,
+                  multiplier: bet.multiplier
+              })
+          });
+      } catch (err) {
+          console.error("Failed to register bet with server:", err);
+      }
+  },
+
+  claimServerPayout: async (betId) => {
+      const { userAddress } = get();
+      if (!userAddress) return;
+
+      try {
+          await fetch('https://gene-fragmental-addisyn.ngrok-free.dev/api/payout', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  betId: betId,
+                  userAddress: userAddress
+              })
+          });
+      } catch (err) {
+          console.error("Failed to claim payout from server:", err);
+      }
+  },
 }));

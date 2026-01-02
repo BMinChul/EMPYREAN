@@ -652,6 +652,9 @@ export class MainScene extends Phaser.Scene {
           betAmount: req.amount, multiplier: req.multiplier,
           hit: false, boxWidth: boxW, boxHeight: boxH, basePrice: req.basePrice
       });
+
+      // Register with Backend
+      useGameStore.getState().registerServerBet(req);
   }
 
   private checkCollisions() {
@@ -720,17 +723,7 @@ export class MainScene extends Phaser.Scene {
     
     // Server Payout
     const store = useGameStore.getState();
-    if (store.userAddress) {
-        fetch('https://gene-fragmental-addisyn.ngrok-free.dev/api/payout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userAddress: store.userAddress,
-                amount: winVal,
-                betId: box.id
-            })
-        }).catch(err => console.error("Payout API Error:", err));
-    }
+    store.claimServerPayout(box.id);
 
     store.requestWin(winVal);
     store.setLastWinAmount(winVal);
