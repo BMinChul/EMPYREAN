@@ -126,22 +126,21 @@ const UIOverlay: React.FC = () => {
                     hash,
                     confirmations: 1, 
                     pollingInterval: 2000, // Check every 2s
-                    retryCount: 60,        // Try 60 times (Total ~120s)
-                    timeout: 120000        // Explicit timeout of 2 mins
+                    retryCount: 25,        // Try 25 times (Total ~50s)
+                    timeout: 45000         // Explicit timeout of 45s (Reduced from 120s)
                 });
             }
             
             // Check for Orphaned Transaction (Bet expired while mining)
             const currentStoreState = useGameStore.getState();
             const currentPendingId = currentStoreState.pendingBet?.id;
-
-            if (currentPendingId !== betId) {
-                // Scenario B: Bet expired/cleared -> Orphaned Transaction
-                console.warn("⚠️ Orphaned Transaction detected (Bet Expired). Requesting refund for:", betId);
-                
-                // Trigger server refund manually since UI box is gone
-                await currentStoreState.claimServerPayout(betId, true, hash);
-            } else {
+            
+            // Late Arrival Check (New Logic)
+            const now = Date.now();
+            const expiry = pendingBet.expiryTimestamp || (now + 60000);
+            
+            // Condition A: On Time -> Proceed
+            if (now <= expiry && currentPendingId === betId) {
                 // Scenario A: Normal -> Confirm locally
                 confirmBet(betId, hash); 
                 
@@ -149,24 +148,39 @@ const UIOverlay: React.FC = () => {
                 if (pendingBet) {
                     registerServerBet({ ...pendingBet, txHash: hash });
                 }
+            } else {
+                // Condition B: Too Late (or ID mismatch) -> Refund
+                console.warn("⚠️ Transaction Confirmed but Too Late/Orphaned. Requesting refund.", { betId, now, expiry });
+                
+                // Trigger server refund manually since UI box is gone or invalid
+                await currentStoreState.claimServerPayout(betId, true, hash);
+                
+                // Show specific feedback
+                setErrorMessage("Round ended during transaction. Refunding...");
+                setTimeout(() => setErrorMessage(null), 5000);
+                
+                // Clear local state without confirming visual box
+                clearPendingBet();
             }
         })
         .catch(err => {
             const errorMessageStr = err?.message || "";
             const isUserRejection = errorMessageStr.includes("User rejected") || errorMessageStr.includes("rejected the request");
+            const isTimeout = errorMessageStr.includes("Variables.timeout") || errorMessageStr.includes("timed out");
 
-            // Only log as error if it's NOT a user rejection to avoid Preview Error modal
+            // Only log as error if it's NOT a user rejection
             if (isUserRejection) {
                 console.warn("Transaction cancelled by user");
-            } else if (errorMessageStr.includes("TransactionReceiptNotFoundError") || errorMessageStr.includes("could not be found")) {
-                console.warn("⚠️ Transaction Receipt Missing (Likely Slow Network):", errorMessageStr);
+            } else if (isTimeout) {
+                console.warn("⚠️ Transaction Timeout (Network Slow).");
             } else {
                 console.error("Bet failed:", err);
             }
 
-            // Ghost Refund Check: Only trigger server refund logic (via cancelBet) if we have a hash
+            // Refund Check: If we have a hash, we MUST assume it might confirm later
             if (txHash) {
-                cancelBet(txHash); // Hash exists = Money might have moved -> Refund needed
+                console.warn("⚠️ Transaction failed/timed-out but Hash exists. Triggering safety refund.", txHash);
+                cancelBet(txHash); 
             } else {
                 clearPendingBet(); // No hash = No money moved -> Just clear local state
             }
@@ -175,9 +189,10 @@ const UIOverlay: React.FC = () => {
             let msg = "Transaction Failed";
             if (isUserRejection) msg = "Bet Cancelled by User";
             else if (errorMessageStr.includes("insufficient funds")) msg = "Insufficient Funds";
+            else if (isTimeout) msg = "Network slow. Refunds processed automatically.";
             
             setErrorMessage(msg);
-            setTimeout(() => setErrorMessage(null), 3000);
+            setTimeout(() => setErrorMessage(null), 4000);
         })
         .finally(() => {
             setIsProcessing(false);

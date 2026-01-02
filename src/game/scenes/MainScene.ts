@@ -820,7 +820,8 @@ export class MainScene extends Phaser.Scene {
             multiplier: multi,
             boxWidth: boxW,
             boxHeight: boxH,
-            basePrice: cellCenterPrice
+            basePrice: cellCenterPrice,
+            expiryTimestamp: Math.floor(expiryTimestamp)
         });
         
         this.initializingBets.delete(betId); // API done, handed over to Store

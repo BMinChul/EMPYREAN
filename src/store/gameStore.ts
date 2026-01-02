@@ -10,6 +10,7 @@ export interface BetRequest {
   boxWidth: number;
   boxHeight: number;
   basePrice: number;
+  expiryTimestamp?: number;
   txHash?: string; // Blockchain Transaction Hash
 }
 
