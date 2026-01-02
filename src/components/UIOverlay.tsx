@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { useAppKit } from '@reown/appkit/react';
 import { useAccount, useDisconnect, useBalance, useSendTransaction, usePublicClient } from 'wagmi';
 import { parseEther, parseGwei } from 'viem';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut, Trophy } from 'lucide-react';
 import Assets from '../assets.json';
 import { crossTestnet } from '../wagmi';
 
@@ -15,7 +15,8 @@ const UIOverlay: React.FC = () => {
     lastWinAmount, setLastWinAmount,
     pendingBet, confirmBet, cancelBet, setBalance,
     autoBet, setUserAddress,
-    connectionError, setConnectionError
+    connectionError, setConnectionError,
+    leaderboard, fetchLeaderboard
   } = useGameStore();
   
   // WalletConnect / Reown Hooks
@@ -53,6 +54,13 @@ const UIOverlay: React.FC = () => {
   // Bet Selector State
   const [isBetDropdownOpen, setIsBetDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Poll Leaderboard
+  useEffect(() => {
+    fetchLeaderboard();
+    const interval = setInterval(fetchLeaderboard, 5000);
+    return () => clearInterval(interval);
+  }, [fetchLeaderboard]);
 
   // --- Sync Address to Store ---
   useEffect(() => {
@@ -280,6 +288,47 @@ const UIOverlay: React.FC = () => {
             )}
         </div>
 
+      </div>
+
+      {/* --- Top Right: Leaderboard --- */}
+      <div className="fixed top-6 right-6 z-30 w-64 animate-in slide-in-from-right-4 fade-in duration-700 pointer-events-auto">
+        <div className="glass-panel p-0 overflow-hidden border border-yellow-500/30 shadow-[0_0_20px_rgba(255,215,0,0.1)]">
+            {/* Header */}
+            <div className="bg-black/60 px-4 py-2 flex items-center gap-2 border-b border-white/5">
+                <Trophy size={14} className="text-yellow-400" />
+                <span className="text-[10px] tracking-widest text-yellow-400 font-bold uppercase">Top Winners</span>
+            </div>
+            
+            {/* List */}
+            <div className="flex flex-col bg-black/20">
+                {leaderboard && leaderboard.length > 0 ? (
+                    leaderboard.slice(0, 5).map((entry, idx) => (
+                        <div key={idx} className="flex items-center justify-between px-4 py-2 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors group">
+                            <div className="flex items-center gap-3">
+                                <span className={`text-xs font-bold font-mono ${idx === 0 ? 'text-yellow-400' : idx === 1 ? 'text-gray-300' : idx === 2 ? 'text-amber-600' : 'text-gray-500'}`}>
+                                    #{idx + 1}
+                                </span>
+                                <span className="text-[10px] text-gray-300 font-mono group-hover:text-white transition-colors">
+                                    {entry.userAddress.slice(0, 4)}...{entry.userAddress.slice(-4)}
+                                </span>
+                            </div>
+                            <div className="flex flex-col items-end leading-none">
+                                <span className="text-xs font-bold text-emerald-400 font-mono shadow-emerald-500/20 drop-shadow-sm">
+                                    +{entry.payout.toLocaleString()}
+                                </span>
+                                <span className="text-[8px] text-gray-600 font-mono">
+                                    {entry.multiplier}x
+                                </span>
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="px-4 py-4 text-center text-[10px] text-gray-500 italic">
+                        No winners yet...
+                    </div>
+                )}
+            </div>
+        </div>
       </div>
 
       {/* --- Top Center: Win Notification Bar --- */}
