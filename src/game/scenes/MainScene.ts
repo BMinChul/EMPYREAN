@@ -38,6 +38,7 @@ export class MainScene extends Phaser.Scene {
   private bettingBoxes: BettingBox[] = [];
   private pendingBoxes: Map<string, Phaser.GameObjects.Container> = new Map(); // Track pending bets
   private initializingBets: Set<string> = new Set(); // Track bets waiting for API response
+  private hasRestoredBets: boolean = false; // Flag to ensure restoration runs once
 
   private axisLabels: Phaser.GameObjects.Text[] = [];
   private gridLabels: Phaser.GameObjects.Text[] = []; // Only for Multipliers
@@ -398,6 +399,12 @@ export class MainScene extends Phaser.Scene {
       this.initialPrice = price;
       const statusText = this.children.getByName('statusText');
       if (statusText) statusText.destroy();
+      
+      // Trigger Restoration once we have a valid price context
+      if (!this.hasRestoredBets) {
+          this.hasRestoredBets = true;
+          this.restoreBets();
+      }
     }
     this.currentPrice = price;
     useGameStore.getState().setCurrentPrice(price);
@@ -660,10 +667,13 @@ export class MainScene extends Phaser.Scene {
     const boxH = (this.gridPriceInterval * this.pixelPerDollar) - 8;
     const betId = Date.now().toString();
 
-    // 7. Calculate Expiry Snapshot
-    const dist = cellX - this.headX;
-    const timeToReach = dist / this.pixelsPerSecond;
-    const expiryTimestamp = Date.now() + (timeToReach * 1000);
+    // 7. Calculate Expiry Snapshot (Corrected for Column 4 Deadline)
+    // We want the timestamp when the Box hits Column 4 (Safe Zone Boundary).
+    const scrollX = this.cameras.main.scrollX;
+    const deadlineWorldX = scrollX + (4 * colWidth);
+    const distToDeadline = cellX - deadlineWorldX;
+    const timeToDeadline = distToDeadline / this.pixelsPerSecond; // Seconds
+    const expiryTimestamp = Date.now() + (timeToDeadline * 1000);
 
     // 8. Visual Feedback: Create "Pending" Ghost Box
     const container = this.add.container(cellX, cellY);
@@ -930,5 +940,80 @@ export class MainScene extends Phaser.Scene {
         onComplete: () => box.container.destroy()
     });
     this.bettingBoxes.splice(index, 1);
+  }
+
+  private async restoreBets() {
+      const store = useGameStore.getState();
+      const bets = await store.fetchActiveBets();
+
+      if (!bets || bets.length === 0) return;
+
+      const viewportW = this.scale.width;
+      const colWidth = viewportW / this.gridCols;
+      const boxW = colWidth - 8;
+      const boxH = 40; // Approximate if not stored, or derive from price interval
+
+      bets.forEach((bet: any) => {
+          // 1. Calculate Position
+          // X: Derived from Time to Deadline (Column 4)
+          // expiryTimestamp = Now + (DistToCol4 / Speed) * 1000
+          // DistToCol4 = (expiryTimestamp - Now)/1000 * Speed
+          // BoxX = Col4X + DistToCol4
+          const now = Date.now();
+          if (bet.expiryTimestamp <= now) return; // Already expired
+
+          const timeRemainingSeconds = (bet.expiryTimestamp - now) / 1000;
+          const distRemaining = timeRemainingSeconds * this.pixelsPerSecond;
+          
+          const scrollX = this.cameras.main.scrollX;
+          const deadlineWorldX = scrollX + (4 * colWidth);
+          const restoredX = deadlineWorldX + distRemaining;
+
+          // Y: Derived from Base Price
+          // y = -(price - initialPrice) * pixelPerDollar
+          if (!bet.basePrice || !this.initialPrice) return;
+          const restoredY = -(bet.basePrice - this.initialPrice) * this.pixelPerDollar;
+
+          // 2. Validate Position (Screen Bounds Check - Optional but good)
+          // If it's too far left (past head), it's invalid anyway.
+          if (restoredX < this.headX) return;
+
+          // 3. Re-create Visuals
+          // If txHash exists, it's Active (Yellow). If not, Pending (Grey).
+          if (bet.txHash) {
+              const req: BetRequest = {
+                  id: bet.betId,
+                  amount: bet.amount,
+                  multiplier: bet.multiplier,
+                  x: restoredX,
+                  y: restoredY,
+                  boxWidth: boxW,
+                  boxHeight: boxH,
+                  basePrice: bet.basePrice,
+                  txHash: bet.txHash
+              };
+              this.createConfirmedBox(req, null);
+          } else {
+              // Create Grey Pending Box
+              const container = this.add.container(restoredX, restoredY);
+              
+              const bg = this.add.graphics();
+              bg.fillStyle(0x555555, 0.5); 
+              bg.lineStyle(2, 0x888888, 0.5);
+              bg.fillRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8);
+              bg.strokeRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8);
+              
+              const txt = this.add.text(0, boxH/2 - 12, 'PENDING...', {
+                  fontFamily: 'monospace', fontSize: '10px', color: '#cccccc'
+              }).setOrigin(0.5);
+
+              const txtMulti = this.add.text(0, 0, `${bet.multiplier.toFixed(2)}x`, {
+                  fontFamily: 'monospace', fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
+              }).setOrigin(0.5);
+
+              container.add([bg, txt, txtMulti]);
+              this.pendingBoxes.set(bet.betId, container);
+          }
+      });
   }
 }

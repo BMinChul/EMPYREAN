@@ -53,6 +53,7 @@ interface GameState {
   // Server Integration Actions
   registerServerBet: (bet: BetRequest) => Promise<void>;
   claimServerPayout: (betId: string) => Promise<void>;
+  fetchActiveBets: () => Promise<any[]>;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -169,5 +170,21 @@ export const useGameStore = create<GameState>((set, get) => ({
       } catch (err) {
           console.error("Failed to claim payout from server:", err);
       }
+  },
+
+  fetchActiveBets: async () => {
+      const { userAddress } = get();
+      if (!userAddress) return [];
+
+      try {
+          const res = await fetch(`https://gene-fragmental-addisyn.ngrok-free.dev/api/my-bets/${userAddress}`);
+          if (res.ok) {
+              const data = await res.json();
+              return Array.isArray(data) ? data : [];
+          }
+      } catch (err) {
+          console.warn("Failed to fetch active bets:", err);
+      }
+      return [];
   },
 }));
