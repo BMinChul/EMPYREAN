@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { useAppKit } from '@reown/appkit/react';
 import { useAccount, useDisconnect, useBalance, useSendTransaction, usePublicClient } from 'wagmi';
 import { parseEther, parseGwei } from 'viem';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut, Trophy, X, Clock, History } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut, Trophy, X, Clock, History, HelpCircle } from 'lucide-react';
 import Assets from '../assets.json';
 import { crossTestnet } from '../wagmi';
 
@@ -61,6 +61,7 @@ const UIOverlay: React.FC = () => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [activeHistoryTab, setActiveHistoryTab] = useState<'placed' | 'refunded' | 'won'>('placed');
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   // Poll Leaderboard
   useEffect(() => {
@@ -255,22 +256,23 @@ const UIOverlay: React.FC = () => {
     <div className="ui-overlay pointer-events-none font-sans">
       
       {/* --- Top Container: Price & Bet Selector --- */}
-      <div className="fixed top-6 left-6 flex items-start gap-3 z-30">
+      {/* Mobile: Vertical Stack (flex-col), Desktop: Horizontal (flex-row) */}
+      <div className="fixed top-4 left-4 md:top-6 md:left-6 flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-3 z-30">
         
         {/* Price Widget */}
-        <div className="glass-panel pointer-events-auto flex items-center gap-3 px-4 py-2 min-h-[52px] shadow-lg shadow-black/40">
-          <div className="icon-box neon-border flex items-center justify-center w-8 h-8 rounded bg-black/40 border border-white/10 shrink-0">
-            <Target size={16} color="#fff" />
+        <div className="glass-panel pointer-events-auto flex items-center gap-3 px-3 py-1.5 md:px-4 md:py-2 min-h-[44px] md:min-h-[52px] shadow-lg shadow-black/40">
+          <div className="icon-box neon-border flex items-center justify-center w-6 h-6 md:w-8 md:h-8 rounded bg-black/40 border border-white/10 shrink-0">
+            <Target size={14} className="md:w-[16px] md:h-[16px]" color="#fff" />
           </div>
           <div className="flex flex-col">
-            <span className="text-[9px] tracking-widest text-cyan-400 font-bold mb-0.5 whitespace-nowrap">ETH-USDT SWAP</span>
+            <span className="text-[8px] md:text-[9px] tracking-widest text-cyan-400 font-bold mb-0.5 whitespace-nowrap">ETH-USDT SWAP</span>
             <div className="flex items-center gap-2">
-              <span className="text-xl font-bold font-mono tracking-wider text-white leading-none">
+              <span className="text-lg md:text-xl font-bold font-mono tracking-wider text-white leading-none">
                 {fmtUSD(currentPrice)}
               </span>
               {trend === 'up' ? 
-                <TrendingUp size={14} color={trendColor} /> : 
-                <TrendingDown size={14} color={trendColor} />
+                <TrendingUp size={12} className="md:w-[14px] md:h-[14px]" color={trendColor} /> : 
+                <TrendingDown size={12} className="md:w-[14px] md:h-[14px]" color={trendColor} />
               }
             </div>
           </div>
@@ -280,15 +282,15 @@ const UIOverlay: React.FC = () => {
         <div className="relative pointer-events-auto" ref={dropdownRef}>
             <button 
                 onClick={() => setIsBetDropdownOpen(!isBetDropdownOpen)}
-                className="glass-panel flex items-center justify-between gap-4 px-4 py-2 min-h-[52px] min-w-[150px] hover:border-white/20 transition-all active:scale-95 shadow-lg shadow-black/40 group"
+                className="glass-panel flex items-center justify-between gap-4 px-3 py-1.5 md:px-4 md:py-2 min-h-[44px] md:min-h-[52px] min-w-[120px] md:min-w-[150px] hover:border-white/20 transition-all active:scale-95 shadow-lg shadow-black/40 group"
             >
                 <div className="flex flex-col items-start">
-                    <span className="text-[9px] tracking-widest text-gray-400 font-bold mb-0.5 uppercase group-hover:text-yellow-400 transition-colors">BET AMOUNT</span>
-                    <span className="text-lg font-bold font-mono text-yellow-400 tracking-wide leading-none">
+                    <span className="text-[8px] md:text-[9px] tracking-widest text-gray-400 font-bold mb-0.5 uppercase group-hover:text-yellow-400 transition-colors">BET AMOUNT</span>
+                    <span className="text-base md:text-lg font-bold font-mono text-yellow-400 tracking-wide leading-none">
                         {betAmount} Cross
                     </span>
                 </div>
-                {isBetDropdownOpen ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                {isBetDropdownOpen ? <ChevronUp size={14} className="md:w-[16px] md:h-[16px] text-gray-400" /> : <ChevronDown size={14} className="md:w-[16px] md:h-[16px] text-gray-400" />}
             </button>
 
             {/* Dropdown Menu */}
@@ -313,16 +315,31 @@ const UIOverlay: React.FC = () => {
             )}
         </div>
 
-        {/* Leaderboard Trigger Button */}
+        {/* Leaderboard Trigger Button (Hidden on Desktop if prefering Top Right, but stacking here for now) 
+            User requested: "Top Right Buttons: Keep the Sound/Guide buttons... Ensure they don't overlap... on mobile" 
+            I'll keep Leaderboard here to minimize desktop layout changes.
+        */}
         <button
             onClick={() => setIsLeaderboardOpen(true)}
-            className="glass-panel pointer-events-auto w-[52px] h-[52px] flex items-center justify-center hover:bg-yellow-500/20 hover:border-yellow-400/50 transition-all active:scale-95 shadow-lg shadow-black/40 group relative overflow-hidden"
+            className="glass-panel pointer-events-auto w-[44px] h-[44px] md:w-[52px] md:h-[52px] flex items-center justify-center hover:bg-yellow-500/20 hover:border-yellow-400/50 transition-all active:scale-95 shadow-lg shadow-black/40 group relative overflow-hidden"
             title="Hall of Fame"
         >
             <div className="absolute inset-0 bg-yellow-400/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Trophy size={20} className="text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
+            <Trophy size={18} className="md:w-[20px] md:h-[20px] text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
         </button>
 
+      </div>
+
+      {/* --- Top Right Container: Help Button --- */}
+      <div className="fixed top-4 right-4 md:top-6 md:right-6 flex flex-col items-end gap-2 z-30 pointer-events-auto">
+        <button
+            onClick={() => setIsGuideOpen(true)}
+            className="glass-panel w-[44px] h-[44px] md:w-[52px] md:h-[52px] flex items-center justify-center hover:bg-cyan-500/20 hover:border-cyan-400/50 transition-all active:scale-95 shadow-lg shadow-black/40 group relative overflow-hidden rounded-full"
+            title="How to Play"
+        >
+            <div className="absolute inset-0 bg-cyan-400/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            <HelpCircle size={18} className="md:w-[20px] md:h-[20px] text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
+        </button>
       </div>
 
       {/* --- Top Center: Win Notification Bar --- */}
@@ -336,9 +353,9 @@ const UIOverlay: React.FC = () => {
 
       {/* --- Error Toast --- */}
       {errorMessage && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-4">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-4 w-[90%] md:w-auto flex justify-center">
             <div className="glass-panel px-4 py-2 flex items-center gap-2 border-red-500/30 bg-red-900/40">
-                <AlertCircle size={16} className="text-red-400" />
+                <AlertCircle size={16} className="text-red-400 shrink-0" />
                 <span className="text-red-200 font-bold text-xs tracking-wide">{errorMessage}</span>
             </div>
         </div>
@@ -366,20 +383,21 @@ const UIOverlay: React.FC = () => {
       )}
 
       {/* --- Bottom Left: Balance & Wallet --- */}
-      <div className="widget-panel bottom-left glass-panel pointer-events-auto flex items-center gap-4">
+      {/* Mobile: Full Width or Stacked, Desktop: Original Layout */}
+      <div className="widget-panel bottom-left glass-panel pointer-events-auto flex flex-col-reverse md:flex-row items-stretch md:items-center gap-3 md:gap-4 !left-4 !right-4 md:!right-auto md:!left-6 !bottom-4 md:!bottom-6 md:w-auto w-[calc(100%-32px)]">
         {!isConnected ? (
           <button 
             onClick={handleConnect}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-md transition-all font-bold tracking-wide uppercase text-xs shadow-lg shadow-blue-500/20"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-md transition-all font-bold tracking-wide uppercase text-xs shadow-lg shadow-blue-500/20 w-full md:w-auto"
           >
             <Wallet size={16} />
             Connect Wallet
           </button>
         ) : (
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col-reverse md:flex-row items-stretch md:items-center gap-3 md:gap-4 w-full md:w-auto">
             <button 
                 onClick={() => setIsHistoryOpen(true)}
-                className="panel-row flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5 hover:bg-white/5 transition-colors active:scale-95 group"
+                className="panel-row flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5 hover:bg-white/5 transition-colors active:scale-95 group w-full md:w-auto"
             >
               <div 
                 className="relative group-hover:scale-105 transition-transform"
@@ -406,27 +424,26 @@ const UIOverlay: React.FC = () => {
               </div>
             </button>
 
-            <div className="w-px h-8 bg-white/10 mx-1" />
+            <div className="hidden md:block w-px h-8 bg-white/10 mx-1" />
 
             {/* Account Info & Disconnect */}
-            <div className="flex flex-col items-end mr-2">
-                <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">Connected Wallet</span>
-                <span className="text-[10px] text-cyan-400 font-mono flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_5px_#22d3ee]" />
-                    {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Unknown'}
-                </span>
-                <span className="text-[8px] text-gray-600 font-mono">
-                    {crossTestnet.name}
-                </span>
+            <div className="flex items-center justify-between md:justify-end gap-2 md:gap-4 w-full md:w-auto">
+                <div className="flex flex-col items-start md:items-end mr-0 md:mr-2">
+                    <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">Connected Wallet</span>
+                    <span className="text-[10px] text-cyan-400 font-mono flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_5px_#22d3ee]" />
+                        {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Unknown'}
+                    </span>
+                </div>
+                
+                <button 
+                    onClick={handleDisconnect}
+                    className="w-8 h-8 rounded-full bg-red-900/20 hover:bg-red-900/40 flex items-center justify-center border border-red-500/20 transition-colors group"
+                    title="Disconnect Wallet"
+                >
+                    <LogOut size={14} className="text-red-400 opacity-70 group-hover:opacity-100" />
+                </button>
             </div>
-            
-            <button 
-                onClick={handleDisconnect}
-                className="w-8 h-8 rounded-full bg-red-900/20 hover:bg-red-900/40 flex items-center justify-center border border-red-500/20 transition-colors group"
-                title="Disconnect Wallet"
-            >
-                <LogOut size={14} className="text-red-400 opacity-70 group-hover:opacity-100" />
-            </button>
           </div>
         )}
       </div>
@@ -492,6 +509,77 @@ const UIOverlay: React.FC = () => {
                               <span className="text-xs text-gray-500 italic">No champions yet...</span>
                           </div>
                       )}
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* --- Guide Modal --- */}
+      {isGuideOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="glass-panel w-[90%] max-w-md pointer-events-auto flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border-cyan-500/30 shadow-[0_0_50px_rgba(34,211,238,0.15)]">
+                  {/* Header */}
+                  <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/40">
+                      <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center border border-cyan-500/40">
+                              <HelpCircle size={16} className="text-cyan-400" />
+                          </div>
+                          <h3 className="text-cyan-400 font-bold text-sm tracking-wider uppercase">How to Play</h3>
+                      </div>
+                      <button 
+                          onClick={() => setIsGuideOpen(false)}
+                          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                      >
+                          <X size={18} className="text-gray-400 hover:text-white" />
+                      </button>
+                  </div>
+
+                  {/* Body */}
+                  <div className="p-5 bg-black/20 max-h-[70vh] overflow-y-auto space-y-6 text-sm">
+                      {/* Step 1 */}
+                      <div className="flex gap-4">
+                          <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center font-mono font-bold text-cyan-400 shrink-0">1</div>
+                          <div>
+                              <h4 className="text-white font-bold mb-1">Select Bet Amount</h4>
+                              <p className="text-gray-400 text-xs leading-relaxed">
+                                  Use the dropdown menu to choose your wager in <span className="text-yellow-400 font-bold">CROSS</span> tokens. 
+                                  You need to connect your wallet first.
+                              </p>
+                          </div>
+                      </div>
+
+                      {/* Step 2 */}
+                      <div className="flex gap-4">
+                          <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center font-mono font-bold text-cyan-400 shrink-0">2</div>
+                          <div>
+                              <h4 className="text-white font-bold mb-1">Place Your Bet</h4>
+                              <p className="text-gray-400 text-xs leading-relaxed">
+                                  Click on any grid cell in the <span className="text-emerald-400 font-bold">FUTURE</span> area. 
+                                  Predict where the price line will go!
+                              </p>
+                          </div>
+                      </div>
+
+                      {/* Step 3 */}
+                      <div className="flex gap-4">
+                          <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center font-mono font-bold text-cyan-400 shrink-0">3</div>
+                          <div>
+                              <h4 className="text-white font-bold mb-1">Win Big</h4>
+                              <p className="text-gray-400 text-xs leading-relaxed">
+                                  If the price line hits your box, you win! 
+                                  Payouts are automated and sent directly to your wallet.
+                              </p>
+                          </div>
+                      </div>
+
+                      {/* Info Box */}
+                      <div className="p-3 rounded bg-cyan-900/20 border border-cyan-500/20 flex gap-3 mt-4">
+                          <AlertCircle size={16} className="text-cyan-400 shrink-0 mt-0.5" />
+                          <p className="text-[10px] text-cyan-200 leading-relaxed">
+                              This game runs on the Cross Testnet. Ensure you have testnet CROSS tokens. 
+                              Bets are processed on-chain.
+                          </p>
+                      </div>
                   </div>
               </div>
           </div>
