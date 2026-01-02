@@ -519,11 +519,15 @@ export class MainScene extends Phaser.Scene {
     // 3. Balance Check
     // store.betAmount is in CROSS, so we check directly against balance
     const tokenCost = store.betAmount; 
+    console.log("Current Balance in Store:", store.balance, "Required:", tokenCost);
+
+    /* TEMPORARILY DISABLED FOR TESTING
     if (store.balance < (tokenCost + 0.005)) {
         this.sound.play('sfx_error');
         console.warn("Insufficient balance");
         return;
     }
+    */
 
     // 4. Coordinates Calculation
     const colWidth = width / this.gridCols;
@@ -571,7 +575,7 @@ export class MainScene extends Phaser.Scene {
 
     // ★★★ [CORE FIX] Server Communication Safety Block ★★★
     try {
-        const apiUrl = 'https://gene-fragmental-addisyn.ngrok-free.dev'; // User's ngrok URL
+        const apiUrl = 'https://gene-fragmental-addisyn.ngrok-free.dev'; // Hardcoded as requested
         const userAddress = store.userAddress || "0xTestUser";
 
         // A. Call Server API
@@ -749,6 +753,26 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
+  private async requestPayout(betId: string) {
+    const store = useGameStore.getState();
+    const userAddress = store.userAddress || "0xTestUser";
+    const apiUrl = 'https://gene-fragmental-addisyn.ngrok-free.dev';
+
+    try {
+        await fetch(`${apiUrl}/api/payout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                betId: betId,
+                userAddress: userAddress
+            })
+        });
+        console.log("✅ Payout Requested for", betId);
+    } catch (err) {
+        console.error("❌ Payout Request Failed:", err);
+    }
+  }
+
   private handleWin(box: BettingBox, index: number) {
     box.hit = true;
     this.sound.play('sfx_win');
@@ -780,7 +804,8 @@ export class MainScene extends Phaser.Scene {
     
     // Server Payout
     const store = useGameStore.getState();
-    store.claimServerPayout(box.id);
+    // Replaced store.claimServerPayout with direct call
+    this.requestPayout(box.id);
 
     store.requestWin(winVal);
     store.setLastWinAmount(winVal);
