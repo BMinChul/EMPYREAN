@@ -697,7 +697,7 @@ export class MainScene extends Phaser.Scene {
 
       const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0); 
       
-      const txtAmt = this.add.text(0, -8, `$ ${req.amount} Cross`, {
+      const txtAmt = this.add.text(0, -8, `$${req.amount} Cross`, {
           fontFamily: 'monospace', fontSize: '14px', color: '#000000', fontStyle: 'bold'
       }).setOrigin(0.5);
       
