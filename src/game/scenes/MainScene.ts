@@ -22,6 +22,7 @@ interface BettingBox {
   boxWidth: number;
   boxHeight: number;
   basePrice: number; 
+  expiryTimestamp: number;
 }
 
 export class MainScene extends Phaser.Scene {
@@ -172,6 +173,46 @@ export class MainScene extends Phaser.Scene {
     this.events.on('shutdown', () => this.cleanup());
     this.events.on('destroy', () => this.cleanup());
     this.scale.on('resize', this.handleResize, this);
+    this.game.events.on('focus', this.handleGameFocus, this);
+  }
+
+  private handleGameFocus() {
+      const now = Date.now();
+      console.log(`[Focus] Game regained focus at ${now}. Cleaning up stale bets...`);
+
+      // 1. Clean Pending Bets
+      const pendingToRemove: string[] = [];
+      this.pendingBoxes.forEach((container, id) => {
+          const expiry = container.getData('expiryTimestamp');
+          if (expiry && expiry < now) {
+              console.log(`[Focus] Removing expired pending bet ${id}`);
+              container.destroy();
+              pendingToRemove.push(id);
+          }
+      });
+      pendingToRemove.forEach(id => {
+          this.pendingBoxes.delete(id);
+          // Also clear store if it matches
+          const store = useGameStore.getState();
+          if (store.pendingBet && store.pendingBet.id === id) {
+              store.clearPendingBet();
+          }
+      });
+
+      // 2. Clean Active Bets
+      // Iterate backwards to safely remove
+      for (let i = this.bettingBoxes.length - 1; i >= 0; i--) {
+          const box = this.bettingBoxes[i];
+          if (box.expiryTimestamp && box.expiryTimestamp < now) {
+               console.log(`[Focus] Removing expired active bet ${box.id}`);
+               box.container.destroy();
+               this.bettingBoxes.splice(i, 1);
+               // Trigger refund check on server just in case? 
+               // If it's active (confirmed), it should have won or lost by now.
+               // If it expired without result, it's an orphan.
+               this.requestPayout(box.id, true);
+          }
+      }
   }
 
   private handleResize(gameSize: Phaser.Structs.Size) {
@@ -705,6 +746,7 @@ export class MainScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     container.add([bg, txt, txtMulti]);
+    container.setData('expiryTimestamp', expiryTimestamp);
     this.pendingBoxes.set(betId, container);
 
     // 9. Server Communication & Store Lock
@@ -766,7 +808,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   // Called when Transaction is Confirmed
-  private createConfirmedBox(req: BetRequest, pendingContainer: Phaser.GameObjects.Container | null) {
+  private createConfirmedBox(req: BetRequest, pendingContainer: Phaser.GameObjects.Container | null, restoredExpiry?: number) {
       let container = pendingContainer;
       
       if (!container) {
@@ -831,12 +873,15 @@ export class MainScene extends Phaser.Scene {
           ease: 'Back.out'
       });
 
+      const expiry = restoredExpiry || (pendingContainer ? pendingContainer.getData('expiryTimestamp') : 0) || (Date.now() + 60000);
+
       this.bettingBoxes.push({
           id: req.id,
           container, rect, bg, glow, 
           textAmount: txtAmt, textMulti: txtMulti,
           betAmount: req.amount, multiplier: req.multiplier,
-          hit: false, boxWidth: boxW, boxHeight: boxH, basePrice: req.basePrice
+          hit: false, boxWidth: boxW, boxHeight: boxH, basePrice: req.basePrice,
+          expiryTimestamp: expiry
       });
 
       // No need to call registerServerBet here again as placeBet handled it
@@ -1005,7 +1050,7 @@ export class MainScene extends Phaser.Scene {
                   basePrice: bet.basePrice,
                   txHash: bet.txHash
               };
-              this.createConfirmedBox(req, null);
+              this.createConfirmedBox(req, null, bet.expiryTimestamp);
           } else {
               // Create Grey Pending Box
               const container = this.add.container(restoredX, restoredY);
@@ -1025,6 +1070,7 @@ export class MainScene extends Phaser.Scene {
               }).setOrigin(0.5);
 
               container.add([bg, txt, txtMulti]);
+              container.setData('expiryTimestamp', bet.expiryTimestamp);
               this.pendingBoxes.set(bet.betId, container);
           }
       });
