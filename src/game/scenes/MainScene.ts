@@ -37,6 +37,7 @@ export class MainScene extends Phaser.Scene {
 
   private bettingBoxes: BettingBox[] = [];
   private pendingBoxes: Map<string, Phaser.GameObjects.Container> = new Map(); // Track pending bets
+  private initializingBets: Set<string> = new Set(); // Track bets waiting for API response
 
   private axisLabels: Phaser.GameObjects.Text[] = [];
   private gridLabels: Phaser.GameObjects.Text[] = [];
@@ -288,8 +289,13 @@ export class MainScene extends Phaser.Scene {
       // If we have pending boxes locally, but store has NO pending bet AND NO confirmed bet
       // It means the pending bet was rejected/cancelled in UI
       if (this.pendingBoxes.size > 0 && !store.pendingBet && !store.lastConfirmedBet) {
-          // Destroy all pending boxes (refunded)
-          this.pendingBoxes.forEach((container) => {
+          const toRemove: string[] = [];
+
+          this.pendingBoxes.forEach((container, id) => {
+              // SKIP if this bet is still initializing (waiting for API)
+              if (this.initializingBets.has(id)) return;
+
+              // Destroy cancelled/orphaned bets
               this.tweens.add({
                   targets: container,
                   scale: 0,
@@ -297,8 +303,10 @@ export class MainScene extends Phaser.Scene {
                   duration: 200,
                   onComplete: () => container.destroy()
               });
+              toRemove.push(id);
           });
-          this.pendingBoxes.clear();
+          
+          toRemove.forEach(id => this.pendingBoxes.delete(id));
       }
   }
 
@@ -501,7 +509,7 @@ export class MainScene extends Phaser.Scene {
     
     // 1. Check pending (Limit 1 at a time)
     const store = useGameStore.getState();
-    if (store.pendingBet) {
+    if (store.pendingBet || this.initializingBets.size > 0) {
         return; 
     }
 
@@ -575,6 +583,8 @@ export class MainScene extends Phaser.Scene {
 
     // 8. Server Communication & Wallet Signature
     try {
+        this.initializingBets.add(betId); // Mark as initializing
+
         const apiUrl = 'https://gene-fragmental-addisyn.ngrok-free.dev'; // Hardcoded as requested
         const userAddress = store.userAddress || "0xTestUser";
 
@@ -606,9 +616,13 @@ export class MainScene extends Phaser.Scene {
             boxHeight: boxH,
             basePrice: cellCenterPrice
         });
+        
+        this.initializingBets.delete(betId); // API done, handed over to Store
 
     } catch (err) {
         console.error("❌ Bet Registration Failed:", err);
+        
+        this.initializingBets.delete(betId); // Clear initializing flag so cleanup can happen
         
         // C. Error Handling: ROLLBACK EVERYTHING
         

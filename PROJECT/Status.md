@@ -1,7 +1,9 @@
 # Status
 
 ## Active Work
-- **Testing**: Verifying full flow with backend server (ngrok) and refined UI visuals.
+- **Bug Fix**: Fixed "Pending Box" disappearing immediately on click.
+    - Introduced `initializingBets` tracking to prevent cleanup during API latency.
+    - Added safeguards against double-clicking while API is pending.
 
 ## Recent Activity
 - **UI Refinements (MainScene.ts)**:
