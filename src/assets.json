@@ -1,14 +1,24 @@
 {
   "sprites": {},
   "audio": {
+    "bgm": {
+      "main": {
+        "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/audio-b900d59d-f948-4b4c-946f-eab997081698.ogg",
+        "description": "Cyberpunk high-tension background music"
+      }
+    },
     "sfx": {
       "win": {
-        "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/audio-85979cff-d57b-4655-ae47-3ece4d6068bd.ogg",
-        "description": "Arcade winning sound"
+        "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/audio-480f19b3-e5d3-41c2-9169-ea4a6f9bd82a.ogg",
+        "description": "Casino Jackpot Win Sound"
       },
       "place_bet": {
-        "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/audio-0f4cee2f-c6e0-490c-bfd6-5c1b0f84d74c.ogg",
-        "description": "Sound for placing a bet"
+        "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/audio-029c5d91-9a66-442e-b040-7585c1be5152.ogg",
+        "description": "Coin drop / Vending machine sound"
+      },
+      "refund": {
+        "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/audio-bfe1c202-178a-4765-9b86-348b079fb1fb.ogg",
+        "description": "Soft swish / Cancel notification"
       },
       "error": {
         "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/audio-537c4444-2c7e-4986-a0f0-c1d27dea40bf.ogg",

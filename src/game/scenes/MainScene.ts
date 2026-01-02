@@ -80,13 +80,23 @@ export class MainScene extends Phaser.Scene {
   }
 
   preload() {
+    this.load.audio('bgm_main', Assets.audio.bgm.main.url);
     this.load.audio('sfx_win', Assets.audio.sfx.win.url);
     this.load.audio('sfx_place', Assets.audio.sfx.place_bet.url);
+    this.load.audio('sfx_refund', Assets.audio.sfx.refund.url);
     this.load.audio('sfx_error', Assets.audio.sfx.error.url);
   }
 
   create() {
     this.cameras.main.setBackgroundColor('#1a0b2e'); 
+
+    // Play Background Music
+    if (!this.sound.get('bgm_main')) {
+        this.sound.play('bgm_main', {
+            loop: true,
+            volume: 0.4
+        });
+    } 
     this.pixelsPerSecond = this.scale.width / this.timeWindowSeconds;
     
     this.gridGraphics = this.add.graphics();
@@ -432,6 +442,10 @@ export class MainScene extends Phaser.Scene {
                   duration: 200,
                   onComplete: () => container.destroy()
               });
+              
+              // Play Refund/Cancel Sound
+              this.sound.play('sfx_refund', { volume: 0.5 });
+
               toRemove.push(id);
           });
           
@@ -837,7 +851,7 @@ export class MainScene extends Phaser.Scene {
       }
 
       // Re-create as Real Box (Yellow/Bright)
-      this.sound.play('sfx_place', { volume: 0.5 });
+      this.sound.play('sfx_place', { volume: 0.6 });
       
       const boxW = req.boxWidth;
       const boxH = req.boxHeight;
@@ -962,7 +976,7 @@ export class MainScene extends Phaser.Scene {
 
   private handleWin(box: BettingBox, index: number) {
     box.hit = true;
-    this.sound.play('sfx_win');
+    this.sound.play('sfx_win', { volume: 0.8 });
 
     const winVal = box.betAmount * box.multiplier;
     const winText = this.add.text(box.container.x, box.container.y - (box.boxHeight/2) - 20, `+${winVal.toFixed(2)}`, {
