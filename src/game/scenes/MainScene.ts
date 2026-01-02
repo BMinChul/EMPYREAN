@@ -49,7 +49,7 @@ export class MainScene extends Phaser.Scene {
   private pixelsPerSecond: number = 0; 
   private pixelPerDollar: number = 200; 
   private gridPriceInterval: number = 0.5; 
-  private gridCols: number = 6;
+  private gridCols: number = 7;
   
   // --- State ---
   private initialPrice: number | null = null;
@@ -229,13 +229,45 @@ export class MainScene extends Phaser.Scene {
     this.checkBettingState();
     
     // --- Late Confirmation Prevention (Exploit Protection) ---
-    // If the head passes a pending box before it confirms, INVALIDATE IT.
+    // 1. DEADLINE Logic (Column 4)
+    // If a pending box moves past Column 4 (towards the head) before confirming, INVALIDATE IT.
+    // 2. HEAD Logic (Physical Overlap)
+    // If the head physically hits a pending box, INVALIDATE IT.
     if (this.pendingBoxes.size > 0) {
         const toRemove: string[] = [];
+        const viewportW = this.scale.width;
+        const colWidth = viewportW / this.gridCols;
+        
+        // Safe Zone Boundary: Column 4 X-Coordinate (World Space)
+        // Screen Logic: Left (0) -> Right (Width). Head is at 22%. Deadline is at ~57% (Col 4/7).
+        // Boxes are at fixed World X. Camera moves Right.
+        // So visually, boxes move Right -> Left.
+        // If Box Screen X < Deadline Screen X, it has crossed the line.
+        const scrollX = this.cameras.main.scrollX;
+        const deadlineWorldX = scrollX + (4 * colWidth);
+
         this.pendingBoxes.forEach((container, id) => {
              const boxWidth = 80; // Approximate
+             const boxWorldX = container.x;
+             
+             let isInvalid = false;
+             let reason = '';
+
+             // A. Deadline Check (Anti-Snipe)
+             // If box is to the LEFT of the Deadline Line
+             if (boxWorldX < deadlineWorldX) {
+                 isInvalid = true;
+                 reason = 'EXPIRED';
+             }
+             
+             // B. Head Check (Safety Net)
              // If Head has passed the center of the pending box
-             if (this.headX > (container.x + boxWidth/2)) {
+             if (this.headX > (boxWorldX + boxWidth/2)) {
+                 isInvalid = true;
+                 reason = 'EXPIRED';
+             }
+
+             if (isInvalid) {
                  // 1. Visual Invalidation
                  const bg = container.list[0] as Phaser.GameObjects.Graphics;
                  if (bg) {
@@ -246,7 +278,7 @@ export class MainScene extends Phaser.Scene {
                  }
                  
                  const txt = container.list[1] as Phaser.GameObjects.Text;
-                 if (txt) txt.setText('EXPIRED');
+                 if (txt) txt.setText(reason);
 
                  // 2. Destroy after brief delay
                  this.tweens.add({
@@ -283,7 +315,8 @@ export class MainScene extends Phaser.Scene {
 
     const viewportW = this.scale.width;
     const viewportH = this.scale.height;
-    const targetScrollX = this.headX - (viewportW * 0.40);
+    // New Head Position: 22% (was 40%)
+    const targetScrollX = this.headX - (viewportW * 0.22);
     const targetScrollY = this.headY - (viewportH * 0.5);
     this.cameras.main.scrollX = targetScrollX;
     this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, targetScrollY, 0.2);
