@@ -195,7 +195,7 @@ const UIOverlay: React.FC = () => {
                 <div className="flex flex-col items-start">
                     <span className="text-[9px] tracking-widest text-gray-400 font-bold mb-0.5 uppercase group-hover:text-yellow-400 transition-colors">BET AMOUNT</span>
                     <span className="text-lg font-bold font-mono text-yellow-400 tracking-wide leading-none">
-                        {betAmount} CR
+                        {betAmount} Cross
                     </span>
                 </div>
                 {isBetDropdownOpen ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
@@ -215,7 +215,7 @@ const UIOverlay: React.FC = () => {
                                 ${betAmount === opt ? 'bg-yellow-400/20 text-yellow-400' : 'text-gray-400 hover:bg-white/10 hover:text-white hover:pl-5'}
                             `}
                         >
-                            <span>{opt} CR</span>
+                            <span>{opt} Cross</span>
                             {betAmount === opt && <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 shadow-[0_0_8px_rgba(255,215,0,0.8)]" />}
                         </button>
                     ))}

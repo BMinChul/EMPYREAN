@@ -579,7 +579,7 @@ export class MainScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Add Multiplier to Pending Box for better UX
-    const txtMulti = this.add.text(0, -5, `${multi.toFixed(2)}x`, {
+    const txtMulti = this.add.text(0, -boxH/2 + 10, `${multi.toFixed(2)}x`, {
         fontFamily: 'monospace', fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0.5);
 
@@ -679,7 +679,7 @@ export class MainScene extends Phaser.Scene {
 
       const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0); 
       
-      const txtAmt = this.add.text(0, -8, `${req.amount} CROSS`, {
+      const txtAmt = this.add.text(0, -8, `${req.amount} Cross`, {
           fontFamily: 'monospace', fontSize: '14px', color: '#000000', fontStyle: 'bold'
       }).setOrigin(0.5);
       
