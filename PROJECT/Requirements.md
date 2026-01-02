@@ -27,5 +27,5 @@
 - **Time Window**: **60-second** visible history/future window (Faster scroll).
 
 ## Backend Integration
-- **Payout Endpoint**: `https://gene-fragmental-addisyn.ngrok-free.dev/api/payout` (POST).
+- **Payout Endpoint**: `https://544fcf9d-fabb-47fe-bc6a-ea9895331f00-00-3s83yvw73cevs.spock.replit.dev/api/payout` (POST).
 - **Payload**: `{ userAddress, amount, betId }`.

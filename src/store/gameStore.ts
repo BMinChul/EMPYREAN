@@ -139,7 +139,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!userAddress) return;
       
       try {
-          await fetch('https://gene-fragmental-addisyn.ngrok-free.dev/api/place-bet', {
+          await fetch('https://544fcf9d-fabb-47fe-bc6a-ea9895331f00-00-3s83yvw73cevs.spock.replit.dev/api/place-bet', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -159,7 +159,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!userAddress) return;
 
       try {
-          await fetch('https://gene-fragmental-addisyn.ngrok-free.dev/api/payout', {
+          await fetch('https://544fcf9d-fabb-47fe-bc6a-ea9895331f00-00-3s83yvw73cevs.spock.replit.dev/api/payout', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -178,7 +178,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!userAddress) return [];
 
       try {
-          const res = await fetch(`https://gene-fragmental-addisyn.ngrok-free.dev/api/my-bets/${userAddress}`);
+          const res = await fetch(`https://544fcf9d-fabb-47fe-bc6a-ea9895331f00-00-3s83yvw73cevs.spock.replit.dev/api/my-bets/${userAddress}`);
           if (res.ok) {
               const data = await res.json();
               return Array.isArray(data) ? data : [];
