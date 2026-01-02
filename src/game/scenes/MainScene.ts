@@ -557,23 +557,23 @@ export class MainScene extends Phaser.Scene {
     const boxH = (this.gridPriceInterval * this.pixelPerDollar) - 8;
     const betId = Date.now().toString();
 
-    // 7. Visual Feedback: Create "Pending" Ghost Box
+    // 7. Visual Feedback: Create "Pending" Ghost Box (IMMEDIATE)
     const container = this.add.container(cellX, cellY);
     
     const bg = this.add.graphics();
-    bg.fillStyle(0x444444, 0.5); 
+    bg.fillStyle(0x555555, 0.5); 
     bg.lineStyle(2, 0x888888, 0.5);
     bg.fillRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8);
     bg.strokeRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8);
     
-    const txt = this.add.text(0, 0, 'CONNECTING...', {
-         fontFamily: 'monospace', fontSize: '10px', color: '#aaaaaa'
+    const txt = this.add.text(0, 0, 'PENDING...', {
+         fontFamily: 'monospace', fontSize: '10px', color: '#ffffff'
     }).setOrigin(0.5);
 
     container.add([bg, txt]);
     this.pendingBoxes.set(betId, container);
 
-    // ★★★ [CORE FIX] Server Communication Safety Block ★★★
+    // 8. Server Communication & Wallet Signature
     try {
         const apiUrl = 'https://gene-fragmental-addisyn.ngrok-free.dev'; // Hardcoded as requested
         const userAddress = store.userAddress || "0xTestUser";
@@ -625,18 +625,6 @@ export class MainScene extends Phaser.Scene {
         
         // 3. Visual Feedback for Error
         this.sound.play('sfx_error');
-        
-        const errText = this.add.text(cellX, cellY - 30, '❌ SERVER ERROR', {
-            fontFamily: 'monospace', fontSize: '10px', color: '#ff5555', backgroundColor: '#000000'
-        }).setOrigin(0.5);
-
-        this.tweens.add({
-            targets: errText,
-            y: cellY - 50,
-            alpha: 0,
-            duration: 1500,
-            onComplete: () => errText.destroy()
-        });
     }
   }
 
@@ -672,7 +660,7 @@ export class MainScene extends Phaser.Scene {
 
       const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0); 
       
-      const txtAmt = this.add.text(0, -8, `${req.amount} CR`, {
+      const txtAmt = this.add.text(0, -8, `${req.amount} CROSS`, {
           fontFamily: 'monospace', fontSize: '14px', color: '#000000', fontStyle: 'bold'
       }).setOrigin(0.5);
       
@@ -683,9 +671,10 @@ export class MainScene extends Phaser.Scene {
       // --- NEW: SCAN Link ---
       if (req.txHash) {
           const scanLink = this.add.text(0, -boxH/2 + 8, '🔗 SCAN', {
-              fontFamily: 'monospace', fontSize: '10px', color: '#555555'
+              fontFamily: 'monospace', fontSize: '10px', color: '#0000ff'
           })
           .setOrigin(0.5)
+          .setDepth(100)
           .setInteractive({ useHandCursor: true });
 
           scanLink.on('pointerdown', () => {
