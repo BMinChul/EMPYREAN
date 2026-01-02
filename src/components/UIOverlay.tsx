@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { useAppKit } from '@reown/appkit/react';
 import { useAccount, useDisconnect, useBalance, useSendTransaction, usePublicClient } from 'wagmi';
 import { parseEther, parseGwei } from 'viem';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut, Trophy, X, Clock, History, HelpCircle } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut, Trophy, X, Clock, History, HelpCircle, Loader2 } from 'lucide-react';
 import Assets from '../assets.json';
 import { crossTestnet } from '../wagmi';
 
@@ -53,6 +53,7 @@ const UIOverlay: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [prevPrice, setPrevPrice] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [txStatus, setTxStatus] = useState<'idle' | 'signing' | 'confirming'>('idle');
   
   // Bet Selector State
   const [isBetDropdownOpen, setIsBetDropdownOpen] = useState(false);
@@ -103,6 +104,7 @@ const UIOverlay: React.FC = () => {
     if (!pendingBet || isProcessing) return;
     
     setIsProcessing(true);
+    setTxStatus('signing');
     const amountStr = pendingBet.amount.toString();
     
     const betId = pendingBet.id; // Capture ID at start of process
@@ -117,14 +119,15 @@ const UIOverlay: React.FC = () => {
     })
         .then(async (hash) => {
             txHash = hash; // Store hash immediately
+            setTxStatus('confirming'); // Update status to show spinner
             if (publicClient) {
                 // Wait for Block Confirmation (Receipt)
                 await publicClient.waitForTransactionReceipt({ 
                     hash,
                     confirmations: 1, 
-                    pollingInterval: 1_000,
-                    retryCount: 10,
-                    timeout: 30_000
+                    pollingInterval: 2000, // Check every 2s
+                    retryCount: 60,        // Try 60 times (Total ~120s)
+                    timeout: 120000        // Explicit timeout of 2 mins
                 });
             }
             
@@ -176,7 +179,10 @@ const UIOverlay: React.FC = () => {
             setErrorMessage(msg);
             setTimeout(() => setErrorMessage(null), 3000);
         })
-        .finally(() => setIsProcessing(false));
+        .finally(() => {
+            setIsProcessing(false);
+            setTxStatus('idle');
+        });
   }, [pendingBet, isProcessing, sendTransactionAsync, confirmBet, cancelBet]);
 
   useEffect(() => {
@@ -367,6 +373,18 @@ const UIOverlay: React.FC = () => {
             <div className="glass-panel px-4 py-2 flex items-center gap-2 border-red-500/30 bg-red-900/40">
                 <AlertCircle size={16} className="text-red-400 shrink-0" />
                 <span className="text-red-200 font-bold text-xs tracking-wide">{errorMessage}</span>
+            </div>
+        </div>
+      )}
+
+      {/* --- Transaction Status Indicator --- */}
+      {(txStatus !== 'idle') && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-4 w-[90%] md:w-auto flex justify-center">
+            <div className="glass-panel px-6 py-3 flex items-center gap-3 border-blue-500/30 bg-blue-900/40 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
+                <Loader2 size={20} className="text-blue-400 animate-spin" />
+                <span className="text-blue-200 font-bold text-sm tracking-wide">
+                    {txStatus === 'signing' ? 'Please Sign in Wallet...' : 'Confirming on Blockchain...'}
+                </span>
             </div>
         </div>
       )}
