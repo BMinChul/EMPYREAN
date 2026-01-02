@@ -354,6 +354,18 @@ export class MainScene extends Phaser.Scene {
     drawPath();
   }
 
+  private isOccupied(x: number, y: number): boolean {
+    // Check Pending
+    for (const container of this.pendingBoxes.values()) {
+        if (Math.abs(container.x - x) < 5 && Math.abs(container.y - y) < 5) return true;
+    }
+    // Check Active
+    for (const box of this.bettingBoxes) {
+        if (Math.abs(box.container.x - x) < 5 && Math.abs(box.container.y - y) < 5) return true;
+    }
+    return false;
+  }
+
   private calculateDynamicMultiplier(targetPrice: number, colIndex: number): number {
       const headColPos = this.gridCols * 0.4; 
       const t = Math.max(1.0, (colIndex - headColPos));
@@ -460,6 +472,11 @@ export class MainScene extends Phaser.Scene {
                 const cellCenterPrice = p + (this.gridPriceInterval / 2);
                 const dynamicMulti = this.calculateDynamicMultiplier(cellCenterPrice, colIndexOnScreen);
                 
+                // NEW: Hide multiplier if cell is occupied by Pending or Active bet
+                if (this.isOccupied(cellCenterX, cellCenterY)) {
+                    continue;
+                }
+
                 let gl = this.gridLabels[gridLabelIdx];
                 if (!gl) {
                     gl = this.add.text(0, 0, '', {
@@ -550,11 +567,7 @@ export class MainScene extends Phaser.Scene {
     const cellY = -(cellCenterPrice - this.initialPrice!) * this.pixelPerDollar;
 
     // 5. Check Existing Bets (Prevent Overlap)
-    const existingBet = this.bettingBoxes.find(b => 
-      Math.abs(b.container.x - cellX) < 5 && 
-      Math.abs(b.container.y - cellY) < 5
-    );
-    if (existingBet) {
+    if (this.isOccupied(cellX, cellY)) {
         this.sound.play('sfx_error', { volume: 0.2 });
         return;
     }
@@ -579,7 +592,8 @@ export class MainScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Add Multiplier to Pending Box for better UX
-    const txtMulti = this.add.text(0, -boxH/2 + 10, `${multi.toFixed(2)}x`, {
+    // CENTERED as requested
+    const txtMulti = this.add.text(0, 0, `${multi.toFixed(2)}x`, {
         fontFamily: 'monospace', fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0.5);
 
@@ -679,7 +693,7 @@ export class MainScene extends Phaser.Scene {
 
       const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0); 
       
-      const txtAmt = this.add.text(0, -8, `${req.amount} Cross`, {
+      const txtAmt = this.add.text(0, -8, `$ ${req.amount} Cross`, {
           fontFamily: 'monospace', fontSize: '14px', color: '#000000', fontStyle: 'bold'
       }).setOrigin(0.5);
       
