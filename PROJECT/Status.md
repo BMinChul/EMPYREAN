@@ -7,6 +7,7 @@
     - **Compact Layout**: Reduced padding and font sizes for wallet connection UI on mobile screens.
 
 ## Recent Activity
+- **Audio Update**: Replaced the "Bet Win" sound effect with a new 1-second short, punchy arcade chime to improve game feel.
 - **UI Fixes**: 
     - **Top Bar Icons**: Forced `size={40}` for Trophy and HelpCircle.
     - **Wallet UI**: Added mobile-specific scaling and compact layout classes (`text-[8px]`, `p-1.5`, etc.) to preventing blocking game grid.
