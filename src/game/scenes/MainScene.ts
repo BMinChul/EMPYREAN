@@ -574,11 +574,16 @@ export class MainScene extends Phaser.Scene {
     bg.fillRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8);
     bg.strokeRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8);
     
-    const txt = this.add.text(0, 0, 'PENDING...', {
-         fontFamily: 'monospace', fontSize: '10px', color: '#ffffff'
+    const txt = this.add.text(0, boxH/2 - 12, 'PENDING...', {
+         fontFamily: 'monospace', fontSize: '10px', color: '#cccccc'
     }).setOrigin(0.5);
 
-    container.add([bg, txt]);
+    // Add Multiplier to Pending Box for better UX
+    const txtMulti = this.add.text(0, -5, `${multi.toFixed(2)}x`, {
+        fontFamily: 'monospace', fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    container.add([bg, txt, txtMulti]);
     this.pendingBoxes.set(betId, container);
 
     // 8. Server Communication & Wallet Signature

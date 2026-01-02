@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useAppKit } from '@reown/appkit/react';
-import { useAccount, useDisconnect, useBalance, useSendTransaction } from 'wagmi';
+import { useAccount, useDisconnect, useBalance, useSendTransaction, usePublicClient } from 'wagmi';
 import { parseEther } from 'viem';
 import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut } from 'lucide-react';
 import Assets from '../assets.json';
@@ -21,6 +21,7 @@ const UIOverlay: React.FC = () => {
   const { open } = useAppKit();
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+  const publicClient = usePublicClient();
   
   // Native Token Balance (CROSS)
   const { data: balanceData } = useBalance({ address });
@@ -69,8 +70,12 @@ const UIOverlay: React.FC = () => {
       to: HOUSE_WALLET,
       value: parseEther(amountStr) 
     })
-        .then((hash) => {
-            confirmBet(hash); // Confirms transaction, triggers Box in Scene
+        .then(async (hash) => {
+            if (publicClient) {
+                // Wait for Block Confirmation (Receipt)
+                await publicClient.waitForTransactionReceipt({ hash });
+            }
+            confirmBet(hash); // Confirms transaction ONLY after mining
         })
         .catch(err => {
             console.error("Bet failed:", err);
