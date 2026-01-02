@@ -496,7 +496,7 @@ export class MainScene extends Phaser.Scene {
      priceLabel.setText(this.currentPrice.toFixed(2));
   }
 
-  private placeBet(pointer: Phaser.Input.Pointer) {
+  private async placeBet(pointer: Phaser.Input.Pointer) {
     if (!this.initialPrice) return;
     
     // Check pending (Limit 1 at a time)
@@ -577,6 +577,32 @@ export class MainScene extends Phaser.Scene {
         boxHeight: boxH,
         basePrice: cellCenterPrice
     });
+
+    try {
+        const apiUrl = 'https://gene-fragmental-addisyn.ngrok-free.dev';
+        const response = await fetch(`${apiUrl}/api/place-bet`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                betId: betId,
+                userAddress: store.userAddress,
+                betAmount: store.betAmount,
+                multiplier: multi
+            })
+        });
+        
+        if (!response.ok) throw new Error("Server Rejected");
+
+    } catch (err) {
+        console.error("Bet Registration Failed:", err);
+        
+        // CRITICAL: Reset state so user can try again
+        this.pendingBoxes.delete(betId);
+        container.destroy(); 
+        useGameStore.getState().clearPendingBet();
+        
+        this.sound.play('sfx_error');
+    }
   }
 
   // Called when Transaction is Confirmed
