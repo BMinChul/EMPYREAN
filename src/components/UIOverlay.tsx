@@ -257,7 +257,7 @@ const UIOverlay: React.FC = () => {
       
       {/* --- Top Container: Price & Bet Selector --- */}
       {/* Mobile: Vertical Stack (flex-col), Desktop: Horizontal (flex-row) */}
-      <div className="fixed top-4 left-4 md:top-6 md:left-6 flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-3 z-30">
+      <div className="fixed top-4 left-4 md:top-6 md:left-6 flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-3 z-30 scale-75 origin-top-left md:scale-100">
         
         {/* Price Widget */}
         <div className="glass-panel pointer-events-auto flex items-center gap-3 px-3 py-1.5 md:px-4 md:py-2 min-h-[44px] md:min-h-[52px] shadow-lg shadow-black/40">
@@ -325,7 +325,7 @@ const UIOverlay: React.FC = () => {
             title="Hall of Fame"
         >
             <div className="absolute inset-0 bg-yellow-400/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Trophy size={18} className="md:w-[20px] md:h-[20px] text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
+            <Trophy size={28} className="text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
         </button>
 
       </div>
@@ -338,7 +338,7 @@ const UIOverlay: React.FC = () => {
             title="How to Play"
         >
             <div className="absolute inset-0 bg-cyan-400/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-            <HelpCircle size={18} className="md:w-[20px] md:h-[20px] text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
+            <HelpCircle size={28} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
         </button>
       </div>
 
