@@ -1,6 +1,9 @@
 # Status
 
 ## Active Work
+- **Audio Improvements**: 
+    - Replaced "Cyberpunk" BGM with "High Tension Electronic" track for better betting atmosphere.
+    - **Fixed BGM Stutter**: Disabled `pauseOnBlur` in `MainScene.ts` so music continues playing during Wallet Popups and Transaction Confirmations.
 - **Audio Integration**: Added BGM (Cyberpunk High Tension) and new SFX (Coin Drop, Casino Win, Refund Swish).
 - **Completed**: Fixed "TransactionReceiptNotFoundError" by adding retry logic (10 retries, 1s polling, 30s timeout) to `waitForTransactionReceipt` in `UIOverlay.tsx`.
 - **Completed**: Fixed "Invalid Date" bug in History Modal by using `createdAt` field and full date/time formatting.
@@ -15,6 +18,6 @@
 - **Bug Fix**: Improved Transaction Receipt reliability by adding robust retry logic and longer timeouts.
 
 ## Next Steps
-- [ ] **Testing**: Verify audio levels and loop seamlessness.
+- [ ] **Testing**: Verify audio levels and loop seamlessness with new track.
 - [ ] **Polishing**: Add more sound effects for Modal interactions.
 - [ ] **Integration**: Monitor server response times for history fetching.
