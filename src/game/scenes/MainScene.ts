@@ -518,6 +518,7 @@ export class MainScene extends Phaser.Scene {
 
     if (store.balance < store.betAmount) {
         this.sound.play('sfx_error');
+        // Optional: Show toast via store state if needed, but error sound is simpler
         return;
     }
 
@@ -549,17 +550,17 @@ export class MainScene extends Phaser.Scene {
     const boxH = (this.gridPriceInterval * this.pixelPerDollar) - 8;
     const betId = Date.now().toString();
 
-    // 1. Create Pending "Ghost" Box (Grey)
+    // 1. Create Pending "Ghost" Box (Grey, alpha 0.5)
     const container = this.add.container(cellX, cellY);
     
     const bg = this.add.graphics();
-    bg.fillStyle(0x444444, 0.5); // Pending Grey
+    bg.fillStyle(0x666666, 0.5); // Grey, 0.5 Alpha
     bg.lineStyle(2, 0x888888, 0.5);
     bg.fillRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8);
     bg.strokeRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8);
     
-    const txt = this.add.text(0, 0, 'SIG?', {
-         fontFamily: 'monospace', fontSize: '10px', color: '#aaaaaa'
+    const txt = this.add.text(0, 0, 'SIGN...', {
+         fontFamily: 'monospace', fontSize: '10px', color: '#dddddd', fontStyle: 'bold'
     }).setOrigin(0.5);
 
     container.add([bg, txt]);
@@ -596,7 +597,7 @@ export class MainScene extends Phaser.Scene {
       const boxH = req.boxHeight;
       
       const bg = this.add.graphics();
-      bg.fillStyle(0xfffacd, 1); 
+      bg.fillStyle(0xfffacd, 1); // Yellow #fffacd
       bg.lineStyle(2, 0xffffff, 0.7); 
       bg.fillRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8); 
       bg.strokeRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8); 
@@ -610,13 +611,28 @@ export class MainScene extends Phaser.Scene {
 
       const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0); 
       
-      const txtAmt = this.add.text(0, -8, `$${req.amount}`, {
+      const txtAmt = this.add.text(0, -8, `${req.amount} CR`, {
           fontFamily: 'monospace', fontSize: '14px', color: '#000000', fontStyle: 'bold'
       }).setOrigin(0.5);
       
       const txtMulti = this.add.text(0, 8, `${req.multiplier.toFixed(2)}X`, {
           fontFamily: 'monospace', fontSize: '12px', color: '#000000', fontStyle: 'bold'
       }).setOrigin(0.5);
+
+      // --- NEW: SCAN Link ---
+      if (req.txHash) {
+          const scanLink = this.add.text(0, -boxH/2 + 8, '🔗 SCAN', {
+              fontFamily: 'monospace', fontSize: '10px', color: '#555555'
+          })
+          .setOrigin(0.5)
+          .setInteractive({ useHandCursor: true });
+
+          scanLink.on('pointerdown', () => {
+              window.open(`https://testnet.crossscan.io/tx/${req.txHash}`, '_blank');
+          });
+          
+          container.add(scanLink);
+      }
 
       container.add([glow, bg, rect, txtAmt, txtMulti]); 
       
@@ -678,7 +694,7 @@ export class MainScene extends Phaser.Scene {
     this.sound.play('sfx_win');
 
     const winVal = box.betAmount * box.multiplier;
-    const winText = this.add.text(box.container.x, box.container.y - (box.boxHeight/2) - 20, `+$${winVal.toFixed(2)}`, {
+    const winText = this.add.text(box.container.x, box.container.y - (box.boxHeight/2) - 20, `+${winVal.toFixed(2)}`, {
         fontFamily: 'Orbitron', fontSize: '20px', color: '#ffd700', fontStyle: 'bold'
     }).setOrigin(0.5).setStroke('#000000', 4);
 
@@ -702,7 +718,20 @@ export class MainScene extends Phaser.Scene {
     this.goldEmitter.setPosition(box.container.x, box.container.y);
     this.goldEmitter.explode(30);
     
+    // Server Payout
     const store = useGameStore.getState();
+    if (store.userAddress) {
+        fetch('https://gene-fragmental-addisyn.ngrok-free.dev/api/payout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userAddress: store.userAddress,
+                amount: winVal,
+                betId: box.id
+            })
+        }).catch(err => console.error("Payout API Error:", err));
+    }
+
     store.requestWin(winVal);
     store.setLastWinAmount(winVal);
 
