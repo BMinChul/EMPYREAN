@@ -1,11 +1,12 @@
 # Status
 
 ## Active Work
-- **Bug Fixes**:
-    - Fixed `placeBet` in `MainScene.ts` to handle server errors gracefully.
-    - Added `clearPendingBet` to `gameStore.ts` to reset state on failure.
+- **Testing**: Verifying full flow with backend server.
 
 ## Recent Activity
+- **Bug Fixes**:
+    - Fixed `placeBet` in `MainScene.ts` to handle server errors gracefully (Added try-catch & rollback).
+    - Verified `clearPendingBet` exists in `gameStore.ts` to reset state on failure.
 - **Backend Integration**:
     - Implemented `registerServerBet` in `gameStore` to sync confirmed bets with the server.
     - Implemented `claimServerPayout` in `gameStore` for secure win claims.
