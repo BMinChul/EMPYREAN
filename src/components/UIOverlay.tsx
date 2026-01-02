@@ -24,7 +24,15 @@ const UIOverlay: React.FC = () => {
   const publicClient = usePublicClient();
   
   // Native Token Balance (CROSS)
-  const { data: balanceData } = useBalance({ address });
+  const { data: balanceData, refetch: refetchBalance } = useBalance({ 
+    address,
+    chainId: crossTestnet.id,
+    query: {
+        refetchInterval: 5000, // Refresh every 5s
+        staleTime: 2000,
+        retry: true
+    }
+  });
   const { sendTransactionAsync } = useSendTransaction();
 
   // Safe Balance Calculation
@@ -48,7 +56,10 @@ const UIOverlay: React.FC = () => {
   // --- Sync Address to Store ---
   useEffect(() => {
       setUserAddress(address || null);
-  }, [address, setUserAddress]);
+      if (address) {
+          refetchBalance();
+      }
+  }, [address, setUserAddress, refetchBalance]);
 
   // --- Asset Synchronization ---
   useEffect(() => {
