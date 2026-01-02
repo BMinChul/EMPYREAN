@@ -1,21 +1,22 @@
 # Status
 
 ## Active Work
-- **Native Token Integration**:
-    - **Update**: Removed "Add to Wallet" functionality for tCROSS in `UIOverlay.tsx`.
-    - **Reasoning**: tCROSS is the native gas token of the network, so it doesn't need to be added as an ERC20 token.
-    - **UI**: Balance display now treats tCROSS purely as the native asset.
+- **Betting Flow Logic**:
+    - **Update**: Changed betting logic to support "Auto Transaction" toggle.
+    - **Bet Sizes**: Updated standard bet sizes to micro-transactions ($0.01 - $5.00) to support 0.1 tCROSS bets.
+    - **Auto-Tx**: Added Checkbox to toggle between "One-Click Wallet Popup" and "Confirm Button -> Wallet Popup".
+    - **Manual Confirm**: Added a central "CONFIRM BET" button for safer manual betting.
 
 ## Recent Activity
-- **Token Address Integration**:
-    - Configured `UIOverlay.tsx` to handle tCROSS as native token.
-- **Token Balance Fix**:
-    - Updated `UIOverlay.tsx` to use `'credits'` asset key for balance synchronization.
-- **Authentication Migration**:
-    - Migrated to **Reown AppKit (WalletConnect)**.
-    - Replaced `PrivyProvider` with `WagmiProvider`.
+- **Error Handling**:
+    - Graceful handling of rejected/failed bet transactions.
+    - Added `cancelBet` to `gameStore` to refund optimistic balance updates.
+    - Added Error Toast notification for failed transactions.
+- **Gameplay Pacing**:
+    - Grid Reduced to 6 columns.
+    - Time Window reduced to 60s.
 
 ## Next Steps
-- [ ] **Verify**: Check if balance updates correctly on betting/winning.
-- [ ] **Testing**: Test connection with OKX Wallet and MetaMask on Cross Testnet.
-- [ ] **Game Loop**: Ensure `burnAsset`/`mintAsset` works correctly with the new `wagmi` signer.
+- [ ] **Winning Logic**: Verify if `mintAsset` works correctly for payouts.
+- [ ] **Testing**: Test the "Auto Tx" flow with real wallet interactions.
+- [ ] **Game Loop**: Ensure `sendTransaction` works correctly with the new `wagmi` signer.

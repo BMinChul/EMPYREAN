@@ -6,7 +6,9 @@
     - Currency: "**tCROSS**" (Native Token of Cross testnet).
     - **Authentication**: **Reown AppKit** (WalletConnect v3).
     - **Deposit/Withdraw**: Via Shop (future integration).
-- **Grid System**: 10 columns, multipliers based on probability.
+- **Grid System**: 6 columns (Faster Pacing).
+    - Left 3 cols: History/Waiting.
+    - Right 3 cols: Future/Betting.
 
 ## Visual Aesthetics ("Euphoria" Style)
 - **Chart**: Thick Light Purple line with Bloom.
@@ -15,8 +17,8 @@
 - **Login**: Reown AppKit Modal (Dark theme, Euphoria Green accents).
 
 ## Camera & Time
-- Fixed Head Position (25% screen width).
-- 100-second scroll window.
+- **Head Position**: Fixed at **40%** of screen width.
+- **Time Window**: **60-second** visible history/future window (Faster scroll).
 
 ## Known Issues
 - `VITE_REOWN_PROJECT_ID` should be set in `.env` for production use.
