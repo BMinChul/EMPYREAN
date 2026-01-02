@@ -1,22 +1,16 @@
 # Status
 
 ## Active Work
-- **Bug Fix**: Fixed wallet balance display issue where "WALLET BALANCE" showed 0.00 despite having funds.
-    - Updated `UIOverlay.tsx` to explicitly pass `chainId: crossTestnet.id` to `useBalance`.
-    - Added `refetchInterval` (5s) and `retry: true` to ensure balance stays synced.
-    - Added automatic refetch trigger when wallet address changes.
+- **UX Improvement**: Added wallet connection check before placing bets.
+    - If user is not connected, clicking the grid now prompts "Please Connect Wallet to Bet" and opens the connection modal.
+    - Prevents `ConnectorNotConnectedError` and failed transaction alerts.
 
 ## Recent Activity
-- **Preview Stability Fix**:
-    - **Offline Fallback**: Modified `MainScene.placeBet` to catch network errors.
-    - **Simulation Mode**: Fallback to local logic if backend is unreachable.
-    - **Error Handling**: Downgraded console errors to warnings for preview environment.
-- **UI Refinements**:
-    - **Pending Box**: Centered multiplier text.
-    - **Confirmed Box**: Updated text to `$ {amount} Cross`.
+- **Bug Fix**: Fixed wallet balance display issue.
+- **Preview Stability Fix**: Added offline fallback and simulation mode.
+- **UI Refinements**: Improved pending/confirmed bet box visuals.
 
 ## Next Steps
-- [ ] **Testing**: Verify wallet balance updates correctly on Cross Testnet.
+- [ ] **Testing**: Verify wallet connection prompt works as expected.
 - [ ] **Testing**: Verify full betting flow with actual tCROSS tokens.
 - [ ] **Cleanup**: Remove temporary debugging logs if any.
-- [ ] **Wallet**: Monitor specific wallet (Leap/Metamask) compatibility.

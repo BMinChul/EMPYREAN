@@ -527,8 +527,15 @@ export class MainScene extends Phaser.Scene {
   private async placeBet(pointer: Phaser.Input.Pointer) {
     if (!this.initialPrice) return;
     
-    // 1. Check pending (Limit 1 at a time)
+    // 0. Wallet Connection Check (NEW)
     const store = useGameStore.getState();
+    if (!store.userAddress) {
+        this.sound.play('sfx_error', { volume: 0.2 });
+        store.setConnectionError(true); // Signal React to open Connect Modal
+        return;
+    }
+
+    // 1. Check pending (Limit 1 at a time)
     if (store.pendingBet || this.initializingBets.size > 0) {
         return; 
     }
