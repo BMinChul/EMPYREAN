@@ -50,6 +50,10 @@ interface GameState {
   requestBet: (bet: BetRequest) => void;
   requestWin: (amount: number) => void; // amount in CROSS
   
+  // Audio State
+  isMuted: boolean;
+  toggleMute: () => void;
+
   // Actions called by React after processing
   confirmBet: (betId: string, txHash: string) => void; // Moves pending -> confirmed (Requires ID check)
   cancelBet: () => void; // Clears pending, refunds optimistic update
@@ -87,7 +91,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   connectionError: false,
   leaderboard: [],
   userStats: null,
+  isMuted: false,
 
+  toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
   setAutoBet: (enabled) => set({ autoBet: enabled }),
   setConnectionError: (show) => set({ connectionError: show }),
 

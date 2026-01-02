@@ -3,9 +3,10 @@ import { useGameStore } from '../store/gameStore';
 import { useAppKit } from '@reown/appkit/react';
 import { useAccount, useDisconnect, useBalance, useSendTransaction, usePublicClient } from 'wagmi';
 import { parseEther, parseGwei } from 'viem';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut, Trophy, X, Clock, History } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut, Trophy, X, Clock, History, Volume2, VolumeX } from 'lucide-react';
 import Assets from '../assets.json';
 import { crossTestnet } from '../wagmi';
+import { useSound } from '../hooks/useSound';
 
 const HOUSE_WALLET = '0x00837a0d1d51655ac5501e96bb53b898ae03c9c1';
 
@@ -18,9 +19,12 @@ const UIOverlay: React.FC = () => {
     autoBet, setUserAddress,
     connectionError, setConnectionError,
     leaderboard, fetchLeaderboard,
-    userStats, fetchUserStats
+    userStats, fetchUserStats,
+    isMuted, toggleMute
   } = useGameStore();
   
+  const { playSound } = useSound();
+
   // WalletConnect / Reown Hooks
   const { open } = useAppKit();
   const { address, isConnected } = useAccount();
@@ -131,12 +135,14 @@ const UIOverlay: React.FC = () => {
             if (currentPendingId !== betId) {
                 // Scenario B: Bet expired/cleared -> Orphaned Transaction
                 console.warn("⚠️ Orphaned Transaction detected (Bet Expired). Requesting refund for:", betId);
+                playSound('refund');
                 
                 // Trigger server refund manually since UI box is gone
                 await currentStoreState.claimServerPayout(betId, true);
             } else {
                 // Scenario A: Normal -> Confirm locally
                 confirmBet(betId, hash); 
+                playSound('place_bet');
                 
                 // CRITICAL: Sync Hash to Server immediately
                 if (pendingBet) {
@@ -156,6 +162,7 @@ const UIOverlay: React.FC = () => {
             }
 
             cancelBet(); // Refund and stop loop
+            playSound('error');
             
             // Friendly error message
             let msg = "Transaction Failed";
@@ -166,7 +173,7 @@ const UIOverlay: React.FC = () => {
             setTimeout(() => setErrorMessage(null), 3000);
         })
         .finally(() => setIsProcessing(false));
-  }, [pendingBet, isProcessing, sendTransactionAsync, confirmBet, cancelBet]);
+  }, [pendingBet, isProcessing, sendTransactionAsync, confirmBet, cancelBet, playSound, registerServerBet]);
 
   useEffect(() => {
     // Always auto-process since autoBet is true
@@ -193,6 +200,7 @@ const UIOverlay: React.FC = () => {
   // Win Notification logic
   useEffect(() => {
     if (lastWinAmount > 0) {
+      playSound('win');
       setShowWin(true);
       const t = setTimeout(() => {
         setShowWin(false);
@@ -200,7 +208,7 @@ const UIOverlay: React.FC = () => {
       }, 3000);
       return () => clearTimeout(t);
     }
-  }, [lastWinAmount, setLastWinAmount]);
+  }, [lastWinAmount, setLastWinAmount, playSound]);
 
   // Price Trend logic
   useEffect(() => {
@@ -279,7 +287,10 @@ const UIOverlay: React.FC = () => {
         {/* Bet Selector Widget (Matching Style) */}
         <div className="relative pointer-events-auto" ref={dropdownRef}>
             <button 
-                onClick={() => setIsBetDropdownOpen(!isBetDropdownOpen)}
+                onClick={() => {
+                  playSound('click');
+                  setIsBetDropdownOpen(!isBetDropdownOpen);
+                }}
                 className="glass-panel flex items-center justify-between gap-4 px-4 py-2 min-h-[52px] min-w-[150px] hover:border-white/20 transition-all active:scale-95 shadow-lg shadow-black/40 group"
             >
                 <div className="flex flex-col items-start">
@@ -298,6 +309,7 @@ const UIOverlay: React.FC = () => {
                         <button
                             key={opt}
                             onClick={() => {
+                                playSound('click');
                                 setBetAmount(opt);
                                 setIsBetDropdownOpen(false);
                             }}
@@ -315,12 +327,31 @@ const UIOverlay: React.FC = () => {
 
         {/* Leaderboard Trigger Button */}
         <button
-            onClick={() => setIsLeaderboardOpen(true)}
+            onClick={() => {
+              playSound('click');
+              setIsLeaderboardOpen(true);
+            }}
             className="glass-panel pointer-events-auto w-[52px] h-[52px] flex items-center justify-center hover:bg-yellow-500/20 hover:border-yellow-400/50 transition-all active:scale-95 shadow-lg shadow-black/40 group relative overflow-hidden"
             title="Hall of Fame"
         >
             <div className="absolute inset-0 bg-yellow-400/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
             <Trophy size={20} className="text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
+        </button>
+
+        {/* Mute Toggle Button */}
+        <button
+            onClick={() => {
+              toggleMute();
+              if (isMuted) playSound('click'); // Play click only when unmuting
+            }}
+            className="glass-panel pointer-events-auto w-[52px] h-[52px] flex items-center justify-center hover:bg-white/10 transition-all active:scale-95 shadow-lg shadow-black/40 group"
+            title={isMuted ? "Unmute" : "Mute"}
+        >
+            {isMuted ? (
+              <VolumeX size={20} className="text-gray-400 group-hover:text-white" />
+            ) : (
+              <Volume2 size={20} className="text-cyan-400 group-hover:text-white drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
+            )}
         </button>
 
       </div>
@@ -348,7 +379,10 @@ const UIOverlay: React.FC = () => {
       {pendingBet && !autoBet && !isProcessing && (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 animate-in zoom-in duration-200 pointer-events-auto">
              <button 
-                onClick={processBet}
+                onClick={() => {
+                  playSound('click');
+                  processBet();
+                }}
                 className="bg-yellow-400 text-black font-bold px-8 py-4 rounded-lg shadow-[0_0_20px_rgba(255,215,0,0.5)] hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
             >
                 <Zap size={20} className="fill-black" />
@@ -356,7 +390,10 @@ const UIOverlay: React.FC = () => {
             </button>
             <div className="text-center mt-2">
                 <button 
-                    onClick={cancelBet}
+                    onClick={() => {
+                      playSound('click');
+                      cancelBet();
+                    }}
                     className="text-white/60 text-xs hover:text-white underline"
                 >
                     Cancel
@@ -369,7 +406,10 @@ const UIOverlay: React.FC = () => {
       <div className="widget-panel bottom-left glass-panel pointer-events-auto flex items-center gap-4">
         {!isConnected ? (
           <button 
-            onClick={handleConnect}
+            onClick={() => {
+              playSound('click');
+              handleConnect();
+            }}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-md transition-all font-bold tracking-wide uppercase text-xs shadow-lg shadow-blue-500/20"
           >
             <Wallet size={16} />
@@ -378,7 +418,10 @@ const UIOverlay: React.FC = () => {
         ) : (
           <div className="flex items-center gap-4">
             <button 
-                onClick={() => setIsHistoryOpen(true)}
+                onClick={() => {
+                  playSound('click');
+                  setIsHistoryOpen(true);
+                }}
                 className="panel-row flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5 hover:bg-white/5 transition-colors active:scale-95 group"
             >
               <div 
@@ -421,7 +464,10 @@ const UIOverlay: React.FC = () => {
             </div>
             
             <button 
-                onClick={handleDisconnect}
+                onClick={() => {
+                  playSound('click');
+                  handleDisconnect();
+                }}
                 className="w-8 h-8 rounded-full bg-red-900/20 hover:bg-red-900/40 flex items-center justify-center border border-red-500/20 transition-colors group"
                 title="Disconnect Wallet"
             >
