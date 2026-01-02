@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { useAppKit } from '@reown/appkit/react';
 import { useAccount, useDisconnect, useBalance, useSendTransaction, usePublicClient } from 'wagmi';
 import { parseEther, parseGwei } from 'viem';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut, Trophy } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut, Trophy, X, Clock, History } from 'lucide-react';
 import Assets from '../assets.json';
 import { crossTestnet } from '../wagmi';
 
@@ -16,7 +16,8 @@ const UIOverlay: React.FC = () => {
     pendingBet, confirmBet, cancelBet, setBalance,
     autoBet, setUserAddress,
     connectionError, setConnectionError,
-    leaderboard, fetchLeaderboard
+    leaderboard, fetchLeaderboard,
+    userStats, fetchUserStats
   } = useGameStore();
   
   // WalletConnect / Reown Hooks
@@ -55,12 +56,24 @@ const UIOverlay: React.FC = () => {
   const [isBetDropdownOpen, setIsBetDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Modal State
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [activeHistoryTab, setActiveHistoryTab] = useState<'placed' | 'refunded' | 'wins'>('placed');
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+
   // Poll Leaderboard
   useEffect(() => {
     fetchLeaderboard();
     const interval = setInterval(fetchLeaderboard, 5000);
     return () => clearInterval(interval);
   }, [fetchLeaderboard]);
+
+  // Fetch User Stats when History Modal Opens
+  useEffect(() => {
+    if (isHistoryOpen && address) {
+        fetchUserStats(address);
+    }
+  }, [isHistoryOpen, address, fetchUserStats]);
 
   // --- Sync Address to Store ---
   useEffect(() => {
@@ -288,47 +301,16 @@ const UIOverlay: React.FC = () => {
             )}
         </div>
 
-      </div>
+        {/* Leaderboard Trigger Button */}
+        <button
+            onClick={() => setIsLeaderboardOpen(true)}
+            className="glass-panel pointer-events-auto w-[52px] h-[52px] flex items-center justify-center hover:bg-yellow-500/20 hover:border-yellow-400/50 transition-all active:scale-95 shadow-lg shadow-black/40 group relative overflow-hidden"
+            title="Hall of Fame"
+        >
+            <div className="absolute inset-0 bg-yellow-400/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Trophy size={20} className="text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
+        </button>
 
-      {/* --- Top Right: Leaderboard --- */}
-      <div className="fixed top-6 right-6 z-30 w-64 animate-in slide-in-from-right-4 fade-in duration-700 pointer-events-auto">
-        <div className="glass-panel p-0 overflow-hidden border border-yellow-500/30 shadow-[0_0_20px_rgba(255,215,0,0.1)]">
-            {/* Header */}
-            <div className="bg-black/60 px-4 py-2 flex items-center gap-2 border-b border-white/5">
-                <Trophy size={14} className="text-yellow-400" />
-                <span className="text-[10px] tracking-widest text-yellow-400 font-bold uppercase">Top Winners</span>
-            </div>
-            
-            {/* List */}
-            <div className="flex flex-col bg-black/20">
-                {leaderboard && leaderboard.length > 0 ? (
-                    leaderboard.slice(0, 5).map((entry, idx) => (
-                        <div key={idx} className="flex items-center justify-between px-4 py-2 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors group">
-                            <div className="flex items-center gap-3">
-                                <span className={`text-xs font-bold font-mono ${idx === 0 ? 'text-yellow-400' : idx === 1 ? 'text-gray-300' : idx === 2 ? 'text-amber-600' : 'text-gray-500'}`}>
-                                    #{idx + 1}
-                                </span>
-                                <span className="text-[10px] text-gray-300 font-mono group-hover:text-white transition-colors">
-                                    {entry.userAddress.slice(0, 4)}...{entry.userAddress.slice(-4)}
-                                </span>
-                            </div>
-                            <div className="flex flex-col items-end leading-none">
-                                <span className="text-xs font-bold text-emerald-400 font-mono shadow-emerald-500/20 drop-shadow-sm">
-                                    +{entry.payout.toLocaleString()}
-                                </span>
-                                <span className="text-[8px] text-gray-600 font-mono">
-                                    {entry.multiplier}x
-                                </span>
-                            </div>
-                        </div>
-                    ))
-                ) : (
-                    <div className="px-4 py-4 text-center text-[10px] text-gray-500 italic">
-                        No winners yet...
-                    </div>
-                )}
-            </div>
-        </div>
       </div>
 
       {/* --- Top Center: Win Notification Bar --- */}
@@ -383,9 +365,12 @@ const UIOverlay: React.FC = () => {
           </button>
         ) : (
           <div className="flex items-center gap-4">
-            <div className="panel-row flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5">
+            <button 
+                onClick={() => setIsHistoryOpen(true)}
+                className="panel-row flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5 hover:bg-white/5 transition-colors active:scale-95 group"
+            >
               <div 
-                className="relative group transition-transform hover:scale-105"
+                className="relative group-hover:scale-105 transition-transform"
                 title="CROSS Token"
               >
                 <img 
@@ -394,19 +379,20 @@ const UIOverlay: React.FC = () => {
                     className="w-10 h-10 rounded-full border border-yellow-500/30 shadow-[0_0_10px_rgba(255,215,0,0.2)]"
                 />
               </div>
-              <div className="col flex flex-col justify-center">
+              <div className="col flex flex-col justify-center items-start text-left">
                 <div className="flex items-center gap-2">
                     <span className="label text-[10px] tracking-widest text-yellow-400 font-bold mb-0.5 uppercase">
                         WALLET BALANCE
                     </span>
+                    <History size={10} className="text-gray-500 group-hover:text-yellow-400 transition-colors" />
                 </div>
                 <div className="flex flex-col leading-tight">
-                    <span className="value-md text-lg font-bold text-white font-mono tracking-wide">
+                    <span className="value-md text-lg font-bold text-white font-mono tracking-wide group-hover:text-yellow-100 transition-colors">
                     {fmtTokens(displayBalance)}
                     </span>
                 </div>
               </div>
-            </div>
+            </button>
 
             <div className="w-px h-8 bg-white/10 mx-1" />
 
@@ -432,6 +418,180 @@ const UIOverlay: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* --- Leaderboard Modal --- */}
+      {isLeaderboardOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="glass-panel w-full max-w-md pointer-events-auto flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border-yellow-500/30 shadow-[0_0_50px_rgba(255,215,0,0.15)]">
+                  {/* Header */}
+                  <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/40">
+                      <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center border border-yellow-500/40">
+                              <Trophy size={16} className="text-yellow-400" />
+                          </div>
+                          <div>
+                              <h3 className="text-yellow-400 font-bold text-sm tracking-wider uppercase">Hall of Fame</h3>
+                              <span className="text-[10px] text-gray-400 uppercase tracking-widest">Total Earnings</span>
+                          </div>
+                      </div>
+                      <button 
+                          onClick={() => setIsLeaderboardOpen(false)}
+                          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                      >
+                          <X size={18} className="text-gray-400 hover:text-white" />
+                      </button>
+                  </div>
+
+                  {/* Body */}
+                  <div className="p-4 bg-black/20 max-h-[60vh] overflow-y-auto">
+                      {leaderboard && leaderboard.length > 0 ? (
+                          leaderboard.slice(0, 5).map((entry, idx) => (
+                              <div key={idx} className="flex items-center justify-between p-3 mb-2 rounded-lg bg-white/5 border border-white/5 hover:border-yellow-500/30 hover:bg-white/10 transition-all group">
+                                  <div className="flex items-center gap-4">
+                                      <div className={`w-8 h-8 rounded flex items-center justify-center font-bold font-mono text-sm border 
+                                          ${idx === 0 ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400' : 
+                                            idx === 1 ? 'bg-gray-400/20 border-gray-400/50 text-gray-300' : 
+                                            idx === 2 ? 'bg-amber-700/20 border-amber-700/50 text-amber-500' : 
+                                            'bg-white/5 border-white/10 text-gray-500'}`}>
+                                          #{idx + 1}
+                                      </div>
+                                      <div className="flex flex-col">
+                                          <span className="text-xs text-gray-300 font-mono font-bold group-hover:text-white transition-colors">
+                                              {entry.userAddress}
+                                          </span>
+                                          <span className="text-[10px] text-gray-500">
+                                              Rank {idx + 1} Player
+                                          </span>
+                                      </div>
+                                  </div>
+                                  <div className="flex flex-col items-end">
+                                      <span className="text-sm font-bold text-emerald-400 font-mono shadow-emerald-500/20 drop-shadow-sm">
+                                          +{entry.totalPayout.toLocaleString()}
+                                      </span>
+                                      <span className="text-[9px] text-gray-500 font-mono uppercase">
+                                          Total Won
+                                      </span>
+                                  </div>
+                              </div>
+                          ))
+                      ) : (
+                          <div className="py-8 text-center">
+                              <Trophy size={32} className="mx-auto text-gray-700 mb-2 opacity-50" />
+                              <span className="text-xs text-gray-500 italic">No champions yet...</span>
+                          </div>
+                      )}
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* --- History Modal --- */}
+      {isHistoryOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="glass-panel w-full max-w-lg pointer-events-auto flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border-white/10 shadow-2xl">
+                  {/* Header */}
+                  <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/40">
+                      <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center border border-cyan-500/40">
+                              <History size={16} className="text-cyan-400" />
+                          </div>
+                          <div>
+                              <h3 className="text-cyan-400 font-bold text-sm tracking-wider uppercase">Betting History</h3>
+                              <div className="flex items-center gap-2">
+                                  <span className="text-[10px] text-gray-400 uppercase tracking-widest">7-Day Win Rate:</span>
+                                  <span className="text-[10px] font-bold text-emerald-400 font-mono">
+                                      {userStats?.winRate ? `${(userStats.winRate * 100).toFixed(1)}%` : '0.0%'}
+                                  </span>
+                              </div>
+                          </div>
+                      </div>
+                      <button 
+                          onClick={() => setIsHistoryOpen(false)}
+                          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                      >
+                          <X size={18} className="text-gray-400 hover:text-white" />
+                      </button>
+                  </div>
+
+                  {/* Tabs */}
+                  <div className="flex p-2 gap-2 bg-black/40 border-b border-white/5">
+                      {(['placed', 'refunded', 'wins'] as const).map((tab) => (
+                          <button
+                              key={tab}
+                              onClick={() => setActiveHistoryTab(tab)}
+                              className={`flex-1 py-2 rounded text-[10px] font-bold uppercase tracking-wider transition-all
+                                  ${activeHistoryTab === tab 
+                                      ? 'bg-white/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]' 
+                                      : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}
+                              `}
+                          >
+                              {tab} ({userStats?.history[tab]?.length || 0})
+                          </button>
+                      ))}
+                  </div>
+
+                  {/* List Body */}
+                  <div className="flex-1 p-4 bg-black/20 overflow-y-auto min-h-[300px] max-h-[50vh]">
+                      {!userStats ? (
+                          <div className="flex justify-center items-center h-full">
+                              <div className="animate-spin w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full" />
+                          </div>
+                      ) : userStats.history[activeHistoryTab].length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-full opacity-50">
+                              <Clock size={32} className="text-gray-600 mb-2" />
+                              <span className="text-xs text-gray-500">No records found</span>
+                          </div>
+                      ) : (
+                          <div className="space-y-2">
+                              {userStats.history[activeHistoryTab].map((item: any, idx: number) => (
+                                  <div key={idx} className="flex items-center justify-between p-3 rounded bg-white/5 border border-white/5 hover:border-white/20 transition-colors">
+                                      <div className="flex flex-col gap-1">
+                                          <span className="text-[10px] text-gray-400 font-mono flex items-center gap-1">
+                                              {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                              {item.txHash && (
+                                                  <a 
+                                                      href={`https://testnet.crossscan.io/tx/${item.txHash}`} 
+                                                      target="_blank" 
+                                                      rel="noreferrer"
+                                                      className="ml-2 text-[9px] text-blue-400 hover:text-blue-300 underline decoration-blue-400/30 hover:decoration-blue-300"
+                                                      onClick={(e) => e.stopPropagation()}
+                                                  >
+                                                      {item.txHash.slice(0, 6)}...
+                                                  </a>
+                                              )}
+                                          </span>
+                                          <span className="text-xs font-bold text-white font-mono">
+                                              {item.betAmount} CROSS
+                                          </span>
+                                      </div>
+                                      <div className="flex flex-col items-end gap-1">
+                                          {activeHistoryTab === 'wins' ? (
+                                              <>
+                                                  <span className="text-xs font-bold text-emerald-400 font-mono">
+                                                      +{item.payoutAmount}
+                                                  </span>
+                                                  <span className="text-[9px] text-gray-500 font-mono">
+                                                      {item.multiplier}x
+                                                  </span>
+                                              </>
+                                          ) : activeHistoryTab === 'refunded' ? (
+                                              <span className="text-[10px] text-orange-400 font-mono uppercase tracking-wide">
+                                                  REFUNDED
+                                              </span>
+                                          ) : (
+                                              <span className="text-[10px] text-gray-400 font-mono">
+                                                  {item.multiplier}x PENDING
+                                              </span>
+                                          )}
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                      )}
+                  </div>
+              </div>
+          </div>
+      )}
 
     </div>
   );

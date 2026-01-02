@@ -13,6 +13,15 @@ export interface BetRequest {
   txHash?: string; // Blockchain Transaction Hash
 }
 
+interface UserStats {
+  winRate: number;
+  history: {
+    placed: any[];
+    refunded: any[];
+    won: any[];
+  };
+}
+
 interface GameState {
   currentPrice: number;
   balance: number; // In CROSS tokens
@@ -56,8 +65,12 @@ interface GameState {
   fetchActiveBets: () => Promise<any[]>;
 
   // Leaderboard
-  leaderboard: { userAddress: string, payout: number, multiplier: number }[];
+  leaderboard: { userAddress: string, totalPayout: number }[]; // Updated for aggregated total
   fetchLeaderboard: () => Promise<void>;
+
+  // User Stats & History
+  userStats: UserStats | null;
+  fetchUserStats: (address: string) => Promise<void>;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -73,6 +86,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   pendingWin: null,
   connectionError: false,
   leaderboard: [],
+  userStats: null,
 
   setAutoBet: (enabled) => set({ autoBet: enabled }),
   setConnectionError: (show) => set({ connectionError: show }),
@@ -199,10 +213,23 @@ export const useGameStore = create<GameState>((set, get) => ({
           const res = await fetch('https://544fcf9d-fabb-47fe-bc6a-ea9895331f00-00-3s83yvw73cevs.spock.replit.dev/api/leaderboard');
           if (res.ok) {
               const data = await res.json();
+              // Expecting array of { userAddress, totalPayout }
               set({ leaderboard: Array.isArray(data) ? data : [] });
           }
       } catch (err) {
           console.warn("Failed to fetch leaderboard:", err);
+      }
+  },
+
+  fetchUserStats: async (address: string) => {
+      try {
+          const res = await fetch(`https://544fcf9d-fabb-47fe-bc6a-ea9895331f00-00-3s83yvw73cevs.spock.replit.dev/api/user-stats/${address}`);
+          if (res.ok) {
+              const data = await res.json();
+              set({ userStats: data });
+          }
+      } catch (err) {
+          console.warn("Failed to fetch user stats:", err);
       }
   },
 }));
