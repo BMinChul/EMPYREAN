@@ -81,6 +81,8 @@ const UIOverlay: React.FC = () => {
     setIsProcessing(true);
     const amountStr = pendingBet.amount.toString();
     
+    const betId = pendingBet.id; // Capture ID at start of process
+
     // Send to House Wallet
     sendTransactionAsync({
       to: HOUSE_WALLET,
@@ -93,7 +95,7 @@ const UIOverlay: React.FC = () => {
                 // Wait for Block Confirmation (Receipt)
                 await publicClient.waitForTransactionReceipt({ hash });
             }
-            confirmBet(hash); // Confirms transaction ONLY after mining
+            confirmBet(hash, betId); // Confirms transaction ONLY after mining (Passes ID for verification)
         })
         .catch(err => {
             const errorMessageStr = err?.message || "";

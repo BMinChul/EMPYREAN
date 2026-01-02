@@ -25,6 +25,8 @@ export const createGame = (parent: string) => {
       mode: Phaser.Scale.RESIZE,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
+    disableContextMenu: true, // Helps with input handling
+    disableVisibilityChange: true, // ⚠️ KEEPS GAME RUNNING IN BACKGROUND (Essential for betting timing)
   };
 
   const game = new Phaser.Game(config);

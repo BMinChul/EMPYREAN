@@ -42,7 +42,7 @@ interface GameState {
   requestWin: (amount: number) => void; // amount in CROSS
   
   // Actions called by React after processing
-  confirmBet: (txHash: string) => void; // Moves pending -> confirmed
+  confirmBet: (txHash: string, betId: string) => void; // Moves pending -> confirmed (Requires ID check)
   cancelBet: () => void; // Clears pending, refunds optimistic update
   clearLastConfirmedBet: () => void; // Called by Scene after rendering the real box
 
@@ -87,9 +87,17 @@ export const useGameStore = create<GameState>((set, get) => ({
   }),
 
   // Called by React when Transaction is successful
-  confirmBet: (txHash) => set((state) => {
+  confirmBet: (txHash, betId) => set((state) => {
       if (!state.pendingBet) return {};
-      // Strict: Only confirm if pending exists
+      
+      // CRITICAL SECURITY FIX: Ghost Bet Prevention
+      // Only confirm if the finishing transaction matches the current pending bet.
+      // If user started Bet B while Bet A was mining (and A finishes), ignore A.
+      if (state.pendingBet.id !== betId) {
+          console.warn("⚠️ Ignored Stale Transaction Confirmation", { txBetId: betId, currentBetId: state.pendingBet.id });
+          return {}; 
+      }
+
       return {
           lastConfirmedBet: { ...state.pendingBet, txHash }, // Signal success to Scene
           pendingBet: null // Clear pending status (Releases Lock)
