@@ -14,7 +14,7 @@ const UIOverlay: React.FC = () => {
     currentPrice, balance: storeBalance, betAmount, setBetAmount, 
     lastWinAmount, setLastWinAmount,
     pendingBet, confirmBet, cancelBet, setBalance,
-    registerServerBet, // Added for Hash Sync
+    clearPendingBet, // Added for safe local cleanup
     autoBet, setUserAddress,
     connectionError, setConnectionError,
     leaderboard, fetchLeaderboard,
@@ -105,6 +105,7 @@ const UIOverlay: React.FC = () => {
     const amountStr = pendingBet.amount.toString();
     
     const betId = pendingBet.id; // Capture ID at start of process
+    let txHash: string | null = null; // Capture hash to prevent ghost refunds
 
     // Send to House Wallet
     sendTransactionAsync({
@@ -114,6 +115,7 @@ const UIOverlay: React.FC = () => {
       maxPriorityFeePerGas: parseGwei('5')
     })
         .then(async (hash) => {
+            txHash = hash; // Store hash immediately
             if (publicClient) {
                 // Wait for Block Confirmation (Receipt)
                 await publicClient.waitForTransactionReceipt({ 
@@ -158,7 +160,12 @@ const UIOverlay: React.FC = () => {
                 console.error("Bet failed:", err);
             }
 
-            cancelBet(); // Refund and stop loop
+            // Ghost Refund Check: Only trigger server refund logic (via cancelBet) if we have a hash
+            if (txHash) {
+                cancelBet(); // Hash exists = Money might have moved -> Refund needed
+            } else {
+                clearPendingBet(); // No hash = No money moved -> Just clear local state
+            }
             
             // Friendly error message
             let msg = "Transaction Failed";
@@ -323,11 +330,11 @@ const UIOverlay: React.FC = () => {
         */}
         <button
             onClick={() => setIsLeaderboardOpen(true)}
-            className="glass-panel pointer-events-auto w-[50px] h-[50px] md:w-[60px] md:h-[60px] flex items-center justify-center hover:bg-yellow-500/20 hover:border-yellow-400/50 transition-all active:scale-95 shadow-lg shadow-black/40 group relative overflow-hidden"
+            className="glass-panel pointer-events-auto p-2 flex items-center justify-center hover:bg-yellow-500/20 hover:border-yellow-400/50 transition-all active:scale-95 shadow-lg shadow-black/40 group relative overflow-hidden"
             title="Hall of Fame"
         >
             <div className="absolute inset-0 bg-yellow-400/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Trophy className="w-10 h-10 md:w-12 md:h-12 text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
+            <Trophy size={80} className="text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
         </button>
 
       </div>
@@ -336,11 +343,11 @@ const UIOverlay: React.FC = () => {
       <div className="fixed top-4 right-4 md:top-6 md:right-6 flex flex-col items-end gap-2 z-30 pointer-events-auto">
         <button
             onClick={() => setIsGuideOpen(true)}
-            className="glass-panel w-[50px] h-[50px] md:w-[60px] md:h-[60px] flex items-center justify-center hover:bg-cyan-500/20 hover:border-cyan-400/50 transition-all active:scale-95 shadow-lg shadow-black/40 group relative overflow-hidden rounded-full"
+            className="glass-panel p-2 flex items-center justify-center hover:bg-cyan-500/20 hover:border-cyan-400/50 transition-all active:scale-95 shadow-lg shadow-black/40 group relative overflow-hidden rounded-full"
             title="How to Play"
         >
             <div className="absolute inset-0 bg-cyan-400/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-            <HelpCircle className="w-10 h-10 md:w-12 md:h-12 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
+            <HelpCircle size={80} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
         </button>
       </div>
 
