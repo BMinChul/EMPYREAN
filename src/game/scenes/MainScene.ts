@@ -469,9 +469,9 @@ export class MainScene extends Phaser.Scene {
       return parseFloat(Math.max(1.05, Math.min(99.99, multiplier)).toFixed(2));
   }
 
-  private getTextFade(normalizedScreenX: number): number {
-      if (normalizedScreenX < 0.45) return 0;
-      return Phaser.Math.Clamp((normalizedScreenX - 0.45) * 10, 0, 1);
+  private getTextFade(colIndex: number): number {
+      if (colIndex >= 4) return 1;
+      return 0.2; // Dim for waiting zones
   }
 
   private drawGridAndAxis() {
@@ -526,7 +526,7 @@ export class MainScene extends Phaser.Scene {
         const screenX = x - scrollX;
         const normalizedScreenX = screenX / width;
         const colIndexOnScreen = Math.floor(normalizedScreenX * this.gridCols); 
-        const textFade = this.getTextFade(normalizedScreenX);
+        const textFade = this.getTextFade(colIndexOnScreen);
         const alpha = 0.15 + (textFade * 0.3); 
 
         this.gridGraphics.lineStyle(1, 0xaa00ff, alpha);
@@ -633,12 +633,21 @@ export class MainScene extends Phaser.Scene {
     const screenX = pointer.x;
     const width = this.scale.width;
     const normalizedClickX = screenX / width;
-    const visibility = this.getTextFade(normalizedClickX);
     
+    // 2a. BLOCK INTERACTION in Waiting Zones (Cols 0-3)
+    const colIndexOnScreen = Math.floor(normalizedClickX * this.gridCols);
+    if (colIndexOnScreen <= 3) {
+        // STRICTLY DO NOTHING - No sound, no error, just return.
+        return;
+    }
+    
+    /* Removed old visibility check as colIndexOnScreen handles it better
+    const visibility = this.getTextFade(normalizedClickX);
     if (visibility < 0.4) {
         this.sound.play('sfx_error', { volume: 0.2 });
         return;
     }
+    */
 
     // 3. Balance Check
     const tokenCost = store.betAmount; 
@@ -647,7 +656,7 @@ export class MainScene extends Phaser.Scene {
     const colWidth = width / this.gridCols;
     const colIdx = Math.floor(pointer.worldX / colWidth);
     const cellX = (colIdx * colWidth) + (colWidth/2);
-    const colIndexOnScreen = Math.floor(normalizedClickX * this.gridCols);
+    // colIndexOnScreen is already calculated above
 
     const priceY = -(pointer.worldY / this.pixelPerDollar); 
     const rawPrice = this.initialPrice! + priceY;
