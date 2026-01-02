@@ -52,7 +52,7 @@ interface GameState {
 
   // Server Integration Actions
   registerServerBet: (bet: BetRequest) => Promise<void>;
-  claimServerPayout: (betId: string) => Promise<void>;
+  claimServerPayout: (betId: string, isRefund?: boolean) => Promise<void>;
   fetchActiveBets: () => Promise<any[]>;
 }
 
@@ -154,7 +154,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
   },
 
-  claimServerPayout: async (betId) => {
+  claimServerPayout: async (betId, isRefund = false) => {
       const { userAddress } = get();
       if (!userAddress) return;
 
@@ -164,7 +164,8 @@ export const useGameStore = create<GameState>((set, get) => ({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                   betId: betId,
-                  userAddress: userAddress
+                  userAddress: userAddress,
+                  isRefund: isRefund
               })
           });
       } catch (err) {

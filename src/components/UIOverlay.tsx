@@ -105,7 +105,7 @@ const UIOverlay: React.FC = () => {
                 console.warn("⚠️ Orphaned Transaction detected (Bet Expired). Requesting refund for:", betId);
                 
                 // Trigger server refund manually since UI box is gone
-                await currentStoreState.claimServerPayout(betId);
+                await currentStoreState.claimServerPayout(betId, true);
             } else {
                 // Scenario A: Normal -> Confirm locally
                 confirmBet(betId, hash); 
