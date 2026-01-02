@@ -623,6 +623,15 @@ export class MainScene extends Phaser.Scene {
         return;
     }
 
+    // --- Safe Zone Check (Columns 0-3 are blocked) ---
+    // Columns 1, 2, 3, 4 (Indices 0, 1, 2, 3) are Safe/Waiting Zones.
+    // Interaction is only allowed in Columns 5, 6, 7 (Indices 4, 5, 6).
+    const _screenX = pointer.x;
+    const _width = this.scale.width;
+    const _colIdx = Math.floor((_screenX / _width) * this.gridCols);
+    
+    if (_colIdx <= 3) return;
+
     // 1. GLOBAL LOCK (Strict Sequential Betting)
     if (store.pendingBet || this.initializingBets.size > 0) {
         // Strict block: No new bets while one is processing
