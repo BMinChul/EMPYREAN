@@ -15,6 +15,7 @@ const UIOverlay: React.FC = () => {
     lastWinAmount, setLastWinAmount,
     pendingBet, confirmBet, cancelBet, setBalance,
     clearPendingBet, // Added for safe local cleanup
+    registerServerBet, // Added for server sync
     autoBet, setUserAddress,
     connectionError, setConnectionError,
     leaderboard, fetchLeaderboard,
