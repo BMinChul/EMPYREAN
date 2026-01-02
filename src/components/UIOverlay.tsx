@@ -14,7 +14,7 @@ const UIOverlay: React.FC = () => {
     currentPrice, balance: storeBalance, betAmount, setBetAmount, 
     lastWinAmount, setLastWinAmount,
     pendingBet, confirmBet, cancelBet, setBalance,
-    registerServerBet, // Added for Hash Sync
+    clearPendingBet, // Added for safe local cleanup
     autoBet, setUserAddress,
     connectionError, setConnectionError,
     leaderboard, fetchLeaderboard,
@@ -105,6 +105,7 @@ const UIOverlay: React.FC = () => {
     const amountStr = pendingBet.amount.toString();
     
     const betId = pendingBet.id; // Capture ID at start of process
+    let txHash: string | null = null; // Capture hash to prevent ghost refunds
 
     // Send to House Wallet
     sendTransactionAsync({
@@ -114,6 +115,7 @@ const UIOverlay: React.FC = () => {
       maxPriorityFeePerGas: parseGwei('5')
     })
         .then(async (hash) => {
+            txHash = hash; // Store hash immediately
             if (publicClient) {
                 // Wait for Block Confirmation (Receipt)
                 await publicClient.waitForTransactionReceipt({ 
@@ -152,11 +154,18 @@ const UIOverlay: React.FC = () => {
             // Only log as error if it's NOT a user rejection to avoid Preview Error modal
             if (isUserRejection) {
                 console.warn("Transaction cancelled by user");
+            } else if (errorMessageStr.includes("TransactionReceiptNotFoundError") || errorMessageStr.includes("could not be found")) {
+                console.warn("⚠️ Transaction Receipt Missing (Likely Slow Network):", errorMessageStr);
             } else {
                 console.error("Bet failed:", err);
             }
 
-            cancelBet(); // Refund and stop loop
+            // Ghost Refund Check: Only trigger server refund logic (via cancelBet) if we have a hash
+            if (txHash) {
+                cancelBet(); // Hash exists = Money might have moved -> Refund needed
+            } else {
+                clearPendingBet(); // No hash = No money moved -> Just clear local state
+            }
             
             // Friendly error message
             let msg = "Transaction Failed";
@@ -321,11 +330,11 @@ const UIOverlay: React.FC = () => {
         */}
         <button
             onClick={() => setIsLeaderboardOpen(true)}
-            className="glass-panel pointer-events-auto w-[44px] h-[44px] md:w-[52px] md:h-[52px] flex items-center justify-center hover:bg-yellow-500/20 hover:border-yellow-400/50 transition-all active:scale-95 shadow-lg shadow-black/40 group relative overflow-hidden"
+            className="glass-panel pointer-events-auto p-2 flex items-center justify-center hover:bg-yellow-500/20 hover:border-yellow-400/50 transition-all active:scale-95 shadow-lg shadow-black/40 group relative overflow-hidden"
             title="Hall of Fame"
         >
             <div className="absolute inset-0 bg-yellow-400/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Trophy size={36} className="text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
+            <Trophy size={50} className="text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
         </button>
 
       </div>
@@ -334,19 +343,19 @@ const UIOverlay: React.FC = () => {
       <div className="fixed top-4 right-4 md:top-6 md:right-6 flex flex-col items-end gap-2 z-30 pointer-events-auto">
         <button
             onClick={() => setIsGuideOpen(true)}
-            className="glass-panel w-[44px] h-[44px] md:w-[52px] md:h-[52px] flex items-center justify-center hover:bg-cyan-500/20 hover:border-cyan-400/50 transition-all active:scale-95 shadow-lg shadow-black/40 group relative overflow-hidden rounded-full"
+            className="glass-panel p-2 flex items-center justify-center hover:bg-cyan-500/20 hover:border-cyan-400/50 transition-all active:scale-95 shadow-lg shadow-black/40 group relative overflow-hidden rounded-full"
             title="How to Play"
         >
             <div className="absolute inset-0 bg-cyan-400/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-            <HelpCircle size={36} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
+            <HelpCircle size={50} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
         </button>
       </div>
 
       {/* --- Top Center: Win Notification Bar --- */}
       <div className={`win-bar ${showWin ? 'active' : ''} glass-panel flex items-center justify-center gap-3`}>
         <CheckCircle2 size={16} className="text-emerald-400" />
-        <span className="text-gray-300 font-bold text-xs uppercase tracking-wide">Payout Pending</span>
-        <span className="text-yellow-400 font-mono font-bold text-sm">
+        <span className="text-gray-300 font-bold text-[10px] md:text-sm uppercase tracking-wide">Payout Pending</span>
+        <span className="text-yellow-400 font-mono font-bold text-sm md:text-2xl">
           {fmtTokens(lastWinAmount)} CROSS
         </span>
       </div>
@@ -384,20 +393,20 @@ const UIOverlay: React.FC = () => {
 
       {/* --- Bottom Left: Balance & Wallet --- */}
       {/* Mobile: Full Width or Stacked, Desktop: Original Layout */}
-      <div className="widget-panel bottom-left glass-panel pointer-events-auto flex flex-col-reverse md:flex-row items-stretch md:items-center gap-3 md:gap-4 !left-4 !right-4 md:!right-auto md:!left-6 !bottom-4 md:!bottom-6 md:w-auto w-[calc(100%-32px)]">
+      <div className="widget-panel bottom-left glass-panel pointer-events-auto flex flex-col-reverse md:flex-row items-stretch md:items-center gap-2 md:gap-4 !left-4 !right-4 md:!right-auto md:!left-6 !bottom-4 md:!bottom-6 md:w-auto w-[calc(100%-32px)] scale-75 origin-bottom-left md:scale-100">
         {!isConnected ? (
           <button 
             onClick={handleConnect}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-md transition-all font-bold tracking-wide uppercase text-xs shadow-lg shadow-blue-500/20 w-full md:w-auto"
+            className="flex items-center justify-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-md transition-all font-bold tracking-wide uppercase text-[10px] md:text-xs shadow-lg shadow-blue-500/20 w-full md:w-auto"
           >
             <Wallet size={16} />
             Connect Wallet
           </button>
         ) : (
-          <div className="flex flex-col-reverse md:flex-row items-stretch md:items-center gap-3 md:gap-4 w-full md:w-auto">
+          <div className="flex flex-col-reverse md:flex-row items-stretch md:items-center gap-2 md:gap-4 w-full md:w-auto">
             <button 
                 onClick={() => setIsHistoryOpen(true)}
-                className="panel-row flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5 hover:bg-white/5 transition-colors active:scale-95 group w-full md:w-auto"
+                className="panel-row flex items-center gap-2 md:gap-3 bg-black/40 p-1.5 md:p-2 rounded-lg border border-white/5 hover:bg-white/5 transition-colors active:scale-95 group w-full md:w-auto"
             >
               <div 
                 className="relative group-hover:scale-105 transition-transform"
@@ -406,18 +415,18 @@ const UIOverlay: React.FC = () => {
                 <img 
                     src={Assets.ui.icons.tcross.url} 
                     alt="CROSS Token" 
-                    className="w-10 h-10 rounded-full border border-yellow-500/30 shadow-[0_0_10px_rgba(255,215,0,0.2)]"
+                    className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-yellow-500/30 shadow-[0_0_10px_rgba(255,215,0,0.2)]"
                 />
               </div>
               <div className="col flex flex-col justify-center items-start text-left">
                 <div className="flex items-center gap-2">
-                    <span className="label text-[10px] tracking-widest text-yellow-400 font-bold mb-0.5 uppercase">
+                    <span className="label text-[8px] md:text-[10px] tracking-widest text-yellow-400 font-bold mb-0.5 uppercase">
                         WALLET BALANCE
                     </span>
                     <History size={10} className="text-gray-500 group-hover:text-yellow-400 transition-colors" />
                 </div>
                 <div className="flex flex-col leading-tight">
-                    <span className="value-md text-lg font-bold text-white font-mono tracking-wide group-hover:text-yellow-100 transition-colors">
+                    <span className="value-md text-sm md:text-lg font-bold text-white font-mono tracking-wide group-hover:text-yellow-100 transition-colors">
                     {fmtTokens(displayBalance)}
                     </span>
                 </div>
@@ -429,8 +438,8 @@ const UIOverlay: React.FC = () => {
             {/* Account Info & Disconnect */}
             <div className="flex items-center justify-between md:justify-end gap-2 md:gap-4 w-full md:w-auto">
                 <div className="flex flex-col items-start md:items-end mr-0 md:mr-2">
-                    <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">Connected Wallet</span>
-                    <span className="text-[10px] text-cyan-400 font-mono flex items-center gap-1">
+                    <span className="text-[8px] md:text-[9px] text-gray-500 uppercase font-bold tracking-wider">Connected Wallet</span>
+                    <span className="text-[9px] md:text-[10px] text-cyan-400 font-mono flex items-center gap-1">
                         <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_5px_#22d3ee]" />
                         {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Unknown'}
                     </span>

@@ -1,18 +1,19 @@
 # Status
 
 ## Active Work
-- **UI Polish**: Dramatically increased icon sizes for Leaderboard and Guide buttons to ensure better visibility.
-    - **Icon Size**: Increased `Trophy` and `HelpCircle` icon sizes to `36px` (from 28px).
-    - **Mobile Optimization**: Maintained mobile scaling logic while ensuring icons are prominent within their buttons.
+- **UI Styling Fixes (Urgent)**: 
+    - **Icon Visibility**: Forced `Trophy` and `HelpCircle` icons to `size={80}` and removed container size constraints (using `p-2` instead) to ensure they are large and clearly visible as requested.
+    - **Ghost Refund Fix**: Implemented a safety check in `processBet`. Now, server refund/cancel logic (`cancelBet`) is ONLY triggered if a `txHash` was generated. If the user rejects the transaction (no hash), we only clear the local state (`clearPendingBet`) to prevent the server from attempting to refund money it never received.
+- **Error Handling**: Suppressed `TransactionReceiptNotFoundError` in preview mode by logging it as a warning instead of an error, preventing the red overlay from blocking gameplay during network congestion.
 
 ## Recent Activity
-- **UI Fixes**: 
-    - **Icon Visibility**: Updated `UIOverlay.tsx` to force `size={36}` on Leaderboard and Guide icons.
-    - **Mobile Widgets**: Applied `scale-75 origin-top-left md:scale-100` to top-left container in `UIOverlay.tsx` (previously).
-- **Responsive Design**: Implemented mobile-first responsive layout for `UIOverlay.tsx` while strictly preserving desktop layout.
-- **New Feature**: Added "How to Play" Guide Modal accessed via a new Top Right button.
+- **UI Polish**: Completed fix for "Tiny Icons" on PC and "Massive Wallet UI" on Mobile.
+    - **Icon Size**: Increased `Trophy` and `HelpCircle` icon sizes to `40px` (from 36px) to ensure visibility.
+    - **Mobile Optimization**: Applied `scale-75 origin-bottom-left md:scale-100` to bottom wallet UI.
+    - **Compact Layout**: Reduced padding and font sizes for wallet connection UI on mobile screens.
+- **Audio Update**: Replaced the "Bet Win" sound effect with a new 1-second short, punchy arcade chime.
 
 ## Next Steps
-- [ ] **Testing**: Verify visibility of larger icons (36px) on mobile and desktop.
-- [ ] **Polishing**: Add more sound effects for Modal interactions.
+- [ ] **Testing**: Verify "White Bet Result Box" (Win Notification) typography on actual mobile device.
 - [ ] **Integration**: Monitor server response times for history fetching.
+- [ ] **Polishing**: Add more sound effects for Modal interactions.

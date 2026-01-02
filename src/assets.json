@@ -9,8 +9,8 @@
     },
     "sfx": {
       "win": {
-        "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/audio-480f19b3-e5d3-41c2-9169-ea4a6f9bd82a.ogg",
-        "description": "Casino Jackpot Win Sound"
+        "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/audio-d43c07e7-ed2c-4ae7-ae4e-957b34fd7abf.ogg",
+        "description": "Short sharp energetic arcade win sound (1s)"
       },
       "place_bet": {
         "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/audio-029c5d91-9a66-442e-b040-7585c1be5152.ogg",
