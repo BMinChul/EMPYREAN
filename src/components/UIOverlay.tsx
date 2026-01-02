@@ -28,9 +28,13 @@ const UIOverlay: React.FC = () => {
   const { sendTransactionAsync } = useSendTransaction();
 
   // Safe Balance Calculation
+  // Prioritize real Wallet Balance as requested by user
   const displayBalance = React.useMemo(() => {
+    if (balanceData) {
+        return Number(balanceData.formatted);
+    }
     return isNaN(storeBalance) ? 0 : storeBalance;
-  }, [storeBalance]);
+  }, [balanceData, storeBalance]);
 
   const [showWin, setShowWin] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -300,7 +304,7 @@ const UIOverlay: React.FC = () => {
               <div className="col flex flex-col justify-center">
                 <div className="flex items-center gap-2">
                     <span className="label text-[10px] tracking-widest text-yellow-400 font-bold mb-0.5 uppercase">
-                        CROSS
+                        WALLET BALANCE
                     </span>
                 </div>
                 <div className="flex flex-col leading-tight">
