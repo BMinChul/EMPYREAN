@@ -95,7 +95,21 @@ const UIOverlay: React.FC = () => {
                 // Wait for Block Confirmation (Receipt)
                 await publicClient.waitForTransactionReceipt({ hash });
             }
-            confirmBet(betId, hash); // Confirms transaction ONLY after mining (Passes ID for verification)
+            
+            // Check for Orphaned Transaction (Bet expired while mining)
+            const currentStoreState = useGameStore.getState();
+            const currentPendingId = currentStoreState.pendingBet?.id;
+
+            if (currentPendingId !== betId) {
+                // Scenario B: Bet expired/cleared -> Orphaned Transaction
+                console.warn("⚠️ Orphaned Transaction detected (Bet Expired). Requesting refund for:", betId);
+                
+                // Trigger server refund manually since UI box is gone
+                await currentStoreState.claimServerPayout(betId);
+            } else {
+                // Scenario A: Normal -> Confirm locally
+                confirmBet(betId, hash); 
+            }
         })
         .catch(err => {
             const errorMessageStr = err?.message || "";

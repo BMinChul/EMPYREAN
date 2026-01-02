@@ -9,13 +9,15 @@
 - **Completed**: Fixed Expiry Calculation (Deadline based on Column 4).
 - **Completed**: Anti-Snipping & Exploit Protection (Layout & Deadline Logic).
 - **Completed**: Background Execution (Game runs when tab is blurred).
+- **Completed**: Orphaned Transaction Refund Trigger (Handle bets expiring during TX mining).
 
 ## Recent Activity
+- **Feature**: Updated `UIOverlay.tsx` `processBet` logic to detect "Orphaned Transactions".
+  - If a bet expires (is removed from store) while the transaction is mining, the client now explicitly calls `claimServerPayout(betId)` to trigger the refund/payout process on the server.
+  - This fixes the issue where late transactions were silently ignored, causing users to lose funds without a refund check.
 - **Bug Fix**: Updated `checkBettingState` in `MainScene.ts` to IGNORE confirmed bets if the corresponding pending box is missing (expired locally). This prevents "Ghost Bets".
 - **Visuals**: Updated `getTextFade` in `MainScene.ts` to use a mapping range of `[0.45, 0.6]`, ensuring multiplier text disappears completely before reaching the deadline.
 - **Store**: Updated `confirmBet` in `gameStore.ts` to enforce `(betId, txHash)` signature and strict ID matching.
-- **UI**: Updated `UIOverlay.tsx` to pass `betId` correctly during confirmation.
-- **Interaction**: Updated `placeBet` in `MainScene.ts` to calculate screen column index and block interaction if index <= 3 (First 4 columns).
 
 ## Next Steps
 - [ ] **Testing**: Verify "Ghost Bet" fix by confirming a transaction AFTER the box has crossed the deadline.
