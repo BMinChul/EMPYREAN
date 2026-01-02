@@ -130,7 +130,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!userAddress) return;
       
       try {
-          await fetch('http://localhost:3001/api/place-bet', {
+          await fetch('https://gene-fragmental-addisyn.ngrok-free.dev/api/place-bet', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -150,7 +150,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!userAddress) return;
 
       try {
-          await fetch('http://localhost:3001/api/payout', {
+          await fetch('https://gene-fragmental-addisyn.ngrok-free.dev/api/payout', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
