@@ -14,6 +14,7 @@ const UIOverlay: React.FC = () => {
     currentPrice, balance: storeBalance, betAmount, setBetAmount, 
     lastWinAmount, setLastWinAmount,
     pendingBet, confirmBet, cancelBet, setBalance,
+    registerServerBet, // Added for Hash Sync
     autoBet, setUserAddress,
     connectionError, setConnectionError,
     leaderboard, fetchLeaderboard,
@@ -136,6 +137,11 @@ const UIOverlay: React.FC = () => {
             } else {
                 // Scenario A: Normal -> Confirm locally
                 confirmBet(betId, hash); 
+                
+                // CRITICAL: Sync Hash to Server immediately
+                if (pendingBet) {
+                    registerServerBet({ ...pendingBet, txHash: hash });
+                }
             }
         })
         .catch(err => {
@@ -551,6 +557,18 @@ const UIOverlay: React.FC = () => {
                           <div className="space-y-2">
                               {userStats.history[activeHistoryTab].map((item: any, idx: number) => {
                                   const isPaid = item.status === 'paid';
+                                  const isRefunded = item.status === 'refunded';
+                                  
+                                  // Date Formatting (YYYY-MM-DD HH:mm:ss)
+                                  let dateStr = "Unknown Date";
+                                  try {
+                                      if (item.createdAt) {
+                                          dateStr = new Date(item.createdAt).toISOString().slice(0, 19).replace('T', ' ');
+                                      }
+                                  } catch (e) {
+                                      console.warn("Invalid date:", item.createdAt);
+                                  }
+
                                   return (
                                   <div key={idx} className={`flex items-center justify-between p-3 rounded border transition-colors ${
                                       isPaid 
@@ -559,7 +577,7 @@ const UIOverlay: React.FC = () => {
                                   }`}>
                                       <div className="flex flex-col gap-1">
                                           <span className={`text-[10px] font-mono flex items-center gap-1 ${isPaid ? 'text-black/70' : 'text-gray-400'}`}>
-                                              {new Date(item.createdAt).toISOString().slice(0, 19).replace('T', ' ')}
+                                              {dateStr}
                                               {item.txHash && (
                                                   <a 
                                                       href={`https://testnet.crossscan.io/tx/${item.txHash}`} 
@@ -590,15 +608,11 @@ const UIOverlay: React.FC = () => {
                                                       {item.multiplier}x
                                                   </span>
                                               </>
-                                          ) : activeHistoryTab === 'refunded' ? (
-                                              <span className="text-[10px] text-orange-400 font-mono uppercase tracking-wide">
+                                          ) : (activeHistoryTab === 'refunded' || isRefunded) ? (
+                                              <span className="text-[10px] text-orange-400 font-mono uppercase tracking-wide font-bold">
                                                   REFUNDED
                                               </span>
-                                          ) : item.status === 'refunded' ? (
-                                              <span className="text-[10px] text-orange-400 font-mono uppercase tracking-wide">
-                                                  REFUNDED
-                                              </span>
-                                          ) : item.status === 'paid' ? (
+                                          ) : isPaid ? (
                                               <span className="text-xs font-bold text-black font-mono uppercase tracking-wide">
                                                   WON
                                               </span>
