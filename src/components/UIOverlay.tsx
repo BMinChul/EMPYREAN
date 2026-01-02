@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useAppKit } from '@reown/appkit/react';
 import { useAccount, useDisconnect, useBalance, useSendTransaction, usePublicClient } from 'wagmi';
-import { parseEther } from 'viem';
+import { parseEther, parseGwei } from 'viem';
 import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut } from 'lucide-react';
 import Assets from '../assets.json';
 import { crossTestnet } from '../wagmi';
@@ -84,7 +84,9 @@ const UIOverlay: React.FC = () => {
     // Send to House Wallet
     sendTransactionAsync({
       to: HOUSE_WALLET,
-      value: parseEther(amountStr) 
+      value: parseEther(amountStr),
+      maxFeePerGas: parseGwei('13'), // Base Fee (8) + Priority Fee (5)
+      maxPriorityFeePerGas: parseGwei('5')
     })
         .then(async (hash) => {
             if (publicClient) {
