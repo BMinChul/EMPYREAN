@@ -54,6 +54,10 @@ interface GameState {
   registerServerBet: (bet: BetRequest) => Promise<void>;
   claimServerPayout: (betId: string, isRefund?: boolean) => Promise<void>;
   fetchActiveBets: () => Promise<any[]>;
+
+  // Leaderboard
+  leaderboard: { userAddress: string, payout: number, multiplier: number }[];
+  fetchLeaderboard: () => Promise<void>;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -68,6 +72,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   lastConfirmedBet: null,
   pendingWin: null,
   connectionError: false,
+  leaderboard: [],
 
   setAutoBet: (enabled) => set({ autoBet: enabled }),
   setConnectionError: (show) => set({ connectionError: show }),
@@ -187,5 +192,17 @@ export const useGameStore = create<GameState>((set, get) => ({
           console.warn("Failed to fetch active bets:", err);
       }
       return [];
+  },
+
+  fetchLeaderboard: async () => {
+      try {
+          const res = await fetch('https://544fcf9d-fabb-47fe-bc6a-ea9895331f00-00-3s83yvw73cevs.spock.replit.dev/api/leaderboard');
+          if (res.ok) {
+              const data = await res.json();
+              set({ leaderboard: Array.isArray(data) ? data : [] });
+          }
+      } catch (err) {
+          console.warn("Failed to fetch leaderboard:", err);
+      }
   },
 }));
