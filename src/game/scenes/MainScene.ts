@@ -72,8 +72,11 @@ export class MainScene extends Phaser.Scene {
   
   private lastPointTime: number = 0;
 
+  private visibilityListener: () => void;
+
   constructor() {
     super({ key: 'MainScene' });
+    this.visibilityListener = this.handleVisibilityChange.bind(this);
   }
 
   preload() {
@@ -173,19 +176,21 @@ export class MainScene extends Phaser.Scene {
     this.events.on('shutdown', () => this.cleanup());
     this.events.on('destroy', () => this.cleanup());
     this.scale.on('resize', this.handleResize, this);
-    this.game.events.on('focus', this.handleGameFocus, this);
+    document.addEventListener('visibilitychange', this.visibilityListener);
   }
 
-  private handleGameFocus() {
+  private handleVisibilityChange() {
+      if (document.visibilityState !== 'visible') return;
+      
       const now = Date.now();
-      console.log(`[Focus] Game regained focus at ${now}. Cleaning up stale bets...`);
+      console.log(`[Visibility] Game became visible at ${now}. Cleaning up stale bets...`);
 
       // 1. Clean Pending Bets
       const pendingToRemove: string[] = [];
       this.pendingBoxes.forEach((container, id) => {
           const expiry = container.getData('expiryTimestamp');
           if (expiry && expiry < now) {
-              console.log(`[Focus] Removing expired pending bet ${id}`);
+              console.log(`[Visibility] Removing expired pending bet ${id}`);
               container.destroy();
               pendingToRemove.push(id);
           }
@@ -204,7 +209,7 @@ export class MainScene extends Phaser.Scene {
       for (let i = this.bettingBoxes.length - 1; i >= 0; i--) {
           const box = this.bettingBoxes[i];
           if (box.expiryTimestamp && box.expiryTimestamp < now) {
-               console.log(`[Focus] Removing expired active bet ${box.id}`);
+               console.log(`[Visibility] Removing expired active bet ${box.id}`);
                box.container.destroy();
                this.bettingBoxes.splice(i, 1);
                // Trigger refund check on server just in case? 
@@ -259,6 +264,7 @@ export class MainScene extends Phaser.Scene {
     if (this.okxService) {
       this.okxService.disconnect();
     }
+    document.removeEventListener('visibilitychange', this.visibilityListener);
   }
 
   update(time: number, delta: number) {
@@ -701,6 +707,18 @@ export class MainScene extends Phaser.Scene {
     const colWidth = width / this.gridCols;
     const colIdx = Math.floor(pointer.worldX / colWidth);
     const cellX = (colIdx * colWidth) + (colWidth/2);
+    
+    // --- Safe Zone Check (Fade Zone) ---
+    // If the box is shifting into the fade zone (Col 5 -> Col 4), block it.
+    const cellScreenX = cellX - this.cameras.main.scrollX;
+    const cellNormalizedX = cellScreenX / width;
+    
+    // Fade starts at 0.6. If it's less than 0.6, it's entering the fade/history zone.
+    if (cellNormalizedX < 0.6) {
+        this.sound.play('sfx_error', { volume: 0.2 });
+        return;
+    }
+
     const colIndexOnScreen = Math.floor(normalizedClickX * this.gridCols);
 
     const priceY = -(pointer.worldY / this.pixelPerDollar); 

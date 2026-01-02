@@ -1,28 +1,26 @@
 # Status
 
 ## Active Work
+- **Completed**: Fixed persistent "Ghost Boxes" on tab resume using `document.addEventListener('visibilitychange')`.
+- **Completed**: Disabled betting on boxes entering the "Fade Zone" (Column 5 to 4 transition).
 - **Completed**: Implemented "Resume Cleanup" in `MainScene.ts` to fix stale bet boxes on tab focus.
-- **Completed**: Updated Backend API URL to Replit Server (`https://544fcf9d-fabb-47fe-bc6a-ea9895331f00-00-3s83yvw73cevs.spock.replit.dev`).
-- **Completed**: Fixed Expiry Time Calculation (Based on Head position instead of Column 4).
-- **Completed**: Implemented Explicit Refund Flag (`isRefund`) for Orphaned Transactions.
-- **Completed**: Ghost Bet Fix (Strict check for existing pending container before confirming).
-- **Completed**: Text Fade Timing Adjustment (Range [0.45, 0.6] for faster drop-off).
-- **Completed**: Refined Ghost Bet Fix (Strict ID matching signature update).
-- **Completed**: Implemented Safe Zone logic in `MainScene.ts` (Columns 0-3 are non-interactive).
+- **Completed**: Updated Backend API URL to Replit Server.
+- **Completed**: Fixed Expiry Time Calculation.
+- **Completed**: Implemented Explicit Refund Flag (`isRefund`).
+- **Completed**: Implemented Safe Zone logic (Columns 0-3 non-interactive).
 - **Completed**: State Persistence (Restoring Bets on Reload).
-- **Completed**: Anti-Snipping & Exploit Protection (Layout & Deadline Logic).
-- **Completed**: Background Execution (Game runs when tab is blurred).
-- **Completed**: Orphaned Transaction Refund Trigger (Handle bets expiring during TX mining).
+- **Completed**: Anti-Snipping & Exploit Protection.
 
 ## Recent Activity
-- **Feature**: Added `handleGameFocus` event listener in `MainScene.ts`.
-  - Automatically cleans up `pendingBoxes` and `bettingBoxes` that have expired while the tab was backgrounded.
-  - Checks `expiryTimestamp` against `Date.now()`.
-  - Triggers explicit refund check for expired confirmed bets.
-- **Update**: Added `expiryTimestamp` tracking to `BettingBox` interface and Phaser Containers.
-- **Update**: `MainScene.ts` now properly handles focus events (`this.game.events.on('focus')`).
+- **Fix**: Replaced `game.events.on('focus')` with `document.addEventListener('visibilitychange')` in `MainScene.ts`.
+  - Ensures immediate cleanup of expired bets when tab becomes visible.
+  - Iterates through both pending and active bets to remove expired ones instantly.
+- **Fix**: Updated `placeBet` logic to prevent betting on boxes shifting into the "Fade Zone".
+  - Calculates screen position of the snapped grid cell.
+  - Blocks interaction if the cell is less than 60% across the screen (entering fade area).
+- **Feature**: Added `handleGameFocus` event listener in `MainScene.ts` (Previously).
 
 ## Next Steps
-- [ ] **Testing**: Verify bet boxes disappear instantly when returning to a tab after 1+ minute.
+- [ ] **Testing**: Verify ghost boxes are gone when resuming tab after long inactivity.
 - [ ] **UI Polish**: Add a "Server Connected" indicator in the UI.
 - [ ] **Integration**: Monitor local server logs for `expiryTimestamp` validation.
