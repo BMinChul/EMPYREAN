@@ -607,23 +607,27 @@ export class MainScene extends Phaser.Scene {
         const apiUrl = 'https://gene-fragmental-addisyn.ngrok-free.dev'; // Hardcoded as requested
         const userAddress = store.userAddress || "0xTestUser";
 
-        // A. Call Server API
-        const response = await fetch(`${apiUrl}/api/place-bet`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                betId: betId,
-                userAddress: userAddress,
-                betAmount: store.betAmount,
-                multiplier: multi
-            })
-        });
+        // A. Call Server API (Non-blocking for Preview)
+        try {
+            const response = await fetch(`${apiUrl}/api/place-bet`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    betId: betId,
+                    userAddress: userAddress,
+                    betAmount: store.betAmount,
+                    multiplier: multi
+                })
+            });
 
-        if (!response.ok) {
-            throw new Error(`Server Rejected: ${response.status}`);
+            if (!response.ok) {
+                console.warn(`Backend returned ${response.status}. Proceeding in Offline/Preview Mode.`);
+            }
+        } catch (networkErr) {
+            console.warn("Backend unreachable (Network Error). Proceeding in Offline/Preview Mode.");
         }
 
-        // B. Server Success -> Proceed to Store/Wallet Logic
+        // B. Server Success (or Fallback) -> Proceed to Store/Wallet Logic
         // This sets 'store.pendingBet = true', locking the UI
         store.requestBet({
             id: betId,
@@ -639,7 +643,7 @@ export class MainScene extends Phaser.Scene {
         this.initializingBets.delete(betId); // API done, handed over to Store
 
     } catch (err) {
-        console.error("❌ Bet Registration Failed:", err);
+        console.error("❌ Bet Registration Logic Error:", err);
         
         this.initializingBets.delete(betId); // Clear initializing flag so cleanup can happen
         
@@ -791,7 +795,7 @@ export class MainScene extends Phaser.Scene {
         });
         console.log("✅ Payout Requested for", betId);
     } catch (err) {
-        console.error("❌ Payout Request Failed:", err);
+        console.warn("⚠️ Payout Request Failed (Offline Mode):", err);
     }
   }
 

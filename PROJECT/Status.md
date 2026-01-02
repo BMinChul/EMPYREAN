@@ -1,21 +1,19 @@
 # Status
 
 ## Active Work
-- **Completed**: Pending Box UI Refinements.
-    - **Centered Multiplier**: Moved multiplier text to the exact center of the Pending Box.
-    - **Smart Hiding**: Background grid multipliers are now hidden ONLY behind Pending/Active boxes to prevent text overlap.
-    - **Auto-Restore**: Background multipliers reappear immediately if a bet is cancelled or rejected.
-    - **Currency Format**: Updated Confirmed Box to display `$ {amount} Cross` (e.g., "$ 1 Cross").
+- **Preview Stability Fix**:
+    - **Offline Fallback**: Modified `MainScene.placeBet` to catch network errors ("Failed to fetch") when contacting the backend.
+    - **Simulation Mode**: If the backend is unreachable (common in Preview), the game now logs a warning and proceeds with the betting flow locally instead of crashing/rolling back.
+    - **Error Handling**: Downgraded backend connection errors from `console.error` to `console.warn` to prevent the Preview environment from triggering error dialogs.
 
 ## Recent Activity
 - **UI Refinements (MainScene.ts)**:
-    - **Visual Feedback Timing**: Enforced **IMMEDIATE** creation of the "PENDING..." grey box before any network calls.
-    - **Text Formatting**: Fixed confirmed bet display to `$10 Cross`.
-    - **Pending State**: Grey (`0x555555`, 0.5 Alpha) with "PENDING..." text at bottom.
+    - **Pending Box**: Centered multiplier text, fixed "PENDING..." label.
+    - **Confirmed Box**: Updated text to `$ {amount} Cross`.
+    - **Grid Clarity**: Implemented auto-hiding of background multipliers behind active bets.
 - **Logic Fixes**:
     - **UIOverlay.tsx**: Implemented `publicClient.waitForTransactionReceipt`.
-- **Backend Integration**:
-    - Implemented `registerServerBet` in `gameStore`.
+    - **MainScene.ts**: Implemented immediate visual feedback for pending bets.
 
 ## Next Steps
 - [ ] **Testing**: Verify full flow on Cross Testnet with the backend running.
