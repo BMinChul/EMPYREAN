@@ -493,8 +493,14 @@ const UIOverlay: React.FC = () => {
 
       {/* --- Leaderboard Modal --- */}
       {isLeaderboardOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-              <div className="glass-panel w-full max-w-md pointer-events-auto flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border-yellow-500/30 shadow-[0_0_50px_rgba(255,215,0,0.15)]">
+          <div 
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+              onClick={() => setIsLeaderboardOpen(false)}
+          >
+              <div 
+                  className="glass-panel w-full max-w-md pointer-events-auto flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border-yellow-500/30 shadow-[0_0_50px_rgba(255,215,0,0.15)]"
+                  onClick={(e) => e.stopPropagation()}
+              >
                   {/* Header */}
                   <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/40">
                       <div className="flex items-center gap-3">
@@ -559,8 +565,14 @@ const UIOverlay: React.FC = () => {
 
       {/* --- Guide Modal --- */}
       {isGuideOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-              <div className="glass-panel w-[90%] max-w-md pointer-events-auto flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border-cyan-500/30 shadow-[0_0_50px_rgba(34,211,238,0.15)]">
+          <div 
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+              onClick={() => setIsGuideOpen(false)}
+          >
+              <div 
+                  className="glass-panel w-[90%] max-w-md pointer-events-auto flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border-cyan-500/30 shadow-[0_0_50px_rgba(34,211,238,0.15)]"
+                  onClick={(e) => e.stopPropagation()}
+              >
                   {/* Header */}
                   <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/40">
                       <div className="flex items-center gap-3">
@@ -630,8 +642,14 @@ const UIOverlay: React.FC = () => {
 
       {/* --- History Modal --- */}
       {isHistoryOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-              <div className="glass-panel w-full max-w-lg pointer-events-auto flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border-white/10 shadow-2xl">
+          <div 
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+              onClick={() => setIsHistoryOpen(false)}
+          >
+              <div 
+                  className="glass-panel w-full max-w-lg pointer-events-auto flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border-white/10 shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+              >
                   {/* Header */}
                   <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/40">
                       <div className="flex items-center gap-3">

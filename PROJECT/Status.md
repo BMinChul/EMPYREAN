@@ -19,4 +19,5 @@
 ## Next Steps
 - [ ] **Testing**: Verify "White Bet Result Box" (Win Notification) typography on actual mobile device.
 - [ ] **Integration**: Monitor server response times for history fetching.
-- [ ] **Polishing**: Add more sound effects for Modal interactions.
+- [x] **Polishing**: Add more sound effects for Modal interactions.
+- [x] **UX Improvement**: Modals (Leaderboard, Guide, History) now close when clicking the backdrop.
