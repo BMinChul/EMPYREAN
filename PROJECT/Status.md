@@ -5,6 +5,7 @@
     - **Offline Fallback**: Modified `MainScene.placeBet` to catch network errors ("Failed to fetch") when contacting the backend.
     - **Simulation Mode**: If the backend is unreachable (common in Preview), the game now logs a warning and proceeds with the betting flow locally instead of crashing/rolling back.
     - **Error Handling**: Downgraded backend connection errors from `console.error` to `console.warn` to prevent the Preview environment from triggering error dialogs.
+    - **Transaction Rejection**: Modified `UIOverlay.tsx` to use `console.warn` instead of `console.error` when a user rejects a wallet transaction, preventing false positive "Preview Error" modals.
 
 ## Recent Activity
 - **UI Refinements (MainScene.ts)**:
