@@ -18,7 +18,8 @@ const UIOverlay: React.FC = () => {
     autoBet, setUserAddress,
     connectionError, setConnectionError,
     leaderboard, fetchLeaderboard,
-    userStats, fetchUserStats
+    userStats, fetchUserStats,
+    registerServerBet
   } = useGameStore();
   
   // WalletConnect / Reown Hooks
