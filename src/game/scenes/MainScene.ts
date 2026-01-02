@@ -40,7 +40,8 @@ export class MainScene extends Phaser.Scene {
   private initializingBets: Set<string> = new Set(); // Track bets waiting for API response
 
   private axisLabels: Phaser.GameObjects.Text[] = [];
-  private gridLabels: Phaser.GameObjects.Text[] = [];
+  private gridLabels: Phaser.GameObjects.Text[] = []; // Only for Multipliers
+  private timeLabels: Phaser.GameObjects.Text[] = []; // Only for Time
 
   // --- Configuration ---
   private timeWindowSeconds: number = 60; 
@@ -389,6 +390,7 @@ export class MainScene extends Phaser.Scene {
     this.gridGraphics.clear();
     let axisLabelIdx = 0;
     let gridLabelIdx = 0;
+    let timeLabelIdx = 0;
     
     const scrollX = this.cameras.main.scrollX;
     const scrollY = this.cameras.main.scrollY;
@@ -452,17 +454,17 @@ export class MainScene extends Phaser.Scene {
             hour: '2-digit', minute: '2-digit', second: '2-digit'
         });
 
-        let timeLabel = this.gridLabels[gridLabelIdx];
+        let timeLabel = this.timeLabels[timeLabelIdx];
         if (!timeLabel) {
             timeLabel = this.add.text(0, 0, '', {
                 fontFamily: 'monospace', fontSize: '10px', color: '#888888'
             }).setOrigin(0.5, 1);
-            this.gridLabels.push(timeLabel);
+            this.timeLabels.push(timeLabel);
         }
         timeLabel.setPosition(x, scrollY + height - 5);
         timeLabel.setText(timeString);
         timeLabel.setVisible(true);
-        gridLabelIdx++;
+        timeLabelIdx++;
 
         if (textFade > 0.01) {
             const cellCenterX = x + colWidth/2;
@@ -497,6 +499,7 @@ export class MainScene extends Phaser.Scene {
 
     for (let i = axisLabelIdx; i < this.axisLabels.length; i++) this.axisLabels[i].setVisible(false);
     for (let i = gridLabelIdx; i < this.gridLabels.length; i++) this.gridLabels[i].setVisible(false);
+    for (let i = timeLabelIdx; i < this.timeLabels.length; i++) this.timeLabels[i].setVisible(false);
 
     this.drawCurrentPriceBox(scrollY, height, width);
   }
