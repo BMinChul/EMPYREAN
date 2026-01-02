@@ -58,7 +58,7 @@ const UIOverlay: React.FC = () => {
 
   // Modal State
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [activeHistoryTab, setActiveHistoryTab] = useState<'placed' | 'refunded' | 'wins'>('placed');
+  const [activeHistoryTab, setActiveHistoryTab] = useState<'placed' | 'refunded' | 'won'>('placed');
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
 
   // Poll Leaderboard
@@ -515,7 +515,7 @@ const UIOverlay: React.FC = () => {
 
                   {/* Tabs */}
                   <div className="flex p-2 gap-2 bg-black/40 border-b border-white/5">
-                      {(['placed', 'refunded', 'wins'] as const).map((tab) => (
+                      {(['placed', 'refunded', 'won'] as const).map((tab) => (
                           <button
                               key={tab}
                               onClick={() => setActiveHistoryTab(tab)}
@@ -565,7 +565,7 @@ const UIOverlay: React.FC = () => {
                                           </span>
                                       </div>
                                       <div className="flex flex-col items-end gap-1">
-                                          {activeHistoryTab === 'wins' ? (
+                                          {activeHistoryTab === 'won' ? (
                                               <>
                                                   <span className="text-xs font-bold text-emerald-400 font-mono">
                                                       +{item.payoutAmount}
