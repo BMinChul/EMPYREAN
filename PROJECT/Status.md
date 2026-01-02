@@ -1,23 +1,22 @@
 # Status
 
 ## Active Work
-- **Preview Stability Fix**:
-    - **Offline Fallback**: Modified `MainScene.placeBet` to catch network errors ("Failed to fetch") when contacting the backend.
-    - **Simulation Mode**: If the backend is unreachable (common in Preview), the game now logs a warning and proceeds with the betting flow locally instead of crashing/rolling back.
-    - **Error Handling**: Downgraded backend connection errors from `console.error` to `console.warn` to prevent the Preview environment from triggering error dialogs.
-    - **Transaction Rejection**: Modified `UIOverlay.tsx` to use `console.warn` instead of `console.error` when a user rejects a wallet transaction, preventing false positive "Preview Error" modals.
+- **Bug Fix**: Fixed wallet balance display issue where "WALLET BALANCE" showed 0.00 despite having funds.
+    - Updated `UIOverlay.tsx` to explicitly pass `chainId: crossTestnet.id` to `useBalance`.
+    - Added `refetchInterval` (5s) and `retry: true` to ensure balance stays synced.
+    - Added automatic refetch trigger when wallet address changes.
 
 ## Recent Activity
-- **UI Refinements (MainScene.ts)**:
-    - **Pending Box**: Centered multiplier text, fixed "PENDING..." label.
+- **Preview Stability Fix**:
+    - **Offline Fallback**: Modified `MainScene.placeBet` to catch network errors.
+    - **Simulation Mode**: Fallback to local logic if backend is unreachable.
+    - **Error Handling**: Downgraded console errors to warnings for preview environment.
+- **UI Refinements**:
+    - **Pending Box**: Centered multiplier text.
     - **Confirmed Box**: Updated text to `$ {amount} Cross`.
-    - **Grid Clarity**: Implemented auto-hiding of background multipliers behind active bets.
-- **Logic Fixes**:
-    - **UIOverlay.tsx**: Implemented `publicClient.waitForTransactionReceipt`.
-    - **MainScene.ts**: Implemented immediate visual feedback for pending bets.
 
 ## Next Steps
-- [ ] **Testing**: Verify full flow on Cross Testnet with the backend running.
-- [ ] **Cleanup**: Remove temporary balance check bypass once wallet funding is confirmed.
-- [ ] **Refactor**: Remove redundant API calls from `gameStore.ts`.
-- [ ] **Wallet**: Monitor "Leap Wallet" conflicts.
+- [ ] **Testing**: Verify wallet balance updates correctly on Cross Testnet.
+- [ ] **Testing**: Verify full betting flow with actual tCROSS tokens.
+- [ ] **Cleanup**: Remove temporary debugging logs if any.
+- [ ] **Wallet**: Monitor specific wallet (Leap/Metamask) compatibility.
