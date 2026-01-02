@@ -1,34 +1,32 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useGameStore } from '../store/gameStore';
-import { useGameServer, useAsset } from '@agent8/gameserver';
 import { useAppKit } from '@reown/appkit/react';
 import { useAccount, useDisconnect, useBalance, useSendTransaction } from 'wagmi';
 import { parseEther } from 'viem';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, HelpCircle, LogOut, X, AlertCircle, Zap } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut, ExternalLink } from 'lucide-react';
 import Assets from '../assets.json';
 import { crossTestnet } from '../wagmi';
+
+const HOUSE_WALLET = '0x00837a0d1d51655ac5501e96bb53b898ae03c9c1';
 
 const UIOverlay: React.FC = () => {
   const { 
     currentPrice, balance: storeBalance, betAmount, setBetAmount, 
     lastWinAmount, setLastWinAmount,
-    pendingBet, pendingWin, confirmBet, clearPendingWin, cancelBet, setBalance,
-    tokenPrice, autoBet, setAutoBet
+    pendingBet, confirmBet, cancelBet, setBalance,
+    autoBet, setAutoBet, setUserAddress
   } = useGameStore();
-  
-  const { connected, server, connect: connectServer } = useGameServer();
-  const { assets, burnAsset, mintAsset } = useAsset();
   
   // WalletConnect / Reown Hooks
   const { open } = useAppKit();
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   
-  // Native Token Balance (tCROSS)
+  // Native Token Balance (CROSS)
   const { data: balanceData } = useBalance({ address });
   const { sendTransactionAsync } = useSendTransaction();
 
-  // Safe Balance Calculation (Use Store/Server Balance only)
+  // Safe Balance Calculation
   const displayBalance = React.useMemo(() => {
     return isNaN(storeBalance) ? 0 : storeBalance;
   }, [storeBalance]);
@@ -37,43 +35,42 @@ const UIOverlay: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [prevPrice, setPrevPrice] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
+  
+  // Bet Selector State
+  const [isBetDropdownOpen, setIsBetDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // --- Auto-Connect GameServer (Backend) ---
+  // --- Sync Address to Store ---
   useEffect(() => {
-    // Connect to game server if not connected
-    if (!connected && connectServer) {
-        connectServer();
-    }
-  }, [connected, connectServer]);
+      setUserAddress(address || null);
+  }, [address, setUserAddress]);
 
   // --- Asset Synchronization ---
   useEffect(() => {
-    // Sync tCROSS balance (Native Token)
+    // Sync CROSS balance (Native Token)
     if (balanceData) {
       const nativeBal = Number(balanceData.formatted);
-      if (storeBalance !== nativeBal) {
+      // Only update store if significant difference (avoid loops)
+      if (Math.abs(storeBalance - nativeBal) > 0.0001) {
           setBalance(nativeBal);
       }
     }
   }, [balanceData, setBalance, storeBalance]);
 
-  // --- Process Bets (Native Burn) ---
+  // --- Process Bets (Native Transfer) ---
   const processBet = React.useCallback(() => {
     if (!pendingBet || isProcessing) return;
     
     setIsProcessing(true);
-    // Convert USD Bet to Tokens
-    const tokenAmount = pendingBet.amount / tokenPrice;
-    const tokenAmountStr = tokenAmount.toFixed(18); // Avoid scientific notation
+    const amountStr = pendingBet.amount.toString();
     
-    // Burn to Dead Address (Native tCROSS)
+    // Send to House Wallet
     sendTransactionAsync({
-      to: '0x000000000000000000000000000000000000dEaD',
-      value: parseEther(tokenAmountStr) 
+      to: HOUSE_WALLET,
+      value: parseEther(amountStr) 
     })
-        .then(() => {
-            confirmBet(); // Confirms transaction, triggers Box in Scene
+        .then((hash) => {
+            confirmBet(hash); // Confirms transaction, triggers Box in Scene
         })
         .catch(err => {
             console.error("Bet failed:", err);
@@ -88,7 +85,7 @@ const UIOverlay: React.FC = () => {
             setTimeout(() => setErrorMessage(null), 3000);
         })
         .finally(() => setIsProcessing(false));
-  }, [pendingBet, isProcessing, tokenPrice, sendTransactionAsync, confirmBet, cancelBet]);
+  }, [pendingBet, isProcessing, sendTransactionAsync, confirmBet, cancelBet]);
 
   useEffect(() => {
     // Only auto-process if AutoBet is ON
@@ -96,24 +93,6 @@ const UIOverlay: React.FC = () => {
         processBet();
     }
   }, [pendingBet, autoBet, isProcessing, processBet]);
-
-  // --- Process Wins (Mint) ---
-  useEffect(() => {
-    if (pendingWin !== null && pendingWin > 0 && !isProcessing) {
-        setIsProcessing(true);
-        // Convert USD Win to Tokens
-        const tokenAmount = pendingWin / tokenPrice;
-
-        mintAsset('credits', tokenAmount)
-            .then(() => {
-                clearPendingWin();
-            })
-            .catch(err => {
-                console.error("Win claim failed:", err);
-            })
-            .finally(() => setIsProcessing(false));
-    }
-  }, [pendingWin, mintAsset, clearPendingWin, isProcessing, tokenPrice]);
 
 
   // Win Notification logic
@@ -132,6 +111,17 @@ const UIOverlay: React.FC = () => {
   useEffect(() => {
     setPrevPrice(currentPrice);
   }, [currentPrice]);
+
+  // Click outside listener for dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsBetDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const trend = currentPrice >= prevPrice ? 'up' : 'down';
   const trendColor = trend === 'up' ? '#00ff9d' : '#ff3b30';
@@ -155,7 +145,7 @@ const UIOverlay: React.FC = () => {
     });
   };
 
-  // Formatting: 0.00 Tokens
+  // Formatting: 0.00 CROSS
   const fmtTokens = (val: number) => {
     if (isNaN(val)) return '0.00';
     return val.toLocaleString('en-US', {
@@ -163,6 +153,8 @@ const UIOverlay: React.FC = () => {
       maximumFractionDigits: 2,
     });
   };
+
+  const betOptions = [0.1, 0.5, 1, 5, 10];
 
   return (
     <div className="ui-overlay pointer-events-none font-sans">
@@ -187,15 +179,12 @@ const UIOverlay: React.FC = () => {
         </div>
       </div>
 
-      {/* --- Top Center: Minimal Win Notification Bar --- */}
+      {/* --- Top Center: Win Notification Bar --- */}
       <div className={`win-bar ${showWin ? 'active' : ''} glass-panel flex items-center justify-center gap-3`}>
         <CheckCircle2 size={16} className="text-emerald-400" />
-        <span className="text-gray-300 font-bold text-xs uppercase tracking-wide">You won</span>
+        <span className="text-gray-300 font-bold text-xs uppercase tracking-wide">Payout Pending</span>
         <span className="text-yellow-400 font-mono font-bold text-sm">
-          {fmtUSD(lastWinAmount)}
-        </span>
-        <span className="text-xs text-gray-500 font-mono">
-          (+{fmtTokens(lastWinAmount / tokenPrice)} tCROSS)
+          {fmtTokens(lastWinAmount)} CROSS
         </span>
       </div>
 
@@ -217,7 +206,7 @@ const UIOverlay: React.FC = () => {
                 className="bg-yellow-400 text-black font-bold px-8 py-4 rounded-lg shadow-[0_0_20px_rgba(255,215,0,0.5)] hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
             >
                 <Zap size={20} className="fill-black" />
-                CONFIRM BET
+                CONFIRM {pendingBet.amount} CROSS
             </button>
             <div className="text-center mt-2">
                 <button 
@@ -245,26 +234,23 @@ const UIOverlay: React.FC = () => {
             <div className="panel-row flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5">
               <div 
                 className="relative group transition-transform hover:scale-105"
-                title="tCROSS Token"
+                title="CROSS Token"
               >
                 <img 
                     src={Assets.ui.icons.tcross.url} 
-                    alt="tCross Token" 
+                    alt="CROSS Token" 
                     className="w-10 h-10 rounded-full border border-yellow-500/30 shadow-[0_0_10px_rgba(255,215,0,0.2)]"
                 />
               </div>
               <div className="col flex flex-col justify-center">
                 <div className="flex items-center gap-2">
                     <span className="label text-[10px] tracking-widest text-yellow-400 font-bold mb-0.5 uppercase">
-                        tCROSS
+                        CROSS
                     </span>
                 </div>
                 <div className="flex flex-col leading-tight">
                     <span className="value-md text-lg font-bold text-white font-mono tracking-wide">
                     {fmtTokens(displayBalance)}
-                    </span>
-                    <span className="text-[10px] text-gray-400 font-mono mt-0.5">
-                    ≈ {fmtUSD(displayBalance * tokenPrice)}
                     </span>
                 </div>
               </div>
@@ -315,103 +301,46 @@ const UIOverlay: React.FC = () => {
 
             <div className="h-3 w-px bg-white/10" />
 
-            <div className="flex items-center gap-2">
-                <span className="text-[10px] text-gray-500 font-mono">1 tCROSS = {fmtUSD(tokenPrice)}</span>
-                <span className="label-center text-[9px] tracking-[0.2em] text-gray-400 font-bold uppercase">BET SIZE (USD)</span>
-            </div>
+            <span className="label-center text-[9px] tracking-[0.2em] text-gray-400 font-bold uppercase">BET SIZE</span>
           </div>
-          <div className="bet-grid grid grid-cols-3 gap-1.5">
-            {[0.01, 0.05, 0.10, 0.50, 1.00, 5.00].map(amt => {
-              const reqTokens = amt / tokenPrice;
-              const canAfford = displayBalance >= reqTokens;
-              
-              return (
-                <button 
-                    key={amt}
-                    disabled={!canAfford}
-                    className={`bet-btn px-4 py-2 text-xs font-mono font-bold rounded-md border transition-all duration-200 relative overflow-hidden group
-                    ${betAmount === amt 
-                        ? 'bg-yellow-400 text-black border-yellow-400 shadow-[0_0_10px_rgba(255,215,0,0.3)] scale-100 z-10' 
-                        : canAfford
-                            ? 'bg-white/5 text-gray-400 border-white/5 hover:border-white/20 hover:text-white hover:bg-white/10'
-                            : 'bg-red-900/10 text-red-700/50 border-red-900/10 cursor-not-allowed opacity-50'
-                    }`}
-                    onClick={() => setBetAmount(amt)}
-                >
-                    <div className="flex flex-col items-center">
-                        <span className="relative z-10">${amt.toFixed(2)}</span>
-                        <span className="text-[8px] opacity-60 font-normal">{reqTokens.toLocaleString(undefined, { maximumFractionDigits: 1 })} tCROSS</span>
-                    </div>
-                </button>
-              );
-            })}
+
+          {/* New Bet Selector Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+              <button 
+                  onClick={() => setIsBetDropdownOpen(!isBetDropdownOpen)}
+                  className="w-48 h-12 flex items-center justify-between px-4 bg-white/5 border border-white/10 rounded hover:bg-white/10 hover:border-white/20 transition-all group"
+              >
+                  <div className="flex flex-col items-start">
+                      <span className="text-lg font-bold font-mono text-yellow-400 tracking-wide">
+                          {betAmount} CROSS
+                      </span>
+                  </div>
+                  {isBetDropdownOpen ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+              </button>
+
+              {/* Dropdown Menu */}
+              {isBetDropdownOpen && (
+                  <div className="absolute bottom-full mb-2 right-0 w-48 bg-[#1a1b26] border border-white/10 rounded shadow-xl overflow-hidden z-20 animate-in fade-in slide-in-from-bottom-2">
+                      {betOptions.map((opt) => (
+                          <button
+                              key={opt}
+                              onClick={() => {
+                                  setBetAmount(opt);
+                                  setIsBetDropdownOpen(false);
+                              }}
+                              className={`w-full px-4 py-3 text-left font-mono font-bold transition-colors flex items-center justify-between
+                                  ${betAmount === opt ? 'bg-yellow-400/10 text-yellow-400' : 'text-gray-400 hover:bg-white/5 hover:text-white'}
+                              `}
+                          >
+                              <span>{opt} CROSS</span>
+                              {betAmount === opt && <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />}
+                          </button>
+                      ))}
+                  </div>
+              )}
           </div>
         </div>
       </div>
-
-      {/* --- Help Popup --- */}
-      {showHelp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto p-4">
-            <div className="bg-[#1a1b26] border border-white/10 rounded-xl max-w-md w-full shadow-2xl overflow-hidden relative animate-in fade-in zoom-in duration-200">
-                {/* Header */}
-                <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
-                    <div className="flex items-center gap-2">
-                        <HelpCircle size={18} className="text-cyan-400" />
-                        <h3 className="text-white font-bold text-sm tracking-wide">HOW TO GET tCROSS</h3>
-                    </div>
-                    <button 
-                        onClick={() => setShowHelp(false)}
-                        className="text-gray-400 hover:text-white transition-colors"
-                    >
-                        <X size={18} />
-                    </button>
-                </div>
-                
-                {/* Content */}
-                <div className="p-6 space-y-4">
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-900/20 border border-blue-500/20">
-                        <div className="mt-1 min-w-[24px] h-6 flex items-center justify-center rounded-full bg-blue-500/20 text-blue-400 font-bold text-xs">1</div>
-                        <div>
-                            <h4 className="text-gray-200 text-xs font-bold mb-1">Connect Wallet</h4>
-                            <p className="text-gray-400 text-xs leading-relaxed">
-                                Click the "Connect Wallet" button in the bottom left corner to link your CrossChain testnet wallet.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-purple-900/20 border border-purple-500/20">
-                        <div className="mt-1 min-w-[24px] h-6 flex items-center justify-center rounded-full bg-purple-500/20 text-purple-400 font-bold text-xs">2</div>
-                        <div>
-                            <h4 className="text-gray-200 text-xs font-bold mb-1">Use the Faucet</h4>
-                            <p className="text-gray-400 text-xs leading-relaxed">
-                                Visit the <span className="text-purple-300 underline cursor-pointer hover:text-purple-200">CrossChain Faucet</span> to claim free tCROSS testnet tokens.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-900/20 border border-emerald-500/20">
-                        <div className="mt-1 min-w-[24px] h-6 flex items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-xs">3</div>
-                        <div>
-                            <h4 className="text-gray-200 text-xs font-bold mb-1">Start Betting</h4>
-                            <p className="text-gray-400 text-xs leading-relaxed">
-                                Once you have tokens, your balance will update automatically. Select a dollar amount to bet!
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Footer */}
-                <div className="p-4 bg-black/20 text-center">
-                    <button 
-                        onClick={() => setShowHelp(false)}
-                        className="w-full py-2 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors"
-                    >
-                        GOT IT
-                    </button>
-                </div>
-            </div>
-        </div>
-      )}
     </div>
   );
 };
