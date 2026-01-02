@@ -557,7 +557,7 @@ export class MainScene extends Phaser.Scene {
     const boxH = (this.gridPriceInterval * this.pixelPerDollar) - 8;
     const betId = Date.now().toString();
 
-    // 7. Visual Feedback: Create "Pending" Ghost Box
+    // 7. Visual Feedback: Create "Pending" Ghost Box (IMMEDIATE)
     const container = this.add.container(cellX, cellY);
     
     const bg = this.add.graphics();
@@ -573,7 +573,7 @@ export class MainScene extends Phaser.Scene {
     container.add([bg, txt]);
     this.pendingBoxes.set(betId, container);
 
-    // ★★★ [CORE FIX] Server Communication Safety Block ★★★
+    // 8. Server Communication & Wallet Signature
     try {
         const apiUrl = 'https://gene-fragmental-addisyn.ngrok-free.dev'; // Hardcoded as requested
         const userAddress = store.userAddress || "0xTestUser";
@@ -660,7 +660,7 @@ export class MainScene extends Phaser.Scene {
 
       const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0); 
       
-      const txtAmt = this.add.text(0, -8, `$ ${req.amount} CROSS`, {
+      const txtAmt = this.add.text(0, -8, `${req.amount} CROSS`, {
           fontFamily: 'monospace', fontSize: '14px', color: '#000000', fontStyle: 'bold'
       }).setOrigin(0.5);
       
