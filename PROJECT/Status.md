@@ -1,6 +1,7 @@
 # Status
 
 ## Active Work
+- **Completed**: Updated Backend API URL to Replit Server (`https://544fcf9d-fabb-47fe-bc6a-ea9895331f00-00-3s83yvw73cevs.spock.replit.dev`).
 - **Completed**: Fixed Expiry Time Calculation (Based on Head position instead of Column 4).
 - **Completed**: Implemented Explicit Refund Flag (`isRefund`) for Orphaned Transactions.
 - **Completed**: Ghost Bet Fix (Strict check for existing pending container before confirming).
@@ -14,6 +15,7 @@
 - **Completed**: Orphaned Transaction Refund Trigger (Handle bets expiring during TX mining).
 
 ## Recent Activity
+- **Configuration**: Updated API URL in `MainScene.ts`, `gameStore.ts`, and `Requirements.md` to point to the new Replit cloud server.
 - **Logic Update**: `MainScene.ts` `placeBet` now calculates `expiryTimestamp` based on the distance to the **HEAD** (Win Position) instead of Column 4. This ensures legitimate wins that occur after Column 4 are not rejected by the server.
 - **Store Update**: `gameStore.ts` `claimServerPayout` now accepts an `isRefund` boolean flag.
 - **UI Update**: `UIOverlay.tsx` now explicitly calls `claimServerPayout(betId, true)` when detecting an Orphaned Transaction, ensuring the server knows to process a refund.

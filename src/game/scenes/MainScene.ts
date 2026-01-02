@@ -45,7 +45,7 @@ export class MainScene extends Phaser.Scene {
   private timeLabels: Phaser.GameObjects.Text[] = []; // Only for Time
 
   // --- Configuration ---
-  private readonly API_URL = 'https://gene-fragmental-addisyn.ngrok-free.dev';
+  private readonly API_URL = 'https://544fcf9d-fabb-47fe-bc6a-ea9895331f00-00-3s83yvw73cevs.spock.replit.dev';
   private timeWindowSeconds: number = 60; 
   private pixelsPerSecond: number = 0; 
   private pixelPerDollar: number = 200; 
