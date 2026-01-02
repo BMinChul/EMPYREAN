@@ -4,6 +4,8 @@
 - `src/`
   - `game/`
     - `scenes/MainScene.ts`: Main game logic.
+      - `restoreBets()`: Re-creates visual boxes from server state.
+      - `placeBet()`: Calculates expiry based on Column 4 deadline.
     - `Game.ts`: Phaser config.
   - `components/`
     - `GameComponent.tsx`: Phaser container.
@@ -12,6 +14,7 @@
     - `okxService.ts`: WebSocket handler.
   - `store/`
     - `gameStore.ts`: Zustand store.
+      - `fetchActiveBets()`: Retrieves persistence data.
   - `App.tsx`: Main entry.
 
 ## Architecture
