@@ -18,7 +18,8 @@ const UIOverlay: React.FC = () => {
     autoBet, setUserAddress,
     connectionError, setConnectionError,
     leaderboard, fetchLeaderboard,
-    userStats, fetchUserStats
+    userStats, fetchUserStats,
+    registerServerBet
   } = useGameStore();
   
   // WalletConnect / Reown Hooks
@@ -334,7 +335,7 @@ const UIOverlay: React.FC = () => {
             title="Hall of Fame"
         >
             <div className="absolute inset-0 bg-yellow-400/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-            <Trophy size={50} className="text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
+            <Trophy size={30} className="text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
         </button>
 
       </div>
@@ -347,7 +348,7 @@ const UIOverlay: React.FC = () => {
             title="How to Play"
         >
             <div className="absolute inset-0 bg-cyan-400/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-            <HelpCircle size={50} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
+            <HelpCircle size={30} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
         </button>
       </div>
 
