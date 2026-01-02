@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { useAppKit } from '@reown/appkit/react';
 import { useAccount, useDisconnect, useBalance, useSendTransaction, usePublicClient } from 'wagmi';
 import { parseEther, parseGwei } from 'viem';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut, Trophy, Crown } from 'lucide-react';
 import Assets from '../assets.json';
 import { crossTestnet } from '../wagmi';
 
@@ -15,7 +15,8 @@ const UIOverlay: React.FC = () => {
     lastWinAmount, setLastWinAmount,
     pendingBet, confirmBet, cancelBet, setBalance,
     autoBet, setUserAddress,
-    connectionError, setConnectionError
+    connectionError, setConnectionError,
+    leaderboard, fetchLeaderboard
   } = useGameStore();
   
   // WalletConnect / Reown Hooks
@@ -73,6 +74,13 @@ const UIOverlay: React.FC = () => {
       }
     }
   }, [balanceData, setBalance, storeBalance]);
+
+  // --- Poll Leaderboard ---
+  useEffect(() => {
+    fetchLeaderboard(); // Initial fetch
+    const interval = setInterval(fetchLeaderboard, 10000); // Poll every 10s
+    return () => clearInterval(interval);
+  }, [fetchLeaderboard]);
 
   // --- Process Bets (Native Transfer) ---
   const processBet = React.useCallback(() => {
@@ -216,6 +224,11 @@ const UIOverlay: React.FC = () => {
     });
   };
 
+  const maskAddress = (addr: string) => {
+    if (!addr) return 'Unknown';
+    return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+  };
+
   const betOptions = [0.1, 0.5, 1, 5, 10];
 
   return (
@@ -280,6 +293,52 @@ const UIOverlay: React.FC = () => {
             )}
         </div>
 
+      </div>
+
+      {/* --- Top Right: Live Leaderboard --- */}
+      <div className="fixed top-6 right-6 z-30 pointer-events-auto">
+        <div className="glass-panel w-64 shadow-lg shadow-black/40 overflow-hidden">
+            {/* Header */}
+            <div className="bg-black/40 px-4 py-3 border-b border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Trophy size={14} className="text-yellow-400" />
+                    <span className="text-[10px] tracking-widest text-yellow-400 font-bold uppercase">Top Winners</span>
+                </div>
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_5px_#22c55e]" />
+            </div>
+            
+            {/* List */}
+            <div className="flex flex-col">
+                {leaderboard.length === 0 ? (
+                    <div className="px-4 py-6 text-center text-xs text-gray-500 italic">
+                        No winners yet...
+                    </div>
+                ) : (
+                    leaderboard.map((entry, idx) => (
+                        <div key={idx} className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors group">
+                            <div className="flex items-center gap-3">
+                                {/* Rank Icon */}
+                                <div className={`w-5 h-5 flex items-center justify-center rounded text-[10px] font-bold
+                                    ${idx === 0 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 
+                                      idx === 1 ? 'bg-gray-300/20 text-gray-300 border border-gray-400/30' : 
+                                      idx === 2 ? 'bg-orange-700/20 text-orange-400 border border-orange-500/30' : 
+                                      'text-gray-500 bg-white/5'}
+                                `}>
+                                    {idx === 0 ? <Crown size={10} /> : idx + 1}
+                                </div>
+                                <span className={`text-xs font-mono ${address && entry.userAddress.toLowerCase() === address.toLowerCase() ? 'text-cyan-400 font-bold' : 'text-gray-400'}`}>
+                                    {maskAddress(entry.userAddress)}
+                                </span>
+                            </div>
+                            <div className="flex flex-col items-end leading-none">
+                                <span className="text-xs font-bold text-emerald-400 font-mono">+{fmtTokens(entry.payout)}</span>
+                                <span className="text-[8px] text-gray-600 font-mono mt-0.5">{entry.multiplier}x</span>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
       </div>
 
       {/* --- Top Center: Win Notification Bar --- */}
