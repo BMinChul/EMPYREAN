@@ -52,7 +52,7 @@ interface GameState {
   
   // Actions called by React after processing
   confirmBet: (betId: string, txHash: string) => void; // Moves pending -> confirmed (Requires ID check)
-  cancelBet: () => void; // Clears pending, refunds optimistic update
+  cancelBet: (txHash?: string) => void; // Clears pending, refunds optimistic update
   clearLastConfirmedBet: () => void; // Called by Scene after rendering the real box
 
   clearPendingBet: () => void; // Explicit cleanup for errors
@@ -61,7 +61,7 @@ interface GameState {
 
   // Server Integration Actions
   registerServerBet: (bet: BetRequest) => Promise<void>;
-  claimServerPayout: (betId: string, isRefund?: boolean) => Promise<void>;
+  claimServerPayout: (betId: string, isRefund?: boolean, txHash?: string) => Promise<void>;
   fetchActiveBets: () => Promise<any[]>;
 
   // Leaderboard
@@ -125,13 +125,20 @@ export const useGameStore = create<GameState>((set, get) => ({
   }),
 
   // Called by React when Transaction fails/rejected
-  cancelBet: () => set((state) => {
-    if (!state.pendingBet) return {};
-    return {
+  cancelBet: (txHash) => {
+    const state = get();
+    if (!state.pendingBet) return;
+
+    // If txHash is provided, attempt server-side refund
+    if (txHash) {
+        state.claimServerPayout(state.pendingBet.id, true, txHash);
+    }
+
+    set({
         pendingBet: null,
         balance: state.balance + state.pendingBet.amount // Refund
-    };
-  }),
+    });
+  },
 
   // Called by Phaser after it renders the confirmed box
   clearLastConfirmedBet: () => set({ lastConfirmedBet: null }),
@@ -174,7 +181,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
   },
 
-  claimServerPayout: async (betId, isRefund = false) => {
+  claimServerPayout: async (betId, isRefund = false, txHash) => {
       const { userAddress } = get();
       if (!userAddress) return;
 
@@ -185,7 +192,8 @@ export const useGameStore = create<GameState>((set, get) => ({
               body: JSON.stringify({
                   betId: betId,
                   userAddress: userAddress,
-                  isRefund: isRefund
+                  isRefund: isRefund,
+                  txHash: txHash
               })
           });
       } catch (err) {
