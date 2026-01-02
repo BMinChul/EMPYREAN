@@ -19,8 +19,8 @@
     - [Price Ticker] [Bet Amount Selector]
     - Compact, unified height.
 - **Bet Box**:
-    - **Pending**: Grey (Alpha 0.5), Text "PENDING...".
-    - **Active**: Yellow (#fffacd), Text "$10 CROSS", Multiplier, "🔗 SCAN" Link.
+    - **Pending**: Grey (Alpha 0.5), Text "PENDING..." (Bottom), Multiplier (Center).
+    - **Active**: Yellow (#fffacd), Text "$ 10 Cross", Multiplier, "🔗 SCAN" Link.
 
 ## Camera & Time
 - **Head Position**: Fixed at **40%** of screen width.

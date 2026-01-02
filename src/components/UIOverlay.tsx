@@ -78,13 +78,22 @@ const UIOverlay: React.FC = () => {
             confirmBet(hash); // Confirms transaction ONLY after mining
         })
         .catch(err => {
-            console.error("Bet failed:", err);
+            const errorMessageStr = err?.message || "";
+            const isUserRejection = errorMessageStr.includes("User rejected") || errorMessageStr.includes("rejected the request");
+
+            // Only log as error if it's NOT a user rejection to avoid Preview Error modal
+            if (isUserRejection) {
+                console.warn("Transaction cancelled by user");
+            } else {
+                console.error("Bet failed:", err);
+            }
+
             cancelBet(); // Refund and stop loop
             
             // Friendly error message
             let msg = "Transaction Failed";
-            if (err.message?.includes("User rejected")) msg = "Bet Cancelled by User";
-            else if (err.message?.includes("insufficient funds")) msg = "Insufficient Funds";
+            if (isUserRejection) msg = "Bet Cancelled by User";
+            else if (errorMessageStr.includes("insufficient funds")) msg = "Insufficient Funds";
             
             setErrorMessage(msg);
             setTimeout(() => setErrorMessage(null), 3000);
