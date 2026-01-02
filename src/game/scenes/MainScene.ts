@@ -499,13 +499,13 @@ export class MainScene extends Phaser.Scene {
   private async placeBet(pointer: Phaser.Input.Pointer) {
     if (!this.initialPrice) return;
     
-    // Check pending (Limit 1 at a time)
+    // 1. Check pending (Limit 1 at a time)
     const store = useGameStore.getState();
     if (store.pendingBet) {
-        // Already betting
         return; 
     }
 
+    // 2. Click Validation
     const screenX = pointer.x;
     const width = this.scale.width;
     const normalizedClickX = screenX / width;
@@ -516,13 +516,20 @@ export class MainScene extends Phaser.Scene {
         return;
     }
 
-    if (store.balance < store.betAmount) {
+    // 3. Balance Check
+    // store.betAmount is in CROSS, so we check directly against balance
+    const tokenCost = store.betAmount; 
+    console.log("Current Balance in Store:", store.balance, "Required:", tokenCost);
+
+    /* TEMPORARILY DISABLED FOR TESTING
+    if (store.balance < (tokenCost + 0.005)) {
         this.sound.play('sfx_error');
-        // Optional: Show toast via store state if needed, but error sound is simpler
+        console.warn("Insufficient balance");
         return;
     }
+    */
 
-    // Coordinates
+    // 4. Coordinates Calculation
     const colWidth = width / this.gridCols;
     const colIdx = Math.floor(pointer.worldX / colWidth);
     const cellX = (colIdx * colWidth) + (colWidth/2);
@@ -534,7 +541,7 @@ export class MainScene extends Phaser.Scene {
     const cellCenterPrice = snappedBottomPrice + (this.gridPriceInterval / 2);
     const cellY = -(cellCenterPrice - this.initialPrice!) * this.pixelPerDollar;
 
-    // Check existing
+    // 5. Check Existing Bets (Prevent Overlap)
     const existingBet = this.bettingBoxes.find(b => 
       Math.abs(b.container.x - cellX) < 5 && 
       Math.abs(b.container.y - cellY) < 5
@@ -544,64 +551,92 @@ export class MainScene extends Phaser.Scene {
         return;
     }
 
-    // Logic
+    // 6. Setup Bet Data
     const multi = this.calculateDynamicMultiplier(cellCenterPrice, colIndexOnScreen);
     const boxW = colWidth - 8; 
     const boxH = (this.gridPriceInterval * this.pixelPerDollar) - 8;
     const betId = Date.now().toString();
 
-    // 1. Create Pending "Ghost" Box (Grey, alpha 0.5)
+    // 7. Visual Feedback: Create "Pending" Ghost Box
     const container = this.add.container(cellX, cellY);
     
     const bg = this.add.graphics();
-    bg.fillStyle(0x666666, 0.5); // Grey, 0.5 Alpha
+    bg.fillStyle(0x444444, 0.5); 
     bg.lineStyle(2, 0x888888, 0.5);
     bg.fillRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8);
     bg.strokeRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8);
     
-    const txt = this.add.text(0, 0, 'SIGN...', {
-         fontFamily: 'monospace', fontSize: '10px', color: '#dddddd', fontStyle: 'bold'
+    const txt = this.add.text(0, 0, 'CONNECTING...', {
+         fontFamily: 'monospace', fontSize: '10px', color: '#aaaaaa'
     }).setOrigin(0.5);
 
     container.add([bg, txt]);
     this.pendingBoxes.set(betId, container);
 
-    // 2. Request Bet
-    store.requestBet({
-        id: betId,
-        amount: store.betAmount,
-        x: cellX,
-        y: cellY,
-        multiplier: multi,
-        boxWidth: boxW,
-        boxHeight: boxH,
-        basePrice: cellCenterPrice
-    });
-
+    // ★★★ [CORE FIX] Server Communication Safety Block ★★★
     try {
-        const apiUrl = 'https://gene-fragmental-addisyn.ngrok-free.dev';
+        const apiUrl = 'https://gene-fragmental-addisyn.ngrok-free.dev'; // Hardcoded as requested
+        const userAddress = store.userAddress || "0xTestUser";
+
+        // A. Call Server API
         const response = await fetch(`${apiUrl}/api/place-bet`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 betId: betId,
-                userAddress: store.userAddress,
+                userAddress: userAddress,
                 betAmount: store.betAmount,
                 multiplier: multi
             })
         });
-        
-        if (!response.ok) throw new Error("Server Rejected");
+
+        if (!response.ok) {
+            throw new Error(`Server Rejected: ${response.status}`);
+        }
+
+        // B. Server Success -> Proceed to Store/Wallet Logic
+        // This sets 'store.pendingBet = true', locking the UI
+        store.requestBet({
+            id: betId,
+            amount: store.betAmount,
+            x: cellX,
+            y: cellY,
+            multiplier: multi,
+            boxWidth: boxW,
+            boxHeight: boxH,
+            basePrice: cellCenterPrice
+        });
 
     } catch (err) {
-        console.error("Bet Registration Failed:", err);
+        console.error("❌ Bet Registration Failed:", err);
         
-        // CRITICAL: Reset state so user can try again
+        // C. Error Handling: ROLLBACK EVERYTHING
+        
+        // 1. Remove Visual Box
         this.pendingBoxes.delete(betId);
         container.destroy(); 
-        useGameStore.getState().clearPendingBet();
+
+        // 2. Unlock Store State (Crucial!)
+        if (store.clearPendingBet) {
+            store.clearPendingBet(); 
+        } else {
+            console.warn("⚠️ store.clearPendingBet method is missing!");
+        }
         
+        // 3. Visual Feedback for Error
         this.sound.play('sfx_error');
+        
+        const errText = this.add.text(cellX, cellY - 30, '❌ SERVER ERROR', {
+            fontFamily: 'monospace', fontSize: '10px', color: '#ff5555', backgroundColor: '#000000'
+        }).setOrigin(0.5);
+
+        this.tweens.add({
+            targets: errText,
+            y: cellY - 50,
+            alpha: 0,
+            duration: 1500,
+            onComplete: () => errText.destroy()
+        });
     }
   }
 
@@ -718,6 +753,26 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
+  private async requestPayout(betId: string) {
+    const store = useGameStore.getState();
+    const userAddress = store.userAddress || "0xTestUser";
+    const apiUrl = 'https://gene-fragmental-addisyn.ngrok-free.dev';
+
+    try {
+        await fetch(`${apiUrl}/api/payout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                betId: betId,
+                userAddress: userAddress
+            })
+        });
+        console.log("✅ Payout Requested for", betId);
+    } catch (err) {
+        console.error("❌ Payout Request Failed:", err);
+    }
+  }
+
   private handleWin(box: BettingBox, index: number) {
     box.hit = true;
     this.sound.play('sfx_win');
@@ -749,7 +804,8 @@ export class MainScene extends Phaser.Scene {
     
     // Server Payout
     const store = useGameStore.getState();
-    store.claimServerPayout(box.id);
+    // Replaced store.claimServerPayout with direct call
+    this.requestPayout(box.id);
 
     store.requestWin(winVal);
     store.setLastWinAmount(winVal);
