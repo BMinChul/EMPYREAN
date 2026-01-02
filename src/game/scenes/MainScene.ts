@@ -356,10 +356,9 @@ export class MainScene extends Phaser.Scene {
               // Convert to Real Box
               this.createConfirmedBox(req, pendingContainer);
               this.pendingBoxes.delete(req.id);
-          } else {
-              // Fallback if visual missing (rare or restored)
-              this.createConfirmedBox(req, null);
-          }
+          } 
+          // FIX: If pendingContainer is undefined, it means the bet Expired locally.
+          // We DO NOT create a confirmed box. We ignore it to prevent "Ghost Bets".
           
           store.clearLastConfirmedBet();
       }
@@ -470,8 +469,13 @@ export class MainScene extends Phaser.Scene {
   }
 
   private getTextFade(normalizedScreenX: number): number {
+      // Map range [0.45, 0.6] to [0, 1]
+      // < 0.45 = 0 (Invisible)
+      // > 0.60 = 1 (Fully Visible)
       if (normalizedScreenX < 0.45) return 0;
-      return Phaser.Math.Clamp((normalizedScreenX - 0.45) * 10, 0, 1);
+      if (normalizedScreenX > 0.6) return 1;
+      
+      return (normalizedScreenX - 0.45) / (0.6 - 0.45);
   }
 
   private drawGridAndAxis() {
