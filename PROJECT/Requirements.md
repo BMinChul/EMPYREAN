@@ -29,3 +29,11 @@
 ## Backend Integration
 - **Payout Endpoint**: `https://544fcf9d-fabb-47fe-bc6a-ea9895331f00-00-3s83yvw73cevs.spock.replit.dev/api/payout` (POST).
 - **Payload**: `{ userAddress, amount, betId }`.
+
+## Leaderboard System
+- **Endpoint**: `GET /api/leaderboard`.
+- **Logic**: Returns Top 5 winners sorted by total payout amount (descending).
+- **UI**: 
+    - Position: Top-Right.
+    - Style: Gold/Cyberpunk, Masked Addresses (e.g., `0x12...AB34`).
+    - Refresh Rate: 10 seconds.
