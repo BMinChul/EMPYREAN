@@ -680,13 +680,12 @@ export class MainScene extends Phaser.Scene {
     const boxH = (this.gridPriceInterval * this.pixelPerDollar) - 8;
     const betId = Date.now().toString();
 
-    // 7. Calculate Expiry Snapshot (Corrected for Column 4 Deadline)
-    // We want the timestamp when the Box hits Column 4 (Safe Zone Boundary).
-    const scrollX = this.cameras.main.scrollX;
-    const deadlineWorldX = scrollX + (4 * colWidth);
-    const distToDeadline = cellX - deadlineWorldX;
-    const timeToDeadline = distToDeadline / this.pixelsPerSecond; // Seconds
-    const expiryTimestamp = Date.now() + (timeToDeadline * 1000);
+    // 7. Calculate Expiry Snapshot (Corrected for WIN Position - Head)
+    // We want the timestamp when the Box hits the HEAD (Column 2).
+    // This ensures the server validation matches the visual win moment.
+    const distToWin = cellX - this.headX; // Distance from Box Center to Head
+    const timeToWin = distToWin / this.pixelsPerSecond; // Seconds
+    const expiryTimestamp = Date.now() + (timeToWin * 1000);
 
     // 8. Visual Feedback: Create "Pending" Ghost Box
     const container = this.add.container(cellX, cellY);
@@ -878,7 +877,7 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
-  private async requestPayout(betId: string) {
+  private async requestPayout(betId: string, isRefund: boolean = false) {
     const store = useGameStore.getState();
     const userAddress = store.userAddress || "0xTestUser";
     
@@ -888,7 +887,8 @@ export class MainScene extends Phaser.Scene {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 betId: betId,
-                userAddress: userAddress
+                userAddress: userAddress,
+                isRefund: isRefund
             })
         });
         console.log("✅ Payout Requested for", betId);
