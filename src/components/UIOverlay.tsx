@@ -140,36 +140,18 @@ const UIOverlay: React.FC = () => {
                 }
             }
             
-            // Check for Orphaned Transaction (Bet expired while mining)
-            const currentStoreState = useGameStore.getState();
-            const currentPendingId = currentStoreState.pendingBet?.id;
+            // ---------------------------------------------------------
+            // SUCCESS: Transaction Confirmed
+            // ---------------------------------------------------------
+            // RULE: Bet is FINAL once confirmed on blockchain.
+            // We do NOT check for expiry here. If the user paid, the bet stands.
             
-            // Late Arrival Check (New Logic)
-            const now = Date.now();
-            const expiry = pendingBet.expiryTimestamp || (now + 60000);
+            // 1. Confirm locally (UI update)
+            confirmBet(betId, hash); 
             
-            // Condition A: On Time -> Proceed
-            if (now <= expiry && currentPendingId === betId) {
-                // Scenario A: Normal -> Confirm locally
-                confirmBet(betId, hash); 
-                
-                // CRITICAL: Sync Hash to Server immediately
-                if (pendingBet) {
-                    registerServerBet({ ...pendingBet, txHash: hash });
-                }
-            } else {
-                // Condition B: Too Late (or ID mismatch) -> Refund
-                console.warn("⚠️ Transaction Confirmed but Too Late/Orphaned. Requesting refund.", { betId, now, expiry });
-                
-                // Trigger server refund manually since UI box is gone or invalid
-                await currentStoreState.claimServerPayout(betId, true, hash);
-                
-                // Show specific feedback
-                setErrorMessage("Round ended during transaction. Refunding...");
-                setTimeout(() => setErrorMessage(null), 5000);
-                
-                // Clear local state without confirming visual box
-                clearPendingBet();
+            // 2. Sync Hash to Server immediately so game cycle picks it up
+            if (pendingBet) {
+                registerServerBet({ ...pendingBet, txHash: hash });
             }
         })
         .catch(err => {
