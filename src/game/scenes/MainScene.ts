@@ -13,7 +13,6 @@ interface BettingBox {
   container: Phaser.GameObjects.Container;
   rect: Phaser.GameObjects.Rectangle; // Hitbox
   bg: Phaser.GameObjects.Graphics; // Visual Background
-  glow: Phaser.GameObjects.Image; // Proximity Glow
   textAmount: Phaser.GameObjects.Text;
   textMulti: Phaser.GameObjects.Text;
   betAmount: number;
@@ -866,13 +865,6 @@ export class MainScene extends Phaser.Scene {
       bg.fillRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8); 
       bg.strokeRoundedRect(-boxW/2, -boxH/2, boxW, boxH, 8); 
       
-      const glow = this.add.image(0, 0, 'box_glow_rect');
-      glow.setTint(0xfffacd); 
-      glow.setAlpha(0); 
-      const glowScaleX = (boxW + 80) / 160;
-      const glowScaleY = (boxH + 80) / 160;
-      glow.setScale(glowScaleX, glowScaleY);
-
       const rect = this.add.rectangle(0, 0, boxW, boxH, 0x000000, 0); 
       
       const txtAmt = this.add.text(0, -8, `$${req.amount} Cross`, {
@@ -898,7 +890,7 @@ export class MainScene extends Phaser.Scene {
           container.add(scanLink);
       }
 
-      container.add([glow, bg, rect, txtAmt, txtMulti]); 
+      container.add([bg, rect, txtAmt, txtMulti]); 
       
       // Pop Effect
       container.setScale(0.8);
@@ -913,7 +905,7 @@ export class MainScene extends Phaser.Scene {
 
       this.bettingBoxes.push({
           id: req.id,
-          container, rect, bg, glow, 
+          container, rect, bg,
           textAmount: txtAmt, textMulti: txtMulti,
           betAmount: req.amount, multiplier: req.multiplier,
           hit: false, boxWidth: boxW, boxHeight: boxH, basePrice: req.basePrice,
@@ -931,17 +923,6 @@ export class MainScene extends Phaser.Scene {
         const boxX = box.container.x;
         const boxY = box.container.y;
         
-        const dist = Phaser.Math.Distance.Between(this.headX, this.headY, boxX, boxY);
-        const proximityRange = 180; 
-        
-        if (dist < proximityRange) {
-             const intensity = 1 - (dist / proximityRange);
-             const targetAlpha = intensity * 1.0;
-             box.glow.setAlpha(targetAlpha);
-        } else {
-             box.glow.setAlpha(0);
-        }
-
         const halfW = box.boxWidth / 2;
         const halfH = box.boxHeight / 2;
         
