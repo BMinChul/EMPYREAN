@@ -54,6 +54,7 @@ interface GameState {
   // Actions called by React after processing
   confirmBet: (betId: string, txHash: string) => void; // Moves pending -> confirmed (Requires ID check)
   cancelBet: (txHash?: string) => void; // Clears pending, refunds optimistic update
+  resetPendingBet: () => void; // Clears pending WITHOUT refund (for delayed TXs)
   clearLastConfirmedBet: () => void; // Called by Scene after rendering the real box
 
   clearPendingBet: () => void; // Explicit cleanup for errors
@@ -147,6 +148,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         balance: state.balance + state.pendingBet.amount // Refund
     });
   },
+
+  resetPendingBet: () => set({ pendingBet: null }), // Just unlock, don't refund/adjust balance
 
   // Called by Phaser after it renders the confirmed box
   clearLastConfirmedBet: () => set({ lastConfirmedBet: null }),
@@ -242,6 +245,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       } catch (err) {
           console.warn("Failed to fetch leaderboard:", err);
       }
+  },
+
+  syncWithServer: async () => {
+      const state = get();
+      await Promise.all([
+          state.fetchLeaderboard(),
+          state.fetchActiveBets()
+      ]);
   },
 
   fetchUserStats: async (address: string) => {
