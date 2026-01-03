@@ -1,6 +1,10 @@
 # Status
 
 ## Active Work
+- **Removed Late Transaction Auto-Refund**: 
+    - Updated `UIOverlay.tsx` to ensure all confirmed transactions are treated as valid bets.
+    - Removed the client-side expiry check (`Date.now() > expiryTimestamp`) that was triggering premature refunds.
+    - Bets are now finalized (`confirmBet` + `registerServerBet`) immediately upon receipt, regardless of network delay.
 - **Robust Transaction Handling**: 
     - Increased `waitForTransactionReceipt` timeout to **120s** (from 45s) to accommodate slow Testnet block times.
     - Implemented specific error handling for `TransactionReceiptNotFoundError`.
