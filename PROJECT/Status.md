@@ -1,6 +1,9 @@
 # Status
 
 ## Active Work
+- **Audio Integration**: 
+    - Replaced default audio with custom assets: `win.wav`, `bet.wav`, `main_bgm.mp3`.
+    - Tuned BGM volume to 0.3 and enabled looping.
 - **Resolved "Late Transaction" Scenario**: Updated `UIOverlay.tsx` logic to intelligently handle bets that confirm on-chain after the game round has closed.
 - **Optimized Timeout**: Reduced `waitForTransactionReceipt` timeout from 120s to **45s** to match game pacing better.
 - **Automatic Refund Feedback**: 
