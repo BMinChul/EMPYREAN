@@ -72,6 +72,7 @@ export class MainScene extends Phaser.Scene {
   private lastPointTime: number = 0;
 
   private visibilityListener: () => void;
+  private volumeUnsubscribe: (() => void) | null = null;
 
   constructor() {
     super({ key: 'MainScene' });
@@ -91,12 +92,22 @@ export class MainScene extends Phaser.Scene {
     
     // Prevent audio from stopping when window loses focus (e.g. Wallet Popup)
     this.sound.pauseOnBlur = false;
+    
+    // Initialize Volume from Store
+    this.sound.volume = useGameStore.getState().masterVolume;
+    
+    // Subscribe to Volume Changes
+    this.volumeUnsubscribe = useGameStore.subscribe((state) => {
+        if (this.sound.volume !== state.masterVolume) {
+            this.sound.volume = state.masterVolume;
+        }
+    });
 
     // Play Background Music
     if (!this.sound.get('bgm_main')) {
         this.sound.play('bgm_main', {
             loop: true,
-            volume: 0.3
+            volume: 0.3 // BGM relative volume (will be multiplied by master volume internally by Phaser)
         });
     } 
     this.pixelsPerSecond = this.scale.width / this.timeWindowSeconds;
@@ -275,6 +286,9 @@ export class MainScene extends Phaser.Scene {
   private cleanup() {
     if (this.okxService) {
       this.okxService.disconnect();
+    }
+    if (this.volumeUnsubscribe) {
+        this.volumeUnsubscribe();
     }
     document.removeEventListener('visibilitychange', this.visibilityListener);
   }
