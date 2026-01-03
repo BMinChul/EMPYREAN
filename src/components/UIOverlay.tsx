@@ -15,6 +15,7 @@ const UIOverlay: React.FC = () => {
     lastWinAmount, setLastWinAmount,
     pendingBet, confirmBet, cancelBet, setBalance,
     clearPendingBet, // Added for safe local cleanup
+    resetPendingBet, // Added for delayed TXs
     autoBet, setUserAddress,
     connectionError, setConnectionError,
     leaderboard, fetchLeaderboard,
@@ -170,8 +171,10 @@ const UIOverlay: React.FC = () => {
 
             // Refund Check: If we have a hash, we MUST assume it might confirm later
             if (txHash) {
-                console.warn("⚠️ Transaction failed/timed-out but Hash exists. Triggering safety refund.", txHash);
-                cancelBet(txHash); 
+                console.warn("⚠️ Transaction failed/timed-out but Hash exists. NOT refunding - assuming delayed confirmation.", txHash);
+                // Do NOT call cancelBet(txHash) as that triggers refund.
+                // Just unlock the UI.
+                resetPendingBet();
             } else {
                 clearPendingBet(); // No hash = No money moved -> Just clear local state
             }

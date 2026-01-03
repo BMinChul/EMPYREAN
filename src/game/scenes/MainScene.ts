@@ -206,9 +206,9 @@ export class MainScene extends Phaser.Scene {
       if (document.visibilityState !== 'visible') return;
       
       const now = Date.now();
-      console.log(`[Visibility] Game became visible at ${now}. Cleaning up stale bets...`);
+      console.log(`[Visibility] Game became visible at ${now}. Syncing with server...`);
 
-      // 1. Clean Pending Bets
+      // 1. Clean Pending Bets (Unpaid/Drafts ONLY)
       const pendingToRemove: string[] = [];
       this.pendingBoxes.forEach((container, id) => {
           const expiry = container.getData('expiryTimestamp');
@@ -227,20 +227,10 @@ export class MainScene extends Phaser.Scene {
           }
       });
 
-      // 2. Clean Active Bets
-      // Iterate backwards to safely remove
-      for (let i = this.bettingBoxes.length - 1; i >= 0; i--) {
-          const box = this.bettingBoxes[i];
-          if (box.expiryTimestamp && box.expiryTimestamp < now) {
-               console.log(`[Visibility] Removing expired active bet ${box.id}`);
-               box.container.destroy();
-               this.bettingBoxes.splice(i, 1);
-               // Trigger refund check on server just in case? 
-               // If it's active (confirmed), it should have won or lost by now.
-               // If it expired without result, it's an orphan.
-               this.requestPayout(box.id, true);
-          }
-      }
+      // 2. Active Bets -> DO NOT DESTROY HERE.
+      // If they are expired, the server will handle the payout/loss.
+      // We just trigger a re-sync to fetch latest status.
+      this.restoreBets();
   }
 
   private handleResize(gameSize: Phaser.Structs.Size) {
@@ -1043,6 +1033,11 @@ export class MainScene extends Phaser.Scene {
       const boxH = 40; // Approximate if not stored, or derive from price interval
 
       bets.forEach((bet: any) => {
+          // 0. IDEMPOTENCY CHECK
+          // Prevent duplicates if restoreBets is called multiple times (e.g. on Visibility Change)
+          if (this.bettingBoxes.some(b => b.id === bet.betId)) return;
+          if (this.pendingBoxes.has(bet.betId)) return;
+
           // 1. Calculate Position
           // X: Derived from Time to Deadline (Column 4)
           // expiryTimestamp = Now + (DistToCol4 / Speed) * 1000
