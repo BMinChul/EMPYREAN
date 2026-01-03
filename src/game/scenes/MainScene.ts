@@ -80,9 +80,9 @@ export class MainScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.audio('bgm_main', Assets.audio.bgm.main.url);
-    this.load.audio('sfx_win', Assets.audio.sfx.win.url);
-    this.load.audio('sfx_place', Assets.audio.sfx.place_bet.url);
+    this.load.audio('bgm_main', Assets.audio.main_bgm_1767399078833_1.url);
+    this.load.audio('sfx_win', Assets.audio.win_1767399078833_1.url);
+    this.load.audio('sfx_place', Assets.audio.bet_1767399078833_1.url);
     this.load.audio('sfx_refund', Assets.audio.sfx.refund.url);
     this.load.audio('sfx_error', Assets.audio.sfx.error.url);
   }
@@ -97,7 +97,7 @@ export class MainScene extends Phaser.Scene {
     if (!this.sound.get('bgm_main')) {
         this.sound.play('bgm_main', {
             loop: true,
-            volume: 0.4
+            volume: 0.3
         });
     } 
     this.pixelsPerSecond = this.scale.width / this.timeWindowSeconds;

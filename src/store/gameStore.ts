@@ -166,7 +166,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!userAddress) return;
       
       try {
-          await fetch('https://544fcf9d-fabb-47fe-bc6a-ea9895331f00-00-3s83yvw73cevs.spock.replit.dev/api/place-bet', {
+          const res = await fetch('https://544fcf9d-fabb-47fe-bc6a-ea9895331f00-00-3s83yvw73cevs.spock.replit.dev/api/place-bet', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -177,8 +177,11 @@ export const useGameStore = create<GameState>((set, get) => ({
                   txHash: bet.txHash
               })
           });
+          if (!res.ok) {
+              console.warn(`[Backend] Register bet failed: ${res.status}`);
+          }
       } catch (err) {
-          console.error("Failed to register bet with server:", err);
+          console.warn("[Backend] Failed to register bet (Offline Mode):", err);
       }
   },
 
@@ -187,7 +190,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!userAddress) return;
 
       try {
-          await fetch('https://544fcf9d-fabb-47fe-bc6a-ea9895331f00-00-3s83yvw73cevs.spock.replit.dev/api/payout', {
+          const res = await fetch('https://544fcf9d-fabb-47fe-bc6a-ea9895331f00-00-3s83yvw73cevs.spock.replit.dev/api/payout', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -197,8 +200,11 @@ export const useGameStore = create<GameState>((set, get) => ({
                   txHash: txHash
               })
           });
+          if (!res.ok) {
+              console.warn(`[Backend] Payout claim failed: ${res.status}`);
+          }
       } catch (err) {
-          console.error("Failed to claim payout from server:", err);
+          console.warn("[Backend] Failed to claim payout (Offline Mode):", err);
       }
   },
 
