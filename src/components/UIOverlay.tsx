@@ -140,8 +140,11 @@ const UIOverlay: React.FC = () => {
                 }
             }
             
-            // CRITICAL: Always proceed if transaction is confirmed (receipt received)
-            // We treat the bet as VALID regardless of time delay.
+            // ---------------------------------------------------------
+            // SUCCESS: Transaction Confirmed
+            // ---------------------------------------------------------
+            // RULE: Bet is FINAL once confirmed on blockchain.
+            // We do NOT check for expiry here. If the user paid, the bet stands.
             
             // 1. Confirm locally (UI update)
             confirmBet(betId, hash); 
