@@ -24,6 +24,34 @@
         "url": "https://agent8-games.verse8.io/mcp-agent8-generated/static-assets/audio-537c4444-2c7e-4986-a0f0-c1d27dea40bf.ogg",
         "description": "Error or invalid action sound"
       }
+    },
+    "win_1767399078833_1": {
+      "url": "https://agent8-games.verse8.io/0x6072d908caaf47e31cf4f0d2966f08ee70fa82b1-1767166484189/assets/audio/5dd4821d-2497-48.wav",
+      "description": "win.wav",
+      "metadata": {
+        "originalName": "win.wav",
+        "type": "audio/wav",
+        "uploadId": "upload_1767399078833_572tlqi",
+        "uploadComplete": true
+      }
+    },
+    "bet_1767399078833_1": {
+      "url": "https://agent8-games.verse8.io/0x6072d908caaf47e31cf4f0d2966f08ee70fa82b1-1767166484189/assets/audio/fd30abc0-64b7-40.wav",
+      "description": "bet.wav",
+      "metadata": {
+        "originalName": "bet.wav",
+        "type": "audio/wav",
+        "uploadId": "upload_1767399078833_we7nolr",
+        "uploadComplete": true
+      }
+    },
+    "main_bgm_1767399078833_1": {
+      "url": "https://agent8-games.verse8.io/0x6072d908caaf47e31cf4f0d2966f08ee70fa82b1-1767166484189/assets/audio/1a1abf49-3ef7-49.mp3",
+      "description": "main_bgm.mp3",
+      "metadata": {
+        "originalName": "main_bgm.mp3",
+        "type": "audio/mpeg"
+      }
     }
   },
   "ui": {
