@@ -122,13 +122,21 @@ const UIOverlay: React.FC = () => {
             setTxStatus('confirming'); // Update status to show spinner
             if (publicClient) {
                 // Wait for Block Confirmation (Receipt)
-                await publicClient.waitForTransactionReceipt({ 
-                    hash,
-                    confirmations: 1, 
-                    pollingInterval: 2000, // Check every 2s
-                    retryCount: 25,        // Try 25 times (Total ~50s)
-                    timeout: 45000         // Explicit timeout of 45s (Reduced from 120s)
-                });
+                try {
+                    await publicClient.waitForTransactionReceipt({ 
+                        hash,
+                        confirmations: 1, 
+                        pollingInterval: 2000, // Check every 2s
+                        retryCount: 60,        // Try 60 times
+                        timeout: 120000        // Wait up to 120s
+                    });
+                } catch (error: any) {
+                    // Specific handling for slow network / receipt not found
+                    if (error.name === 'TransactionReceiptNotFoundError' || error.message?.includes('could not be found')) {
+                        throw new Error("Network Congested. Please check your wallet.");
+                    }
+                    throw error;
+                }
             }
             
             // Check for Orphaned Transaction (Bet expired while mining)
@@ -190,6 +198,7 @@ const UIOverlay: React.FC = () => {
             if (isUserRejection) msg = "Bet Cancelled by User";
             else if (errorMessageStr.includes("insufficient funds")) msg = "Insufficient Funds";
             else if (isTimeout) msg = "Network slow. Refunds processed automatically.";
+            else if (errorMessageStr.includes("Network Congested")) msg = "Network Congested. Check Wallet.";
             
             setErrorMessage(msg);
             setTimeout(() => setErrorMessage(null), 4000);
