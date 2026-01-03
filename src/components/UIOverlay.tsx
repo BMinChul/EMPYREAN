@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { useAppKit } from '@reown/appkit/react';
 import { useAccount, useDisconnect, useBalance, useSendTransaction, usePublicClient } from 'wagmi';
 import { parseEther, parseGwei } from 'viem';
-import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut, Trophy, X, Clock, History, HelpCircle, Loader2 } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Target, CheckCircle2, ChevronDown, ChevronUp, AlertCircle, Zap, LogOut, Trophy, X, Clock, History, HelpCircle, Loader2, Volume2 } from 'lucide-react';
 import Assets from '../assets.json';
 import { crossTestnet } from '../wagmi';
 
@@ -19,7 +19,8 @@ const UIOverlay: React.FC = () => {
     connectionError, setConnectionError,
     leaderboard, fetchLeaderboard,
     userStats, fetchUserStats,
-    registerServerBet
+    registerServerBet,
+    masterVolume, setMasterVolume
   } = useGameStore();
   
   // WalletConnect / Reown Hooks
@@ -643,6 +644,26 @@ const UIOverlay: React.FC = () => {
                               This game runs on the Cross Testnet. Ensure you have testnet CROSS tokens. 
                               Bets are processed on-chain.
                           </p>
+                      </div>
+
+                      {/* Volume Control */}
+                      <div className="pt-4 border-t border-white/10">
+                          <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                  <Volume2 size={16} className="text-cyan-400" />
+                                  <span className="text-white font-bold text-xs uppercase tracking-wider">Master Volume</span>
+                              </div>
+                              <span className="text-cyan-400 font-mono font-bold text-xs">{Math.round(masterVolume * 100)}%</span>
+                          </div>
+                          <input 
+                              type="range" 
+                              min="0" 
+                              max="100" 
+                              step="1"
+                              value={masterVolume * 100} 
+                              onChange={(e) => setMasterVolume(Number(e.target.value) / 100)}
+                              className="w-full h-2 bg-black/40 rounded-lg appearance-none cursor-pointer accent-cyan-400 hover:accent-cyan-300"
+                          />
                       </div>
                   </div>
               </div>

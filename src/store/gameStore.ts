@@ -72,6 +72,10 @@ interface GameState {
   // User Stats & History
   userStats: UserStats | null;
   fetchUserStats: (address: string) => Promise<void>;
+
+  // Settings
+  masterVolume: number;
+  setMasterVolume: (vol: number) => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -81,6 +85,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   lastWinAmount: 0,
   userAddress: null,
   autoBet: true,
+  
+  masterVolume: 1.0, // Default 100%
+  setMasterVolume: (vol) => set({ masterVolume: vol }),
   
   pendingBet: null,
   lastConfirmedBet: null,
